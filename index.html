@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>主页</title>
+		<link rel="stylesheet" href="style.css" />
+	</head>
+	<body>
+		<div id="pop3"></div>
+		<div id="top">
+			<div id="content">
+				<a class="link1" href="javascript:logoutAccount();">退出登录</a>
+			</div>
+		</div>
+		<div id="card">
+			<table>
+				<tr>
+					<td class="table"><img id="avatar"></td>
+					<td class="table">
+						<div id="nickname"></div>
+						<div class="small">用户名：<span id="user"></span></div>
+						<div class="small">ID：<span id="id"></span></div>
+						<div class="small">用户创建时间：<span id="time"></span></div>
+					</td>
+				</tr>
+			</table>
+			<div class="link1" style="text-align:right;"><span id="config">修改</span></div>
+		</div>
+		<div id="subcard" style="text-align:center"><div class="link"><a class="link1" href="login.html">您还未登录，点击此处登录</a></div></div>
+		<script>
+			function logoutAccount() {
+				localStorage.removeItem('_');
+				location.href = 'login.html';
+			}
+			window.onload = function() {
+				var storedToken = localStorage.getItem('_');
+				if (!storedToken) {
+					document.getElementById('card').style.display = 'none';
+					document.getElementById('top').style.display = 'none';
+					return;
+				}
+				document.getElementById('subcard').style.display = 'none';
+				var queryParams = new URLSearchParams();
+				queryParams.append('token', storedToken);
+				var xhrRequest = new XMLHttpRequest();
+				xhrRequest.open('POST', 'user_data.php', true);
+				xhrRequest.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+				xhrRequest.onreadystatechange = function() {
+					if (xhrRequest.readyState === 4 && xhrRequest.status === 200) {
+						var serverResponse = xhrRequest.responseText;
+						if (serverResponse == 'fail') {
+							document.getElementById('pop3').innerText = '查询失败，请稍后再试。';
+							document.getElementById('config').style.visibility = 'hidden';
+							document.getElementById('pop3').style.visibility = 'visible';
+						} else {
+							var userData = serverResponse.split('\n');
+							document.getElementById('nickname').innerText = userData[4];
+							document.getElementById('user').innerText = userData[1];
+							document.getElementById('id').innerText = userData[0];
+							document.getElementById('time').innerText = userData[2];
+							if (userData[5] == '1') {
+								document.getElementById('avatar').setAttribute('src', 'avatar/' + userData[3] + '.jpg');
+							} else if (userData[5] == '0') {
+								document.getElementById('avatar').setAttribute('src', 'default.jpg');
+							}
+						}
+					}
+				};
+				xhrRequest.send(queryParams.toString());
+			};
+			document.getElementById('config').addEventListener('click', function() {
+				location.href = "change.html";
+			});
+		</script>
+	</body>
+</html>
