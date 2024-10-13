@@ -19,10 +19,33 @@
 			</div>
 			<table>
 				<tr>
-					<td class="table"><img id="avatar2" src="default.jpg"></td>
+					<td class="table"><img id="avatar2" src="default.jpg"><br>点击头像以修改头像</td>
 					<td class="table">
-						<span class="t"><label for="user">用户名：</label><span id="user"></span></span><br />
+						<span class="t"><label>用户名：</label><span id="user"></span></span><br />
 						<span class="t"><label for="nick">　昵称：</label><input type="text" id="nick" placeholder="请输入昵称" class="text" /></span>
+					</td>
+				</tr>
+				<tr>
+					<td class="table">
+						<span class="t">
+							<label for="user">性别：</label>
+							<select id="gender" class="selection">
+								<option value="M">男</option>
+								<option value="W">女</option>
+								<option value="N">不设置</option>
+							</select>
+						</span>
+					</td>
+					<td class="table">
+						<span class="t">
+							<label for="user">生日：</label>
+							<input type="date" id="birth" class="selection1" />
+						</span>
+					</td>
+				</tr>
+				<tr>
+					<td colspan="2" class="table">
+						<label for="bio">个性签名：</label><br><textarea id="bio" class="bio" placeholder="请输入个性签名" wrap="hard" maxlength="250"></textarea>
 					</td>
 				</tr>
 			</table>
@@ -34,7 +57,7 @@
 		</div>
 		<input type="file" id="fileInput" accept="image/jpeg, image/png">
 		<script>
-			var userData, isNicknameEditable = true, isPopupVisible = false;
+			var userData, isPopupVisible = false, conf = {}, nconf = {};
 			function togglePopupVisibility() {
 				if (isPopupVisible) {
 					document.getElementById('pop2').style.visibility = 'hidden';
@@ -44,8 +67,20 @@
 					isPopupVisible = true;
 				}
 			}
+			function getCookie(name) {
+				var value = `; ${document.cookie}`;
+				var parts = value.split(`; ${name}=`);
+				if (parts.length === 2) return parts.pop().split(';').shift();
+				return null;
+			}
+			function checkPassword(password, repassword) {
+				return password === repassword && !!password && !(password.length < 8 || 32 < password.length || !/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/\d/.test(password));
+			}
+			function testFuture(date) {
+				return new Date(date) > new Date();
+			}
 			window.onload = function() {
-				var token = localStorage.getItem('_');
+				var token = getCookie('_');
 				if (!token) {
 					location.href = 'login.html';
 				}
@@ -59,12 +94,19 @@
 					if (xhr.readyState === 4 && xhr.status === 200) {
 						var response = xhr.responseText;
 						if (response) {
+							if (response === 'invalid') {
+								alert('用户信息被篡改，无法查看信息。');
+								location.href = 'login.html';
+							}
 							userData = response.split('\n');
 							document.getElementById('user').innerText = userData[0];
-							document.getElementById('nick').value = userData[1];
+							document.getElementById('nick').value = conf['nick'] = userData[1];
 							if (userData[3] === '1') {
 								document.getElementById('avatar2').src = 'avatar/' + userData[4] + '.jpg';
 							}
+							document.getElementById('gender').value = conf['gender'] = userData[5];
+							document.getElementById('birth').value = conf['birth'] = userData[6];
+							document.getElementById('bio').value = conf['bio'] = userData[7];
 						} else {
 							alert('查询失败，请稍后再试。');
 						}
@@ -75,53 +117,56 @@
 			document.getElementById('changepass').addEventListener('click', togglePopupVisibility);
 			document.getElementById('no').addEventListener('click', togglePopupVisibility);
 			document.getElementById('save').addEventListener('click', function() {
-				if (isNicknameEditable) {
-					var userId = userData[2];
+				if (conf['nick'] !== document.getElementById('nick').value) {
 					var newNickname = document.getElementById('nick').value.trim();
-					if (newNickname === '') {
-						alert('昵称不能为空！');
+					if (!newNickname) {
+						alert('昵称不能为空。');
 						return;
 					}
-					var newPassword = document.getElementById('pass').value;
-					var saveParams = new URLSearchParams({
-						id: userId,
-						nick: newNickname,
-						pass: newPassword
-					});
-					var xhrSave = new XMLHttpRequest();
-					xhrSave.open('POST', 'save.php', true);
-					xhrSave.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-					xhrSave.onreadystatechange = function() {
-						if (xhrSave.readyState === 4 && xhrSave.status === 200) {
-							var response = xhrSave.responseText;
-							if (response === "fail") {
-								alert('修改失败，请稍后再试！');
-							}
-							if (response === "success") {
-								alert('修改成功！');
-								location.href = "index.html";
-							}
-						}
-					};
-					xhrSave.send(saveParams);
+					nconf['nick'] = newNickname;
 				}
+				if (conf['gender'] !== document.getElementById('gender').value) {
+					nconf['gender'] = document.getElementById('gender').value;
+				}
+				if (conf['birth'] !== document.getElementById('birth').value) {
+					if (testFuture(new Date(document.getElementById('birth').value))) {
+						alert('出生日期不能是未来的日期。');
+						return;
+					}
+					nconf['birth'] = document.getElementById('birth').value;
+				}
+				if (conf['bio'] !== document.getElementById('bio').value) {
+					nconf['bio'] = document.getElementById('bio').value.trim();
+				}
+				if (Object.keys(nconf).length === 0) {
+					alert('用户信息未修改。');
+					location.href = "index.html";
+					return;
+				}
+				var saveParams = new URLSearchParams({p:JSON.stringify(nconf),id:userData[2]});
+				var xhrSave = new XMLHttpRequest();
+				xhrSave.open('POST', 'save.php', true);
+				xhrSave.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+				xhrSave.onreadystatechange = function() {
+					if (xhrSave.readyState === 4 && xhrSave.status === 200) {
+						var response = xhrSave.responseText;
+						if (response === "fail") {
+							alert('修改失败，请稍后再试！');
+						} else if (response === "success") {
+							alert('修改成功！');
+							location.href = "index.html";
+						} else {
+							alert(response);
+						}
+					}
+				};
+				xhrSave.send(saveParams);
 			});
 			document.getElementById('ok').addEventListener('click', function() {
-				var password = document.getElementById('pass').value;
-				if (password === document.getElementById('repass').value) {
-					if (!password) {
-						alert('无法保存：密码为空。');
-						isNicknameEditable = false;
-					} else if (password.length < 8 || password.length > 32 || !/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/\d/.test(password)) {
-						alert('请先修改成合法的密码再保存。密码长度8到32位，必须包含至少1个小写字母、1个大写字母和1个数字。');
-						isNicknameEditable = false;
-					} else {
-						alert('保存成功！');
-						isNicknameEditable = true;
-					}
+				if (checkPassword(document.getElementById('pass').value, document.getElementById('repass').value)) {
+					nconf['pass'] = document.getElementById('pass').value;
 				} else {
-					alert('密码与确认密码不一致！');
-					isNicknameEditable = false;
+					alert('密码不符合要求，请重新输入。');
 				}
 			});
 			document.getElementById('del').addEventListener('click', function() {
@@ -129,7 +174,8 @@
 				if (confirmDeletion) {
 					var accountId = userData[2];
 					var queryParams = new URLSearchParams({
-						id: accountId
+						id: accountId,
+						token: 
 					});
 					var xhrRequest = new XMLHttpRequest();
 					xhrRequest.open('POST', 'del.php', true);

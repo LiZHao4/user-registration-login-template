@@ -29,12 +29,22 @@
 		</div>
 		<div id="subcard" style="text-align:center"><div class="link"><a class="link1" href="login.html">您还未登录，点击此处登录</a></div></div>
 		<script>
+			function getCookie(name) {
+				var value = `; ${document.cookie}`;
+				var parts = value.split(`; ${name}=`);
+				if (parts.length === 2) return parts.pop().split(';').shift();
+				return null;
+			}
+			function clearCookie(name) {
+				var date = new Date(0);
+				document.cookie = name + "=1; expires=" + date.toUTCString() + "; path=/";
+			}
 			function logoutAccount() {
-				localStorage.removeItem('_');
+				clearCookie('_');
 				location.href = 'login.html';
 			}
 			window.onload = function() {
-				var storedToken = localStorage.getItem('_');
+				var storedToken = getCookie('_');
 				if (!storedToken) {
 					document.getElementById('card').style.display = 'none';
 					document.getElementById('top').style.display = 'none';
