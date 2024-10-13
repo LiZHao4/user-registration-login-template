@@ -15,6 +15,11 @@
 			<button id="submit">登录</button><a href="regist.html"><button id="regist">注册</button></a>
 		</div>
 		<script>
+			function setCookie(name, value) {
+				var date = new Date();
+				date.setTime(date.getTime() + 2592e6);
+				document.cookie = name + "=" + (value || "") + "; expires=" + date.toUTCString() + "; path=/";
+			}
 			document.getElementById('submit').addEventListener('click', function() {
 			var username = document.getElementById('user').value;
 			var password = document.getElementById('pass').value;
@@ -44,7 +49,7 @@
 							document.getElementById('pop').innerText = '用户不存在！';
 							document.getElementById('pop').style.visibility = 'visible';
 						} else {
-							localStorage.setItem('_', responseText);
+							setCookie('_', responseText);
 							location.href = 'index.html';
 						}
 					}
