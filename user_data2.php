@@ -10,11 +10,11 @@
 				$statement->bind_param("s", $postedToken);
 				$statement->execute();
 				$result = $statement->get_result();
-				if ($result) {
+				if ($result->num_rows > 0) {
 					$userData = $result->fetch_assoc();
 					echo $userData["user"] . "\n" . $userData["nick"]. "\n" . $userData["id"] . "\n" . $userData["user_avatar"] . "\n" . $userData["token"] . "\n" . $userData["gender"] . "\n" . $userData["birth"] . "\n" . $userData["bio"];
 				} else {
-					echo "invalid";
+					echo "fail";
 				}
 				$statement->close();
 			}

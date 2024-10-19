@@ -21,6 +21,11 @@
 			$username = $_POST["user"];
 			$password = $_POST["pass"];
 			$action = $_POST["from"];
+			if (!preg_match("/^[a-zA-Z_$][a-zA-Z0-9_$]{0,31}$/", $username) || !preg_match("/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,32}$/", $password)) {
+				echo "fail";
+				$db->close();
+				exit();
+			}
 			if ($action == "regist") {
 				$nextUserId = findNextAvailableUserId();
 				$stmtCheckUsername = $db->prepare("SELECT COUNT(*) AS count FROM users WHERE user = ?");
