@@ -17,18 +17,24 @@
 		}
 		mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 		try {
-			$db = new mysqli("localhost", "yuancheng", "yc@123456", "yc");
+			$config = parse_ini_file('conf/settings.ini', true);
+			$host = $config['database']['host'];
+			$user = $config['database']['user'];
+			$pass = $config['database']['pass'];
+			$db_name = $config['database']['db'];
+			$table = $config['database']['table'];
+			$db = new mysqli($host, $user, $pass, $db_name);
 			$username = $_POST["user"];
 			$password = $_POST["pass"];
 			$action = $_POST["from"];
-			if (!preg_match("/^[a-zA-Z_$][a-zA-Z0-9_$]{0,31}$/", $username) || !preg_match("/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,32}$/", $password)) {
+			if (!preg_match("/^[a-zA-Z_$][a-zA-Z0-9_$]{0,31}$/", $username) || strlen($password) < 8 || strlen($password) > 32 || !preg_match("/[a-z]/", $password) || !preg_match("/[A-Z]/", $password) || !preg_match("/\d/", $password)) {
 				echo "fail";
 				$db->close();
 				exit();
 			}
 			if ($action == "regist") {
 				$nextUserId = findNextAvailableUserId();
-				$stmtCheckUsername = $db->prepare("SELECT COUNT(*) AS count FROM users WHERE user = ?");
+				$stmtCheckUsername = $db->prepare("SELECT COUNT(*) AS count FROM $table WHERE user = ?");
 				$stmtCheckUsername->bind_param("s", $username);
 				$stmtCheckUsername->execute();
 				$resultCheckUsername = $stmtCheckUsername->get_result();
@@ -41,14 +47,14 @@
 				}
 				$tokenForNewUser = generateRandomToken();
 				$hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-				$stmtInsertUser = $db->prepare("INSERT INTO users (id, user, password, token, nick) VALUES (?, ?, ?, ?, ?)");
+				$stmtInsertUser = $db->prepare("INSERT INTO $table (id, user, password, token, nick) VALUES (?, ?, ?, ?, ?)");
 				$stmtInsertUser->bind_param("issss", $nextUserId, $username, $hashedPassword, $tokenForNewUser, $username);
 				$stmtInsertUser->execute();
 				echo "success";
 				$stmtCheckUsername->close();
 				$stmtInsertUser->close();
 			} else if ($action == "login") {
-				$stmtLogin = $db->prepare("SELECT password, token FROM users WHERE user = ?");
+				$stmtLogin = $db->prepare("SELECT password, token FROM $table WHERE user = ?");
 				$stmtLogin->bind_param("s", $username);
 				$stmtLogin->execute();
 				$resultLogin = $stmtLogin->get_result();
@@ -67,5 +73,7 @@
 		} catch (mysqli_sql_exception $e) {
 			echo "fail";
 		}
+	} else {
+		echo "fail";
 	}
 ?>
