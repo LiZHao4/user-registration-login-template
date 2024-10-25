@@ -4,9 +4,15 @@
 		mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 		$fileExtension = strtolower(pathinfo($_FILES["avatar"]["name"], PATHINFO_EXTENSION));
 		$userId = $_POST['id'];
+		$config = parse_ini_file('conf/settings.ini', true);
+		$host = $config['database']['host'];
+		$user = $config['database']['user'];
+		$pass = $config['database']['pass'];
+		$db = $config['database']['db'];
+		$table = $config['database']['table'];
 		try {
-			$dbConnection = new mysqli("localhost", "yuancheng", "yc@123456", "yc");
-			$querySelectToken = "SELECT token FROM users WHERE id = ?";
+			$dbConnection = new mysqli($host, $user, $pass, $db);
+			$querySelectToken = "SELECT token FROM $table WHERE id = ?";
 			$stmtSelectToken = $dbConnection->prepare($querySelectToken);
 			$stmtSelectToken->bind_param("i", $userId);
 			$stmtSelectToken->execute();
@@ -38,7 +44,7 @@
 						exit("fail");
 				}
 				unlink($tempFilePath);
-				$queryUpdateAvatar = "UPDATE users SET user_avatar = 1 WHERE id = ?";
+				$queryUpdateAvatar = "UPDATE $table SET user_avatar = 1 WHERE id = ?";
 				$stmtUpdateAvatar = $dbConnection->prepare($queryUpdateAvatar);
 				$stmtUpdateAvatar->bind_param("i", $userId);
 				$stmtUpdateAvatar->execute();
