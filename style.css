@@ -22,153 +22,13 @@ html, body {
 	height: 100%;
 	margin: 0;
 }
-#avatar {
+.avatar {
 	width: 120px;
 	height: 120px;
 }
-#avatar2 {
+.avatar2 {
 	width: 80px;
 	height: 80px;
-}
-#card, #subcard {
-	margin: 10px;
-	padding: 20px;
-	position: relative;
-	top: 20px;
-	left: 2.5%;
-	width: calc(95% - 60px);
-	border-radius: 20px;
-	box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-	background-color: white;
-}
-#config {
-	cursor: pointer;
-}
-#content {
-	float: right;
-	font-size: 16px;
-	line-height: 30px;
-}
-#fileInput, #hidden {
-	display: none;
-}
-#form {
-	background-color: #fff;
-	padding: 20px;
-	border-radius: 8px;
-	box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-	width: 300px;
-}
-#nick {
-	width: calc(100% - 64px);
-	padding: 10px;
-	margin-bottom: 15px;
-	border: 1px solid #ccc;
-	border-radius: 4px;
-	box-sizing: border-box;
-}
-#nickname {
-	font-size: 30px;
-	line-height: 45px;
-	color: #000;
-}
-#ok {
-	padding: 10px;
-	background-color: #007BFF;
-	border: 0;
-	color: white;
-	border-radius: 10px;
-	cursor: pointer;
-	display: block;
-}
-#pop {
-	padding: 10px;
-	background-color: #fff;
-	border-radius: 8px;
-	box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-	width: 280px;
-	position: absolute;
-	border-radius: 8px;
-	visibility: hidden;
-	bottom: 10px;
-}
-#pop2 {
-	padding: 20px;
-	background-color: #fff;
-	border-radius: 8px;
-	box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-	width: 280px;
-	position: absolute;
-	border-radius: 8px;
-	visibility: hidden;
-	bottom: 10px;
-	transform: translateX(-10px);
-}
-#pop3 {
-	padding: 10px;
-	background-color: #fff;
-	border-radius: 8px;
-	box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-	width: 280px;
-	position: absolute;
-	border-radius: 8px;
-	visibility: hidden;
-	bottom: 10px;
-	left: 50%;
-	transform: translateX(-50%);
-}
-#popup {
-	padding: 10px;
-	background-color: #fff;
-	border-radius: 8px;
-	box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-	width: 280px;
-	position: absolute;
-	border-radius: 8px;
-	visibility: hidden;
-	transform: translateY(-200px);
-}
-#regist {
-	margin-top: 10px;
-	width: 100%;
-	padding: 10px;
-	background-color: #f4f4f4;
-	color: black;
-	border: none;
-	border-radius: 4px;
-	cursor: pointer;
-}
-#save {
-	padding: 10px;
-	background-color: #007BFF;
-	border: 0;
-	color: white;
-	border-radius: 10px;
-	cursor: pointer;
-}
-#sp {
-	text-align: center;
-	width: 100%;
-	margin-top: 0;
-	margin-bottom: 15px;
-}
-#submit {
-	width: 100%;
-	padding: 10px;
-	background-color: #007BFF;
-	color: white;
-	border: none;
-	border-radius: 4px;
-	cursor: pointer;
-}
-#table {
-	width: 100%;
-}
-#top {
-	width: calc(100% - 20px);
-	padding: 10px;
-	height: 30px;
-	box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 .b {
 	padding: 10px;
@@ -176,6 +36,15 @@ html, body {
 	border: 0;
 	color: #007BFF;
 	cursor: pointer;
+}
+.between {
+	display: flex;
+	justify-content: space-between;
+}
+.big {
+	font-size: 30px;
+	line-height: 45px;
+	color: #000;
 }
 .bio {
 	margin-top: 10px;
@@ -190,6 +59,17 @@ html, body {
 	display: flex;
 	justify-content: space-between;
 }
+.card {
+	margin: 10px;
+	padding: 20px;
+	position: relative;
+	top: 20px;
+	left: 2.5%;
+	width: calc(95% - 60px);
+	border-radius: 20px;
+	box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+	background-color: white;
+}
 .col1 {
 	width: 40px;
 }
@@ -199,6 +79,21 @@ html, body {
 .flex {
 	display: flex;
 }
+.form {
+	background-color: #fff;
+	padding: 20px;
+	border-radius: 8px;
+	box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+	width: 300px;
+}
+.gray {
+	color: #777;
+	font-size: 12px;
+	text-align: center;
+}
+.hidden {
+	display: none;
+}
 .link {
 	font-size: 16px;
 	line-height: 24px;
@@ -206,6 +101,79 @@ html, body {
 }
 .link1 {
 	color: #007BFF;
+}
+.main-button {
+	padding: 10px;
+	background-color: #007BFF;
+	border: 0;
+	color: white;
+	border-radius: 10px;
+	cursor: pointer;
+}
+.pointer {
+	cursor: pointer;
+}
+.pop {
+	padding: 10px;
+	background-color: #fff;
+	border-radius: 8px;
+	box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+	width: 280px;
+	position: absolute;
+	border-radius: 8px;
+	visibility: hidden;
+	bottom: 10px;
+}
+.pop1 {
+	padding: 10px;
+	background-color: #fff;
+	border-radius: 8px;
+	box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+	width: 280px;
+	position: absolute;
+	border-radius: 8px;
+	visibility: hidden;
+	bottom: 10px;
+	left: 50%;
+	transform: translateX(-50%);
+}
+.pop2 {
+	padding: 20px;
+	background-color: #fff;
+	border-radius: 8px;
+	box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+	width: 280px;
+	position: absolute;
+	border-radius: 8px;
+	visibility: hidden;
+	bottom: 10px;
+	transform: translateX(-10px);
+}
+.popup {
+	padding: 10px;
+	background-color: #fff;
+	border-radius: 8px;
+	box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+	width: 280px;
+	position: absolute;
+	border-radius: 8px;
+	visibility: hidden;
+	transform: translateY(-200px);
+}
+.regist {
+	margin-top: 10px;
+	width: 100%;
+	padding: 10px;
+	background-color: #f4f4f4;
+	color: black;
+	border: none;
+	border-radius: 4px;
+	cursor: pointer;
+}
+.right {
+	float: right;
+	font-size: 16px;
+	line-height: 30px;
 }
 .selection {
 	background-color: white;
@@ -227,11 +195,29 @@ html, body {
 	line-height: 24px;
 	color: #afafaf;
 }
+.sp {
+	text-align: center;
+	width: 100%;
+	margin-top: 0;
+	margin-bottom: 15px;
+}
+.submit {
+	width: 100%;
+	padding: 10px;
+	background-color: #007BFF;
+	color: white;
+	border: none;
+	border-radius: 4px;
+	cursor: pointer;
+}
 .t {
 	line-height: 38px;
 }
 .table {
 	padding: 10px;
+}
+.table0 {
+	width: 100%;
 }
 .text {
 	display: inline-block;
@@ -240,4 +226,10 @@ html, body {
 .text1 {
 	display: inline-block;
 	width: calc(100% - 80px);
+}
+.top {
+	width: calc(100% - 20px);
+	padding: 10px;
+	height: 30px;
+	box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
