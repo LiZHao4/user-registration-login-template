@@ -11,9 +11,9 @@ function getCookie(name) {
 	if (parts.length === 2) return parts.pop().split(';').shift();
 	return null;
 }
-function logoutAccount() {
+function logoutAccount(lang) {
 	clearCookie('_');
-	location.href = 'login.html';
+	location.href = 'login.html?lang=' + lang;
 }
 function setCookie(name, value) {
 	var date = new Date();

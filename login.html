@@ -3,49 +3,81 @@
 	<head>
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<title>登录</title>
+		<title data-key="loginLabel"></title>
 		<link rel="stylesheet" href="style.css" />
 	</head>
 	<body class="flex">
 		<div class="form">
-			<h2 class="sp">登录</h2>
+			<h2 class="sp" data-key="loginLabel"></h2>
 			<div class="pop" id="pop"></div>
-			<label for="user">用户名：</label><input type="text" id="user" placeholder="请输入用户名" class="text" /><br />
-			<label for="pass">　密码：</label><input type="password" id="pass" placeholder="请输入密码" class="text" /><br />
-			<button class="submit" id="submit">登录</button><a href="regist.html"><button class="regist" id="regist">注册</button></a>
+			<table class="table0">
+				<tr>
+					<td><label for="user" data-key="usernameLabel"></label></td>
+					<td><input type="text" id="user" class="text" style="margin:0" /></td>
+				</tr>
+				<tr>
+					<td><label for="pass" data-key="passwordLabel"></label></td>
+					<td><input type="password" id="pass" class="text" style="margin:0" /></td>
+				</tr>
+			</table>
+			<button class="submit" id="submit" data-key="loginLabel"></button><a id="reg"><button class="regist" id="regist" data-key="register"></button></a>
 		</div>
 		<script src="js/lib.js"></script>
 		<script>
-			document.getElementById('submit').addEventListener('click', function() {
-			var username = document.getElementById('user').value;
-			var password = document.getElementById('pass').value;
-			if (!/^[a-zA-Z_$][a-zA-Z0-9_$]{0,31}$/.test(username) || password.length < 8 || password.length > 32 || !/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/\d/.test(password)) {
-				showPop('账户名或密码不合规！\n规则：用户名必须以字母、下划线_或美元符号$开头，可包含字母（大小写）、数字、下划线_或美元符号$，总长度1到32位。密码长度8到32位，必须包含至少1个小写字母、1个大写字母和1个数字。');
-				return;
-			} else {
-				var authParams = new URLSearchParams({
-					user: username,
-					pass: password,
-					from: 'login',
-					v: '2'
-				});
-				var xhr = new XMLHttpRequest();
-				xhr.open('POST', 'user_auth.php', true);
-				xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-				xhr.onreadystatechange = function () {
-					if (xhr.readyState === 4 && xhr.status === 200) {
-						var responseText = JSON.parse(xhr.responseText);
-						if (responseText.code === 1) {
-							setCookie('_', responseText.token);
-							location.href = 'index.html';
-						} else {
-							showPop(responseText.msg);
+			var language, lang = new URLSearchParams(window.location.search).get('lang') || 'zh-CN';
+			function request(lang) {
+				var xhr0 = new XMLHttpRequest();
+				xhr0.open('GET', 'languages/' + encodeURIComponent(lang) + '.json', true);
+				xhr0.onreadystatechange = function() {
+					if (xhr0.readyState === 4) {
+						if (xhr0.status === 200) {
+							language = JSON.parse(xhr0.responseText);
+							document.querySelectorAll('[data-key]').forEach(function(element) {
+								element.innerText = language[element.dataset.key];
+							});
+							document.getElementById('user').setAttribute('placeholder', language.enterUsername);
+							document.getElementById('pass').setAttribute('placeholder', language.enterPassword);
+						} else if (xhr0.status === 404) {
+							request('zh-CN');
 						}
 					}
 				};
-				xhr.send(authParams.toString());
+				xhr0.send();
 			}
-		});
+			window.onload = function() {
+				request(lang);
+				document.getElementById('reg').setAttribute('href', 'regist.html?lang=' + lang);
+			};
+			document.getElementById('submit').addEventListener('click', function() {
+				var username = document.getElementById('user').value;
+				var password = document.getElementById('pass').value;
+				if (!/^[a-zA-Z_$][a-zA-Z0-9_$]{0,31}$/.test(username) || password.length < 8 || password.length > 32 || !/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/\d/.test(password)) {
+					showPop(language.invalidUsernamePassword);
+					return;
+				} else {
+					var authParams = new URLSearchParams({
+						user: username,
+						pass: password,
+						from: 'login',
+						v: '2'
+					});
+					var xhr = new XMLHttpRequest();
+					xhr.open('POST', 'user_auth.php?lang=' + lang, true);
+					xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+					xhr.onreadystatechange = function () {
+						if (xhr.readyState === 4 && xhr.status === 200) {
+							var responseText = JSON.parse(xhr.responseText);
+							if (responseText.code === 1) {
+								setCookie('_', responseText.token);
+								location.href = 'index.html?lang=' + lang;
+							} else {
+								showPop(responseText.msg);
+							}
+						}
+					};
+					xhr.send(authParams.toString());
+				}
+			});
 		</script>
 	</body>
 </html>
