@@ -1,4 +1,9 @@
 <?php
+	if (isset($_GET["lang"]) && file_exists("languages/" . $_GET["lang"] . ".json")) {
+		$language = json_decode(file_get_contents("languages/" . $_GET["lang"] . ".json"), true);
+	} else {
+		$language = json_decode(file_get_contents("languages/zh-CN.json"), true);
+	}
 	if (isset($_POST["v"]) && $_POST["v"] == "2") header('Content-Type: application/json');
 	else header('Content-Type: text/plain');
 	if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['user']) && isset($_POST['pass']) && isset($_POST['from'])) {
@@ -29,7 +34,7 @@
 			$password = $_POST["pass"];
 			$action = $_POST["from"];
 			if (!preg_match("/^[a-zA-Z_$][a-zA-Z0-9_$]{0,31}$/", $username) || strlen($password) < 8 || strlen($password) > 32 || !preg_match("/[a-z]/", $password) || !preg_match("/[A-Z]/", $password) || !preg_match("/\d/", $password)) {
-				if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => -1, "msg" => "用户名或密码格式不正确"]);
+				if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => -1, "msg" => $language["invalidFormat"]]);
 				else echo "fail";
 				$db->close();
 				exit();
@@ -42,7 +47,7 @@
 				$resultCheckUsername = $stmtCheckUsername->get_result();
 				$rowCheckUsername = $resultCheckUsername->fetch_assoc();
 				if ($rowCheckUsername["count"] > 0) {
-					if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => -1, "msg" => "用户名已存在"]);
+					if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => -1, "msg" => $language["usernameExists"]]);
 					else echo "exist";
 					$stmtCheckUsername->close();
 					$db->close();
@@ -53,7 +58,7 @@
 				$stmtInsertUser = $db->prepare("INSERT INTO users (id, user, password, token, nick) VALUES (?, ?, ?, ?, ?)");
 				$stmtInsertUser->bind_param("issss", $nextUserId, $username, $hashedPassword, $tokenForNewUser, $username);
 				$stmtInsertUser->execute();
-				if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => 1, "msg" => "注册成功"]);
+				if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => 1, "msg" => $language["registrationSuccess"]]);
 				else echo "success";
 				$stmtCheckUsername->close();
 				$stmtInsertUser->close();
@@ -64,25 +69,25 @@
 				$resultLogin = $stmtLogin->get_result();
 				if ($resultLogin && $rowLogin = $resultLogin->fetch_assoc()) {
 					if (password_verify($_POST["pass"], $rowLogin["password"])) {
-						if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => 1, "msg" => "登录成功", "token" => $rowLogin["token"]]);
+						if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => 1, "msg" => $language["loginSuccess"], "token" => $rowLogin["token"]]);
 						else echo $rowLogin["token"];
 					} else {
-						if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => -1, "msg" => "密码错误"]);
+						if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => -1, "msg" => $language["wrongPassword"]]);
 						else echo "wrong";
 					}
 				} else {
-					if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => -1, "msg" => "用户不存在"]);
+					if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => -1, "msg" => $language["userNotFound"]]);
 					else echo "not_exist";
 				}
 				$stmtLogin->close();
 			}
 			$db->close();
 		} catch (mysqli_sql_exception $e) {
-			if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => -1, "msg" => "数据库错误"]);
+			if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => -1, "msg" => $language["databaseError"]]);
 			else echo "fail";
 		}
 	} else {
-		if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => -1, "msg" => "请求方法不正确或缺少必要的参数"]);
+		if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => -1, "msg" => $language["invalidRequest"]]);
 		else echo "fail";
 	}
 ?>

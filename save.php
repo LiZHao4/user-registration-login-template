@@ -1,4 +1,9 @@
 <?php
+	if (isset($_GET["lang"]) && file_exists("languages/" . $_GET["lang"] . ".json")) {
+		$language = json_decode(file_get_contents("languages/" . $_GET["lang"] . ".json"), true);
+	} else {
+		$language = json_decode(file_get_contents("languages/zh-CN.json"), true);
+	}
 	if (isset($_POST["v"]) && $_POST["v"] == "2") header('Content-Type: application/json');
 	else header('Content-Type: text/plain');
 	if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['id']) && isset($_POST['token']) && isset($_POST['p'])) {
@@ -12,7 +17,7 @@
 			$databaseConnection = new mysqli($host, $user, $pass, $db);
 			$p = json_decode($_POST['p']);
 			if (empty($p) || !is_object($p)) {
-				if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => -1, "msg" => "参数错误"]);
+				if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => -1, "msg" => $language["parameterError"]]);
 				else echo "fail";
 				exit;
 			}
@@ -62,20 +67,20 @@
 						$st->close();
 					}
 				} else {
-					if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => 0, "msg" => "令牌验证失败，请重新登录"]);
+					if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => 0, "msg" => $language["invalidUserOrToken"]]);
 					else echo "fail";
 				}
 			}
-			if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => 1, "msg" => "更新成功"]);
+			if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => 1, "msg" => $language["updateSuccess"]]);
 			else echo "success";
 		} catch (mysqli_sql_exception $sqlException) {
-			if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => -1, "msg" => "数据库错误：" . $sqlException->getMessage()]);
+			if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => -1, "msg" => $language["databaseError"]]);
 			else echo "fail";
 		} finally {
 			$databaseConnection->close();
 		}
 	} else {
-		if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => -1, "msg" => "无效的请求方法或缺少必要的参数"]);
+		if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => -1, "msg" => $language["invalidRequest"]]);
 		else echo "fail";
 	}
 ?>

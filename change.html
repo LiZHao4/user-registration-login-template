@@ -3,73 +3,102 @@
 	<head>
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<title>更改信息</title>
+		<title data-key="editInfo"></title>
 		<link rel="stylesheet" href="style.css" />
 	</head>
 	<body class="flex">
 		<div class="form">
-			<h2>修改信息</h2>
+			<h2 data-key="editInfo"></h2>
 			<div class="pop2" id="pop2">
-				<label for="pass">　　密码：</label><input type="password" id="pass" /><br />
-				<label for="repass">确认密码：</label><input type="password" id="repass" />
+				<table class="table0">
+					<tr>
+						<td><label for="pass" data-key="passwordLabel"></label></label></td>
+						<td><input type="password" id="pass" class="text"></td>
+					</tr>
+					<tr>
+						<td><label for="repass" data-key="confirmPasswordLabel"></label></td>
+						<td><input type="password" id="repass" class="text"></td>
+					</tr>
+				</table>
+				
 				<div class="buttons">
-					<button class="b" id="no">关闭</button>
-					<button class="main-button" id="ok">确定</button>
+					<button class="b" id="no" data-key="close"></button>
+					<button class="main-button" id="ok" data-key="confirm"></button>
 				</div>
 			</div>
 			<table>
 				<tr>
-					<td class="table"><img id="avatar" class="avatar2" src="default.jpg"><br><div class="gray">点击头像以修改头像</div></td>
+					<td class="table"><img id="avatar" class="avatar2" src="default.jpg"><div class="gray" data-key="avatarChangePrompt" style="width:80px"></div></td>
 					<td class="table">
-						<span class="t"><label>用户名：</label><span id="user"></span></span><br />
-						<span class="t"><label for="nick">　昵称：</label><input type="text" id="nick" placeholder="请输入昵称" class="text" /></span>
+						<span class="t"><span data-key="usernameLabel"></span><span id="user"></span></span><br />
+						<span class="t"><label for="nick" data-key="nicknameLabel"></label><input type="text" id="nick" class="text" /></span>
 					</td>
 				</tr>
 				<tr>
 					<td class="table">
 						<span class="t">
-							<label for="user">性别：</label>
+							<label data-key="genderLabel"></label>
 							<select id="gender" class="selection">
-								<option value="M">男</option>
-								<option value="W">女</option>
-								<option value="N">不设置</option>
+								<option value="M" data-key="male"></option>
+								<option value="W" data-key="female"></option>
+								<option value="N" data-key="notSet"></option>
 							</select>
 						</span>
 					</td>
 					<td class="table">
 						<span class="t">
-							<label for="user">生日：</label>
+							<label for="user" data-key="birthdayLabel"></label>
 							<input type="date" id="birth" class="selection1" />
 						</span>
 					</td>
 				</tr>
 				<tr>
 					<td colspan="2" class="table">
-						<label for="bio">个性签名：</label><br><textarea id="bio" class="bio" placeholder="请输入个性签名" wrap="hard" maxlength="250"></textarea>
+						<label for="bio" data-key="signatureLabel"></label><br><textarea id="bio" class="bio" wrap="hard" maxlength="250"></textarea>
 					</td>
 				</tr>
 			</table>
 			<div class="buttons">
-				<button class="b" id="changepass">修改密码</button>
-				<button class="b" id="del">注销账户</button>
-				<button class="main-button" id="save">保存</button>
+				<button class="b" id="changepass" data-key="changePassword">修改密码</button>
+				<button class="b" id="del" data-key="deleteAccount">注销账户</button>
+				<button class="main-button" id="save" data-key="save">保存</button>
 			</div>
 		</div>
 		<input type="file" class="hidden" id="fileInput" accept="image/jpeg, image/png">
 		<script src="js/lib.js"></script>
 		<script>
-			var isPopupVisible = false, conf = {}, nconf = {};
+			var isPopupVisible = false, conf = {}, nconf = {}, language, lang = new URLSearchParams(window.location.search).get('lang') || 'zh-CN';
+			function request(lang) {
+				var xhr0 = new XMLHttpRequest();
+				xhr0.open('GET', 'languages/' + encodeURIComponent(lang) + '.json', true);
+				xhr0.onreadystatechange = function() {
+					if (xhr0.readyState === 4) {
+						if (xhr0.status === 200) {
+							language = JSON.parse(xhr0.responseText);
+							document.querySelectorAll('[data-key]').forEach(function(element) {
+								element.innerText = language[element.dataset.key];
+							});
+							document.getElementById('nick').setAttribute('placeholder', language.enterNickname);
+							document.getElementById('bio').setAttribute('placeholder', language.enterSignature);
+						} else if (xhr0.status === 404) {
+							request('zh-CN');
+						}
+					}
+				};
+				xhr0.send();
+			}
 			window.onload = function() {
 				var token = getCookie('_');
+				request(lang);
 				if (!token) {
-					location.href = 'login.html';
+					location.href = 'login.html?lang=' + lang;
 				}
 				var params = new URLSearchParams({
 					token: token,
 					v: '2'
 				});
 				var xhr = new XMLHttpRequest();
-				xhr.open('POST', 'user_data2.php', true);
+				xhr.open('POST', 'user_data2.php?lang=' + lang, true);
 				xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
 				xhr.onreadystatechange = function() {
 					if (xhr.readyState === 4 && xhr.status === 200) {
@@ -82,8 +111,10 @@
 							document.getElementById('gender').value = conf.gender;
 							document.getElementById('birth').value = conf.birth;
 							document.getElementById('bio').value = conf.bio;
-						} else {
-							showPop(response.msg);
+						} else if (response.code === 0) {
+							showPop2(response.msg, [{text: language.relogin, fn: function () {
+								location.href = 'login.html?lang=' + lang;
+							}}]);
 						}
 					}
 				};
@@ -95,7 +126,7 @@
 				if (conf.nick !== document.getElementById('nick').value.trim()) {
 					var newNickname = document.getElementById('nick').value.trim();
 					if (!newNickname) {
-						showPop('昵称不能为空。');
+						showPop(language.nicknameRequired);
 						return;
 					}
 					nconf.nick = newNickname;
@@ -105,7 +136,7 @@
 				}
 				if (conf.birth !== document.getElementById('birth').value) {
 					if (testFuture(new Date(document.getElementById('birth').value))) {
-						showPop('出生日期不能是未来的日期。');
+						showPop(language.birthdayFutureError);
 						return;
 					}
 					nconf.birth = document.getElementById('birth').value;
@@ -114,23 +145,23 @@
 					nconf.bio = document.getElementById('bio').value.trim();
 				}
 				if (Object.keys(nconf).length === 0) {
-					showPop2('用户信息未修改。', [{text: '回到主页', fn: function() {
-						location.href = "index.html";
+					showPop2(language.noChanges, [{text: language.returnHome, fn: function() {
+						location.href = "index.html?lang=" + lang;
 					}}]);
 					return;
 				}
 				var saveParams = new URLSearchParams({p:JSON.stringify(nconf),id:conf.id,token:conf.token,v:'2'});
 				var xhrSave = new XMLHttpRequest();
-				xhrSave.open('POST', 'save.php', true);
+				xhrSave.open('POST', 'save.php?lang=' + lang, true);
 				xhrSave.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
 				xhrSave.onreadystatechange = function() {
 					if (xhrSave.readyState === 4 && xhrSave.status === 200) {
 						var response = JSON.parse(xhrSave.responseText);
 						if (response.code === 1) {
-							location.href = "index.html";
+							location.href = "index.html?lang=" + lang;
 						} else if (response.code === 0) {
-							showPop2(response.msg, [{text: '重新登录', fn: function () {
-								location.href = "login.html";
+							showPop2(response.msg, [{text: language.relogin, fn: function () {
+								location.href = "login.html?lang=" + lang;
 							}}]);
 						} else {
 							showPop(response.msg);
@@ -142,13 +173,13 @@
 			document.getElementById('ok').addEventListener('click', function() {
 				if (checkPassword(document.getElementById('pass').value, document.getElementById('repass').value)) {
 					nconf.pass = document.getElementById('pass').value;
-					showPop('密码已保存。点击页面上的“保存”按钮可修改密码。');
+					showPop(language.passwordSavedMessage);
 				} else {
-					showPop('密码不符合要求，请重新输入。');
+					showPop(language.invalidPassword);
 				}
 			});
 			document.getElementById('del').addEventListener('click', function() {
-				var confirmDeletion = showPop2("你确定要注销账户吗？注销账户后，你就再也无法登录本账户。", [{text: '确定', fn: function() {
+				var confirmDeletion = showPop2(language.confirmAccountDeletion, [{text: language.confirm, fn: function() {
 				    var accountId = conf.id;
 					var queryParams = new URLSearchParams({
 						id: accountId,
@@ -156,14 +187,14 @@
 						v: '2'
 					});
 					var xhrRequest = new XMLHttpRequest();
-					xhrRequest.open('POST', 'del.php', true);
+					xhrRequest.open('POST', 'del.php?lang=' + lang, true);
 					xhrRequest.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
 					xhrRequest.onreadystatechange = function() {
 						if (xhrRequest.readyState === 4 && xhrRequest.status === 200) {
 							var responseText = JSON.parse(xhrRequest.responseText);
 							if (responseText.code === 0 || responseText.code === 1) {
-								showPop2(responseText.msg, [{text: '重新登录', fn: function() {
-								    location.href = "login.html";
+								showPop2(responseText.msg, [{text: language.relogin, fn: function() {
+								    location.href = "login.html?lang=" + lang;
 								}}]);
 							} else {
 								showPop(responseText.msg);
@@ -171,7 +202,7 @@
 						}
 					};
 					xhrRequest.send(queryParams.toString());
-				}}, {text: '取消'}]);
+				}}, {text: language.cancel}]);
 			});
 			document.getElementById('avatar').addEventListener('click', function() {
 				document.getElementById('fileInput').click();
@@ -181,7 +212,7 @@
 				if (!selectedFile) return;
 				var fileExtension = selectedFile.name.split('.').pop().toLowerCase();
 				if (fileExtension !== 'jpg' && fileExtension !== 'png') {
-					alert('上传的图片格式只支持jpg或png');
+					alert(language.imageFormatError);
 					return;
 				}
 				var formData = new FormData();
@@ -190,7 +221,7 @@
 				formData.append('token', conf.token);
 				formData.append('v', '2');
 				var httpReq = new XMLHttpRequest();
-				httpReq.open('POST', 'avatar.php', true);
+				httpReq.open('POST', 'avatar.php?lang=' + lang, true);
 				httpReq.onload = function () {
 					if (httpReq.readyState === 4 && httpReq.status === 200) {
 						var serverResponse = JSON.parse(httpReq.responseText);
@@ -198,8 +229,8 @@
 							document.getElementById('avatar').setAttribute('src', 'avatar/' + conf.token + '.jpg');
 							showPop(serverResponse.msg);
 						} else if (serverResponse.code === 0) {
-							showPop2(serverResponse.msg, [{text: '重新登录', fn: function () {
-								location.href = "login.html";
+							showPop2(serverResponse.msg, [{text: language.relogin, fn: function () {
+								location.href = "login.html?lang=" + lang;
 							}}]);
 						} else {
 							showPop(serverResponse.msg);

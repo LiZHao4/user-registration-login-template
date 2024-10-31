@@ -1,4 +1,9 @@
 <?php
+	if (isset($_GET["lang"]) && file_exists("languages/" . $_GET["lang"] . ".json")) {
+		$language = json_decode(file_get_contents("languages/" . $_GET["lang"] . ".json"), true);
+	} else {
+		$language = json_decode(file_get_contents("languages/zh-CN.json"), true);
+	}
 	if (isset($_POST["v"]) && $_POST["v"] == "2") header('Content-Type: application/json');
 	else header('Content-Type: text/plain');
 	error_reporting(E_ALL);
@@ -47,7 +52,7 @@
 							break;
 						default:
 							unlink($tempFilePath);
-							if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => -1, "msg" => "不支持的文件类型"]);
+							if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => -1, "msg" => $language["unsupportedFileType"]]);
 							else echo "fail";
 							exit;
 					}
@@ -56,26 +61,26 @@
 						$stmtUpdateAvatar = $dbConnection->prepare($queryUpdateAvatar);
 						$stmtUpdateAvatar->bind_param("i", $userId);
 						$stmtUpdateAvatar->execute();
-						if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => 1, "msg" => "头像更新成功"]);
+						if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => 1, "msg" => $language["avatarUpdated"]]);
 						else echo "success";
 					}
 					$stmtSelectToken->close();
 					$stmtUpdateAvatar->close();
 				} else {
-					if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => -1, "msg" => "文件上传失败"]);
+					if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => -1, "msg" => $language["uploadFailed"]]);
 					else echo "fail";
 				}
 			} else {
-				if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => 0, "msg" => "用户ID或token无效，请重新登录"]);
+				if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => 0, "msg" => $language["invalidUserOrToken"]]);
 				else echo "fail";
 			}
 			$dbConnection->close();
 		} catch (ErrorException $databaseException) {
-			if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => -1, "msg" => "数据库错误：" . $databaseException->getMessage()]);
+			if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => -1, "msg" => $language["databaseError"]]);
 			else echo "fail";
 		}
 	} else {
-		if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => -1, "msg" => "请求无效或缺少必要参数"]);
+		if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => -1, "msg" => $language["invalidRequest"]]);
 		else echo "fail";
 	}
 ?>

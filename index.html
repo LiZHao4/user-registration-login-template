@@ -3,13 +3,14 @@
 	<head>
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<title>主页</title>
+		<title data-key="home"></title>
 		<link rel="stylesheet" href="style.css" />
 	</head>
 	<body>
 		<div id="top" class="top">
 			<div class="right">
-				<a class="link1" href="javascript:logoutAccount();">退出登录</a>
+				<select class="select" id="language-choose"></select>
+				<a class="link1" id="logout" data-key="logout"></a>
 			</div>
 		</div>
 		<div class="card" id="card">
@@ -18,22 +19,57 @@
 					<td class="table"><img class="avatar" id="avatar"></td>
 					<td class="table">
 						<div class="big" id="nickname"></div>
-						<div class="small">用户名：<span id="user"></span></div>
+						<div class="small"><span data-key="usernameLabel"></span><span id="user"></span></div>
 						<div class="small">ID：<span id="id"></span></div>
-						<div class="small">用户创建时间：<span id="time"></span></div>
+						<div class="small"><span data-key="userCreationDateLabel"></span><span id="time"></span></div>
 					</td>
 				</tr>
 			</table>
-			<div class="link1" style="text-align:right;"><span class="pointer" id="config">修改</span></div>
+			<div class="link1" style="text-align:right;"><span class="pointer" id="config" data-key="edit"></span></div>
 		</div>
-		<div class="card" id="subcard" style="text-align:center"><div class="link"><a class="link1" href="login.html">您还未登录，点击此处登录</a></div></div>
+		<div class="card" id="subcard" style="text-align:center"><div class="link"><a class="link1" id="nologin" data-key="notLoggedInMessage"></a></div></div>
 		<script src="js/lib.js"></script>
 		<script>
+			var language, lang = new URLSearchParams(window.location.search).get('lang') || 'zh-CN';
+			function request(lang) {
+				var xhr0 = new XMLHttpRequest();
+				xhr0.open('GET', 'languages/' + encodeURIComponent(lang) + '.json', true);
+				xhr0.onreadystatechange = function() {
+					if (xhr0.readyState === 4) {
+						if (xhr0.status === 200) {
+							language = JSON.parse(xhr0.responseText);
+							document.querySelectorAll('[data-key]').forEach(function(element) {
+								element.innerText = language[element.dataset.key];
+							});
+						} else if (xhr0.status === 404) {
+							request('zh-CN');
+						}
+					}
+				};
+				xhr0.send();
+			}
 			window.onload = function() {
+				request(lang);
+				var xhr = new XMLHttpRequest();
+				xhr.open('GET', 'language_list.json', true);
+				xhr.onreadystatechange = function() {
+					if (xhr.readyState === 4 && xhr.status === 200) {
+						var list = JSON.parse(xhr.responseText);
+						for (var i in list) {
+							var option = document.createElement('option');
+							option.setAttribute('value', i);
+							option.innerText = list[i];
+							document.getElementById('language-choose').appendChild(option);
+						}
+						document.getElementById('language-choose').value = lang in list ? lang : 'zh-CN';
+					}
+				};
+				xhr.send();
 				var storedToken = getCookie('_');
 				if (!storedToken) {
 					document.getElementById('card').style.display = 'none';
 					document.getElementById('top').style.display = 'none';
+					document.getElementById('nologin').setAttribute('href', "javascript:logoutAccount('" + lang + "');");
 					document.getElementById('subcard').style.display = 'block';
 					return;
 				}
@@ -43,7 +79,7 @@
 					v: 2
 				});
 				var xhrRequest = new XMLHttpRequest();
-				xhrRequest.open('POST', 'user_data.php', true);
+				xhrRequest.open('POST', 'user_data.php?lang=' + lang, true);
 				xhrRequest.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
 				xhrRequest.onreadystatechange = function() {
 					if (xhrRequest.readyState === 4 && xhrRequest.status === 200) {
@@ -59,13 +95,23 @@
 							} else {
 								document.getElementById('avatar').setAttribute('src', 'default.jpg');
 							}
+						} else if (serverResponse.code === 0) {
+							showPop2(serverResponse.msg, [{text: language.relogin, fn: function () {
+								location.href = "login.html?lang=" + lang;
+							}}]);
+						} else if (serverResponse.code === -1) {
+						    showPop(serverResponse.msg);
 						}
 					}
 				};
 				xhrRequest.send(queryParams.toString());
+				document.getElementById('logout').setAttribute('href', "javascript:logoutAccount('" + lang + "');");
 			};
 			document.getElementById('config').addEventListener('click', function() {
-				location.href = "change.html";
+				location.href = "change.html?lang=" + lang;
+			});
+			document.getElementById('language-choose').addEventListener('change', function() {
+				location.href = "?lang=" + this.value;
 			});
 		</script>
 	</body>
