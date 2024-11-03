@@ -2,12 +2,8 @@
 	if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['user']) && isset($_POST['pass']) && isset($_POST['from'])) {
 		function findNextAvailableUserId() {
 			global $db;
-			$currentId = -1;
-			do {
-				$currentId++;
-				$result = $db->query("SELECT * FROM users WHERE id = $currentId");
-			} while ($result && $result->num_rows > 0);
-			$result->free_result();
+			$maxUserId = $db->query("SELECT MAX(id) AS maxId FROM users");
+			$currentId = $maxUserId->fetch_assoc()["maxId"] + 1;
 			return $currentId;
 		}
 		function generateRandomToken() {
