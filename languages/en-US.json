@@ -25,6 +25,7 @@
 	"home": "Home",
 	"imageFormatError": "Uploaded image format only supports jpg or png extensions.",
 	"invalidFormat": "Incorrect username or password format.",
+	"invalidImage": "Unknown image file.",
 	"invalidPassword": "Password does not meet requirements, please re-enter.",
 	"invalidRequest": "Incorrect request method or missing necessary parameters",
 	"invalidUserOrToken": "User does not exist or token is invalid, please log in again.",

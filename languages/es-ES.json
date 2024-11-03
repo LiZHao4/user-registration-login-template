@@ -25,6 +25,7 @@
 	"home": "Inicio",
 	"imageFormatError": "El formato de la imagen solo soporta extensiones jpg o png.",
 	"invalidFormat": "El formato del nombre de usuario o contraseña es incorrecto.",
+	"invalidImage": "Archivo de imagen desconocido.",
 	"invalidPassword": "La contraseña no cumple los requisitos, por favor ingreséla de nuevo.",
 	"invalidRequest": "El método de solicitud es incorrecto o faltan parámetros necesarios",
 	"invalidUserOrToken": "El usuario no existe o el token es inválido, por favor inicie sesión de nuevo.",

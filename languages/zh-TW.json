@@ -25,6 +25,7 @@
 	"home": "首頁",
 	"imageFormatError": "上傳的圖片格式僅支援jpg或png後綴格式。",
 	"invalidFormat": "用戶名或密碼格式不正確。",
+	"invalidImage": "未知的圖片文件。",
 	"invalidPassword": "密碼不符合要求，請重新輸入。",
 	"invalidRequest": "請求方法不正確或缺少必要參數",
 	"invalidUserOrToken": "用戶不存在或token無效，請重新登錄。",
