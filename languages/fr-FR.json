@@ -25,6 +25,7 @@
 	"home": "Accueil",
 	"imageFormatError": "Seuls les formats jpg ou png sont pris en charge pour les images téléchargées.",
 	"invalidFormat": "Format du nom d'utilisateur ou du mot de passe incorrect.",
+	"invalidImage": "Fichier image inconnu.",
 	"invalidPassword": "Le mot de passe ne respecte pas les règles, veuillez réessayer.",
 	"invalidRequest": "Méthode de requête incorrecte ou paramètres nécessaires manquants",
 	"invalidUserOrToken": "Utilisateur inexistant ou token invalide, veuillez vous reconnecter.",

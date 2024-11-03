@@ -34,6 +34,12 @@
 					switch ($fileExtension) {
 						case 'jpg':
 							$sourceImage = imagecreatefromjpeg($tempFilePath);
+							if ($sourceImage === false) {
+								unlink($tempFilePath);
+								if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => -1, "msg" => $language["invalidImage"]]);
+								else echo "fail";
+								exit;
+							}
 							$resizedImage = imagecreatetruecolor($targetWidth, $targetHeight);
 							imagecopyresampled($resizedImage, $sourceImage, 0, 0, 0, 0, $targetWidth, $targetHeight, $imageWidth, $imageHeight);
 							imagejpeg($resizedImage, $avatarFilePath, 100);
@@ -42,6 +48,12 @@
 							break;
 						case 'png':
 							$sourcePng = @imagecreatefrompng($tempFilePath);
+							if ($sourcePng === false) {
+								unlink($tempFilePath);
+								if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => -1, "msg" => $language["invalidImage"]]);
+								else echo "fail";
+								exit;
+							}
 							$resizedPng = imagecreatetruecolor($targetWidth, $targetHeight);
 							imagealphablending($resizedPng, false);
 							imagesavealpha($resizedPng, true);

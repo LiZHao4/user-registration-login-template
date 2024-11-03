@@ -25,6 +25,7 @@
 	"home": "主页",
 	"imageFormatError": "上传的图片格式只支持jpg或png后缀格式。",
 	"invalidFormat": "用户名或密码格式不正确。",
+	"invalidImage": "未知的图片文件。",
 	"invalidPassword": "密码不符合要求，请重新输入。",
 	"invalidRequest": "请求方法不正确或缺少必要的参数",
 	"invalidUserOrToken": "用户不存在或token无效，请重新登录。",
