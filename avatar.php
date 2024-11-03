@@ -1,5 +1,6 @@
 <?php
-	if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES['avatar']) && $_FILES['avatar']['error'] == UPLOAD_ERR_OK && isset($_POST['id'])) {
+	error_reporting(E_ALL);
+	if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES['avatar']) && $_FILES['avatar']['error'] == UPLOAD_ERR_OK && isset($_POST['id'])&& isset($_POST['token'])) {
 		mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 		$fileExtension = strtolower(pathinfo($_FILES["avatar"]["name"], PATHINFO_EXTENSION));
 		$userId = $_POST['id'];
@@ -46,7 +47,7 @@
 				$stmtUpdateAvatar->close();
 				$dbConnection->close();
 			}
-		} catch (mysqli_sql_exception $databaseException) {
+		} catch (ErrorException $databaseException) {
 			echo "fail";
 		}
 	}
