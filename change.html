@@ -7,19 +7,19 @@
 		<link rel="stylesheet" href="style.css" />
 	</head>
 	<body class="flex">
-		<div id="form">
+		<div class="form">
 			<h2>修改信息</h2>
-			<div id="pop2">
+			<div class="pop2" id="pop2">
 				<label for="pass">　　密码：</label><input type="password" id="pass" /><br />
 				<label for="repass">确认密码：</label><input type="password" id="repass" />
 				<div class="buttons">
 					<button class="b" id="no">关闭</button>
-					<button id="ok">确定</button>
+					<button class="main-button" id="ok">确定</button>
 				</div>
 			</div>
 			<table>
 				<tr>
-					<td class="table"><img id="avatar2" src="default.jpg"><br>点击头像以修改头像</td>
+					<td class="table"><img id="avatar" class="avatar2" src="default.jpg"><br><div class="gray">点击头像以修改头像</div></td>
 					<td class="table">
 						<span class="t"><label>用户名：</label><span id="user"></span></span><br />
 						<span class="t"><label for="nick">　昵称：</label><input type="text" id="nick" placeholder="请输入昵称" class="text" /></span>
@@ -52,63 +52,38 @@
 			<div class="buttons">
 				<button class="b" id="changepass">修改密码</button>
 				<button class="b" id="del">注销账户</button>
-				<button id="save">保存</button>
+				<button class="main-button" id="save">保存</button>
 			</div>
 		</div>
-		<input type="file" id="fileInput" accept="image/jpeg, image/png">
+		<input type="file" class="hidden" id="fileInput" accept="image/jpeg, image/png">
+		<script src="js/lib.js"></script>
 		<script>
-			var userData, isPopupVisible = false, conf = {}, nconf = {};
-			function togglePopupVisibility() {
-				if (isPopupVisible) {
-					document.getElementById('pop2').style.visibility = 'hidden';
-					isPopupVisible = false;
-				} else {
-					document.getElementById('pop2').style.visibility = 'visible';
-					isPopupVisible = true;
-				}
-			}
-			function getCookie(name) {
-				var value = `; ${document.cookie}`;
-				var parts = value.split(`; ${name}=`);
-				if (parts.length === 2) return parts.pop().split(';').shift();
-				return null;
-			}
-			function checkPassword(password, repassword) {
-				return password === repassword && !!password && !(password.length < 8 || 32 < password.length || !/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/\d/.test(password));
-			}
-			function testFuture(date) {
-				return new Date(date) > new Date();
-			}
+			var isPopupVisible = false, conf = {}, nconf = {};
 			window.onload = function() {
 				var token = getCookie('_');
 				if (!token) {
 					location.href = 'login.html';
 				}
 				var params = new URLSearchParams({
-					token: token
+					token: token,
+					v: '2'
 				});
 				var xhr = new XMLHttpRequest();
 				xhr.open('POST', 'user_data2.php', true);
 				xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
 				xhr.onreadystatechange = function() {
 					if (xhr.readyState === 4 && xhr.status === 200) {
-						var response = xhr.responseText;
-						if (response) {
-							if (response === 'invalid') {
-								alert('用户信息被篡改，无法查看信息。');
-								location.href = 'login.html';
-							}
-							userData = response.split('\n');
-							document.getElementById('user').innerText = userData[0];
-							document.getElementById('nick').value = conf['nick'] = userData[1];
-							if (userData[3] === '1') {
-								document.getElementById('avatar2').src = 'avatar/' + userData[4] + '.jpg';
-							}
-							document.getElementById('gender').value = conf['gender'] = userData[5];
-							document.getElementById('birth').value = conf['birth'] = userData[6];
-							document.getElementById('bio').value = conf['bio'] = userData[7];
+						var response = JSON.parse(xhr.responseText);
+						if (response.code === 1) {
+							conf = response.data;
+							document.getElementById('user').innerText = conf.user;
+							document.getElementById('nick').value = conf.nick;
+							if (conf.avatar) document.getElementById('avatar').src = 'avatar/' + conf.token + '.jpg';
+							document.getElementById('gender').value = conf.gender;
+							document.getElementById('birth').value = conf.birth;
+							document.getElementById('bio').value = conf.bio;
 						} else {
-							alert('查询失败，请稍后再试。');
+							showPop(response.msg);
 						}
 					}
 				};
@@ -117,46 +92,48 @@
 			document.getElementById('changepass').addEventListener('click', togglePopupVisibility);
 			document.getElementById('no').addEventListener('click', togglePopupVisibility);
 			document.getElementById('save').addEventListener('click', function() {
-				if (conf['nick'] !== document.getElementById('nick').value.trim()) {
+				if (conf.nick !== document.getElementById('nick').value.trim()) {
 					var newNickname = document.getElementById('nick').value.trim();
 					if (!newNickname) {
-						alert('昵称不能为空。');
+						showPop('昵称不能为空。');
 						return;
 					}
-					nconf['nick'] = newNickname;
+					nconf.nick = newNickname;
 				}
-				if (conf['gender'] !== document.getElementById('gender').value) {
-					nconf['gender'] = document.getElementById('gender').value;
+				if (conf.gender !== document.getElementById('gender').value) {
+					nconf.gender = document.getElementById('gender').value;
 				}
-				if (conf['birth'] !== document.getElementById('birth').value) {
+				if (conf.birth !== document.getElementById('birth').value) {
 					if (testFuture(new Date(document.getElementById('birth').value))) {
-						alert('出生日期不能是未来的日期。');
+						showPop('出生日期不能是未来的日期。');
 						return;
 					}
-					nconf['birth'] = document.getElementById('birth').value;
+					nconf.birth = document.getElementById('birth').value;
 				}
-				if (conf['bio'] !== document.getElementById('bio').value) {
-					nconf['bio'] = document.getElementById('bio').value.trim();
+				if (conf.bio !== document.getElementById('bio').value) {
+					nconf.bio = document.getElementById('bio').value.trim();
 				}
 				if (Object.keys(nconf).length === 0) {
-					alert('用户信息未修改。');
-					location.href = "index.html";
+					showPop2('用户信息未修改。', [{text: '回到主页', fn: function() {
+						location.href = "index.html";
+					}}]);
 					return;
 				}
-				var saveParams = new URLSearchParams({p:JSON.stringify(nconf),id:userData[2],token:userData[4]});
+				var saveParams = new URLSearchParams({p:JSON.stringify(nconf),id:conf.id,token:conf.token,v:'2'});
 				var xhrSave = new XMLHttpRequest();
 				xhrSave.open('POST', 'save.php', true);
 				xhrSave.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
 				xhrSave.onreadystatechange = function() {
 					if (xhrSave.readyState === 4 && xhrSave.status === 200) {
-						var response = xhrSave.responseText;
-						if (response === "fail") {
-							alert('修改失败，请稍后再试！');
-						} else if (response === "success") {
-							alert('修改成功！');
+						var response = JSON.parse(xhrSave.responseText);
+						if (response.code === 1) {
 							location.href = "index.html";
+						} else if (response.code === 0) {
+							showPop2(response.msg, [{text: '重新登录', fn: function () {
+								location.href = "login.html";
+							}}]);
 						} else {
-							alert(response);
+							showPop(response.msg);
 						}
 					}
 				};
@@ -164,39 +141,39 @@
 			});
 			document.getElementById('ok').addEventListener('click', function() {
 				if (checkPassword(document.getElementById('pass').value, document.getElementById('repass').value)) {
-					nconf['pass'] = document.getElementById('pass').value;
-					alert('密码已保存。点击页面上的“保存”按钮可修改密码。');
+					nconf.pass = document.getElementById('pass').value;
+					showPop('密码已保存。点击页面上的“保存”按钮可修改密码。');
 				} else {
-					alert('密码不符合要求，请重新输入。');
+					showPop('密码不符合要求，请重新输入。');
 				}
 			});
 			document.getElementById('del').addEventListener('click', function() {
-				var confirmDeletion = confirm("你确定要注销账户吗？注销账户后，你就再也无法登录本账户。");
-				if (confirmDeletion) {
-					var accountId = userData[2];
+				var confirmDeletion = showPop2("你确定要注销账户吗？注销账户后，你就再也无法登录本账户。", [{text: '确定', fn: function() {
+				    var accountId = conf.id;
 					var queryParams = new URLSearchParams({
 						id: accountId,
-						token: userData[4]
+						token: conf.token,
+						v: '2'
 					});
 					var xhrRequest = new XMLHttpRequest();
 					xhrRequest.open('POST', 'del.php', true);
 					xhrRequest.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
 					xhrRequest.onreadystatechange = function() {
 						if (xhrRequest.readyState === 4 && xhrRequest.status === 200) {
-							var responseText = xhrRequest.responseText;
-							if (responseText === "fail") {
-								alert('注销失败，请稍后再试！');
-							} else if (responseText === "success") {
-								alert('注销成功！');
-								localStorage.removeItem('_');
-								location.href = "login.html";
+							var responseText = JSON.parse(xhrRequest.responseText);
+							if (responseText.code === 0 || responseText.code === 1) {
+								showPop2(responseText.msg, [{text: '重新登录', fn: function() {
+								    location.href = "login.html";
+								}}]);
+							} else {
+								showPop(responseText.msg);
 							}
 						}
 					};
 					xhrRequest.send(queryParams.toString());
-				}
+				}}, {text: '取消'}]);
 			});
-			document.getElementById('avatar2').addEventListener('click', function() {
+			document.getElementById('avatar').addEventListener('click', function() {
 				document.getElementById('fileInput').click();
 			});
 			document.getElementById('fileInput').addEventListener('change', function(event) {
@@ -209,16 +186,23 @@
 				}
 				var formData = new FormData();
 				formData.append('avatar', document.getElementById('fileInput').files[0]);
-				formData.append('id', userData[2]);
+				formData.append('id', conf.id);
+				formData.append('token', conf.token);
+				formData.append('v', '2');
 				var httpReq = new XMLHttpRequest();
 				httpReq.open('POST', 'avatar.php', true);
 				httpReq.onload = function () {
 					if (httpReq.readyState === 4 && httpReq.status === 200) {
-						var serverResponse = httpReq.responseText;
-						if (serverResponse == 'success') {
-							document.getElementById('avatar2').setAttribute('src', 'avatar/' + userData[4] + '.jpg');
-						} else if (serverResponse == 'fail') {
-							alert('头像修改失败，请稍后再试。');
+						var serverResponse = JSON.parse(httpReq.responseText);
+						if (serverResponse.code === 1) {
+							document.getElementById('avatar').setAttribute('src', 'avatar/' + conf.token + '.jpg');
+							showPop(serverResponse.msg);
+						} else if (serverResponse.code === 0) {
+							showPop2(serverResponse.msg, [{text: '重新登录', fn: function () {
+								location.href = "login.html";
+							}}]);
+						} else {
+							showPop(serverResponse.msg);
 						}
 					}
 				};
