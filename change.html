@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>更改信息</title>
+		<link rel="stylesheet" href="style.css" />
+	</head>
+	<body class="flex">
+		<div id="form">
+			<h2>修改信息</h2>
+			<div id="pop2">
+				<label for="pass">　　密码：</label><input type="password" id="pass" /><br />
+				<label for="repass">确认密码：</label><input type="password" id="repass" />
+				<div class="buttons">
+					<button class="b" id="no">关闭</button>
+					<button id="ok">确定</button>
+				</div>
+			</div>
+			<table>
+				<tr>
+					<td class="table"><img id="avatar2" src="default.jpg"></td>
+					<td class="table">
+						<span class="t"><label for="user">用户名：</label><span id="user"></span></span><br />
+						<span class="t"><label for="nick">　昵称：</label><input type="text" id="nick" placeholder="请输入昵称" class="text" /></span>
+					</td>
+				</tr>
+			</table>
+			<div class="buttons">
+				<button class="b" id="changepass">修改密码</button>
+				<button class="b" id="del">注销账户</button>
+				<button id="save">保存</button>
+			</div>
+		</div>
+		<input type="file" id="fileInput" accept="image/jpeg, image/png">
+		<script>
+			var userData, isNicknameEditable = true, isPopupVisible = false;
+			function togglePopupVisibility() {
+				if (isPopupVisible) {
+					document.getElementById('pop2').style.visibility = 'hidden';
+					isPopupVisible = false;
+				} else {
+					document.getElementById('pop2').style.visibility = 'visible';
+					isPopupVisible = true;
+				}
+			}
+			window.onload = function() {
+				var token = localStorage.getItem('_');
+				if (!token) {
+					location.href = 'login.html';
+				}
+				var params = new URLSearchParams({
+					token: token
+				});
+				var xhr = new XMLHttpRequest();
+				xhr.open('POST', 'user_data2.php', true);
+				xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+				xhr.onreadystatechange = function() {
+					if (xhr.readyState === 4 && xhr.status === 200) {
+						var response = xhr.responseText;
+						if (response) {
+							userData = response.split('\n');
+							document.getElementById('user').innerText = userData[0];
+							document.getElementById('nick').value = userData[1];
+							if (userData[3] === '1') {
+								document.getElementById('avatar2').src = 'avatar/' + userData[4] + '.jpg';
+							}
+						} else {
+							alert('查询失败，请稍后再试。');
+						}
+					}
+				};
+				xhr.send(params.toString());
+			};
+			document.getElementById('changepass').addEventListener('click', togglePopupVisibility);
+			document.getElementById('no').addEventListener('click', togglePopupVisibility);
+			document.getElementById('save').addEventListener('click', function() {
+				if (isNicknameEditable) {
+					var userId = userData[2];
+					var newNickname = document.getElementById('nick').value.trim();
+					if (newNickname === '') {
+						alert('昵称不能为空！');
+						return;
+					}
+					var newPassword = document.getElementById('pass').value;
+					var saveParams = new URLSearchParams({
+						id: userId,
+						nick: newNickname,
+						pass: newPassword
+					});
+					var xhrSave = new XMLHttpRequest();
+					xhrSave.open('POST', 'save.php', true);
+					xhrSave.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+					xhrSave.onreadystatechange = function() {
+						if (xhrSave.readyState === 4 && xhrSave.status === 200) {
+							var response = xhrSave.responseText;
+							if (response === "fail") {
+								alert('修改失败，请稍后再试！');
+							}
+							if (response === "success") {
+								alert('修改成功！');
+								location.href = "index.html";
+							}
+						}
+					};
+					xhrSave.send(saveParams);
+				}
+			});
+			document.getElementById('ok').addEventListener('click', function() {
+				var password = document.getElementById('pass').value;
+				if (password === document.getElementById('repass').value) {
+					if (!password) {
+						alert('无法保存：密码为空。');
+						isNicknameEditable = false;
+					} else if (password.length < 8 || password.length > 32 || !/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/\d/.test(password)) {
+						alert('请先修改成合法的密码再保存。密码长度8到32位，必须包含至少1个小写字母、1个大写字母和1个数字。');
+						isNicknameEditable = false;
+					} else {
+						alert('保存成功！');
+						isNicknameEditable = true;
+					}
+				} else {
+					alert('密码与确认密码不一致！');
+					isNicknameEditable = false;
+				}
+			});
+			document.getElementById('del').addEventListener('click', function() {
+				var confirmDeletion = confirm("你确定要注销账户吗？注销账户后，你就再也无法登录本账户。");
+				if (confirmDeletion) {
+					var accountId = userData[2];
+					var queryParams = new URLSearchParams({
+						id: accountId
+					});
+					var xhrRequest = new XMLHttpRequest();
+					xhrRequest.open('POST', 'del.php', true);
+					xhrRequest.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+					xhrRequest.onreadystatechange = function() {
+						if (xhrRequest.readyState === 4 && xhrRequest.status === 200) {
+							var responseText = xhrRequest.responseText;
+							if (responseText === "fail") {
+								alert('注销失败，请稍后再试！');
+							} else if (responseText === "success") {
+								alert('注销成功！');
+								localStorage.removeItem('_');
+								location.href = "login.html";
+							}
+						}
+					};
+					xhrRequest.send(queryParams.toString());
+				}
+			});
+			document.getElementById('avatar2').addEventListener('click', function() {
+				document.getElementById('fileInput').click();
+			});
+			document.getElementById('fileInput').addEventListener('change', function(event) {
+				var selectedFile = event.target.files[0];
+				if (!selectedFile) return;
+				var fileExtension = selectedFile.name.split('.').pop().toLowerCase();
+				if (fileExtension !== 'jpg' && fileExtension !== 'png') {
+					alert('上传的图片格式只支持jpg或png');
+					return;
+				}
+				var formData = new FormData();
+				formData.append('avatar', document.getElementById('fileInput').files[0]);
+				formData.append('id', userData[2]);
+				var httpReq = new XMLHttpRequest();
+				httpReq.open('POST', 'avatar.php', true);
+				httpReq.onload = function () {
+					if (httpReq.readyState === 4 && httpReq.status === 200) {
+						var serverResponse = httpReq.responseText;
+						if (serverResponse == 'success') {
+							document.getElementById('avatar2').setAttribute('src', 'avatar/' + userData[4] + '.jpg');
+						} else if (serverResponse == 'fail') {
+							alert('头像修改失败，请稍后再试。');
+						}
+					}
+				};
+				httpReq.send(formData);
+			});
+		</script>
+	</body>
+</html>
