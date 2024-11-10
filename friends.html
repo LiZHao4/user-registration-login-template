@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title data-key="friends"></title>
+		<link rel="stylesheet" href="style.css" />
+	</head>
+	<body class="flex">
+		<div id="bg" class="bg"></div>
+		<div class="form" style="position:relative">
+			<div class="search-container">
+				<input type="text" id="search">
+				<button data-key="search" id="search-btn"></button>
+			</div>
+			<div id="searchResult" class="user-profile" style="display:none">
+				<div class="header">
+					<div class="profile">
+						<img id="avatar" class="avatar1">
+						<div class="info">
+							<div id="nick" class="nick"></div>
+							<div id="user" class="user"></div>
+						</div>
+					</div>
+					<button id="add-btn" class="add-friend-btn" data-key="addAsFriend"></button>
+				</div>
+			</div>
+			<details class="friend">
+				<summary data-key="friends" class="badge"></summary>
+				<div class="friend-list" id="myFriendList"></div>
+			</details>
+			<details class="friend">
+				<summary id="friendRequestSummary" data-key="friendRequestList" class="badge"></summary>
+				<div class="friend-list" id="friendRequestList"></div>
+			</details>
+			<details class="friend">
+				<summary data-key="myRequests"></summary>
+				<div class="friend-list" id="friendList"></div>
+			</details>
+		</div>
+		<script src="js/lib.js"></script>
+		<script>
+			var language, lang = new URLSearchParams(window.location.search).get('lang') || 'zh-CN', id, token;
+			function request(lang) {
+				var xhr0 = new XMLHttpRequest();
+				xhr0.open('GET', 'languages/' + encodeURIComponent(lang) + '.json');
+				xhr0.onreadystatechange = function() {
+					if (xhr0.readyState === 4) {
+						if (xhr0.status === 200) {
+							language = JSON.parse(xhr0.responseText);
+							document.querySelectorAll('[data-key]').forEach(function(element) {
+								element.innerText = language[element.dataset.key];
+							});
+							document.getElementById('search').setAttribute('placeholder', language.searchPlaceholder);
+						} else if (xhr0.status === 404) {
+							request('zh-CN');
+						}
+					}
+				};
+				xhr0.send();
+			}
+			window.onload = function() {
+				token = getCookie('_');
+				if (!token) {
+					location.href = 'login.html?lang=' + lang;
+				}
+				var params = new URLSearchParams({token});
+				var xhr = new XMLHttpRequest();
+				xhr.open('POST', 'friend_requests.php?lang=' + lang);
+				xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+				xhr.onreadystatechange = function() {
+					if (xhr.readyState === 4 && xhr.status === 200) {
+						var response = JSON.parse(xhr.responseText);
+						id = response.your;
+						if (response.code === 1) {
+							generate1({
+								target: document.getElementById('friendRequestList'),
+								target2: document.getElementById('friendList'),
+								count: document.getElementById('friendRequestSummary'),
+								data: response.data,
+								fData: response.fData,
+								token: token,
+								id: id
+							});
+							if (response.avatar) {
+								document.getElementById('bg').style.backgroundImage = 'url(avatar/' + response.avatar + '.jpg)';
+							} else {
+								document.getElementById('bg').style.backgroundImage = 'url(default.jpg)';
+							}
+							var xhr2 = new XMLHttpRequest();
+							var ULSearchParams = new URLSearchParams({id});
+							xhr2.open('POST', 'friend_list.php?lang=' + lang);
+							xhr2.onreadystatechange = function() {
+								if (xhr2.readyState === 4 && xhr2.status === 200) {
+									var response = JSON.parse(xhr2.responseText);
+									if (response.code === 1) {
+										generate2({
+											target: document.getElementById('myFriendList'),
+											data: response.data
+										});
+										request(lang);
+									} else if (response.code === 0) {
+										showPop2(response.msg, [{text: language.relogin, fn: function() {
+											location.href = "login.html?lang=" + lang;
+										}}]);
+									} else {
+										showPop(response.msg);
+									}
+								}
+							}
+							xhr2.send(ULSearchParams);
+						} else if (response.code === 0) {
+							showPop2(response.msg, [{text: language.relogin, fn: function() {
+								location.href = "login.html?lang=" + lang;
+							}}]);
+						} else {
+							showPop(response.msg);
+						}
+					}
+				}
+				xhr.send(params);
+			};
+			document.getElementById('search-btn').addEventListener('click', function() {
+				var search = document.getElementById('search');
+				if (search.value.trim() === '') {
+					showPop(language.searchEmpty);
+				} else {
+					var xhr1 = new XMLHttpRequest();
+					xhr1.open('GET', 'search.php?lang=' + lang + '&q=' + encodeURIComponent(search.value));
+					xhr1.onreadystatechange = function() {
+					    if (xhr1.readyState === 4 && xhr1.status === 200) {
+							var response = JSON.parse(xhr1.responseText);
+							if (response.code === 1) {
+								document.getElementById('searchResult').style.display = 'block';
+								if (response.data.avatar) {
+									document.getElementById('avatar').src = 'avatar/' + response.data.avatar + '.jpg';
+								} else {
+									document.getElementById('avatar').src = 'default.jpg';
+								}
+								document.getElementById('nick').innerText = response.data.nick;
+								document.getElementById('user').innerText = response.data.user;
+								if (response.data.id == id) {
+									document.getElementById('add-btn').style.display = 'none';
+								} else {
+									document.getElementById('add-btn').style.display = 'block';
+								}
+								document.getElementById('add-btn').dataset.id = response.data.id;
+								document.getElementById('add-btn').addEventListener('click', function(e) {
+									var xhr = new XMLHttpRequest();
+									xhr.open('POST', 'friends.php?lang=' + lang, true);
+									xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+									var ul = new URLSearchParams({
+										token,
+										id,
+										target: this.dataset.id,
+										action: 'add'
+									});
+									xhr.onreadystatechange = function() {
+										if (xhr.readyState === 4 && xhr.status === 200) {
+											var response = JSON.parse(xhr.responseText);
+											if (response.code === 1) {
+												location.reload();
+											} else if (response.code === 0) {
+												showPop2(response.msg, [{text: language.relogin, fn: function() {
+													location.href = "login.html?lang=" + lang;
+												}}]);
+											} else {
+												showPop(response.msg);
+											}
+										}
+									};
+									xhr.send(ul.toString());
+									e.stopPropagation();
+								});
+							} else {
+								showPop(response.msg);
+							}
+						}
+					};
+					xhr1.send();
+				}
+			});
+			document.getElementById('searchResult').addEventListener('click', function() {
+				location.href = 'profile.html?lang=' + lang + '&id=' + document.getElementById('add-btn').dataset.id;
+			});
+		</script>
+	</body>
+</html>

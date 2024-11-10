@@ -4,8 +4,7 @@
 	} else {
 		$language = json_decode(file_get_contents("languages/zh-CN.json"), true);
 	}
-	if (isset($_POST["v"]) && $_POST["v"] == "2") header('Content-Type: application/json');
-	else header('Content-Type: text/plain');
+	header('Content-Type: application/json');
 	if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['id']) && isset($_POST['token'])) {
 		mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 		$config = parse_ini_file('conf/settings.ini', true);
@@ -31,8 +30,8 @@
 					if ($res->num_rows > 0) {
 						$avatarRow = $res->fetch_assoc();
 						$avatar = $avatarRow['user_avatar'];
-						if ($avatar == 1) {
-							$avatarPath = "avatar/" . $token . ".jpg";
+						if (!is_null($avatar)){
+							$avatarPath = "avatar/" . $avatar . ".jpg";
 							if (file_exists($avatarPath)) {
 								unlink($avatarPath);
 							}
@@ -43,27 +42,22 @@
 					$deleteStmt->bind_param("i", $userId);
 					$deleteStmt->execute();
 					if ($deleteStmt->affected_rows > 0) {
-						if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => 1, "msg" => $language["accountDeleted"]]);
-						else echo "success";
+						echo json_encode(["code" => 1, "msg" => $language["accountDeleted"]]);
 					} else {
-						if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => -1, "msg" => $language["accountDeletionFailed"]]);
-						else echo "fail";
+						echo json_encode(["code" => -1, "msg" => $language["accountDeletionFailed"]]);
 					}
 					$deleteStmt->close();
 				} else {
-					if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => 0, "msg" => $language["invalidUserOrToken"]]);
-					else echo "fail";
+					echo json_encode(["code" => 0, "msg" => $language["invalidUserOrToken"]]);
 				}
 			}
 			$stmt->close();
 		} catch (mysqli_sql_exception $sqlException) {
-			if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => -1, "msg" => $language["databaseError"]]);
-			else echo "fail";
+			echo json_encode(["code" => -1, "msg" => $language["databaseError"]]);
 		} finally {
 			$dbConnection->close();
 		}
 	} else {
-		if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => -1, "msg" => $language["invalidRequest"]]);
-		else echo "fail";
+		echo json_encode(["code" => -1, "msg" => $language["invalidRequest"]]);
 	}
 ?>
