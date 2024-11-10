@@ -4,8 +4,7 @@
 	} else {
 		$language = json_decode(file_get_contents("languages/zh-CN.json"), true);
 	}
-	if (isset($_POST["v"]) && $_POST["v"] == "2") header('Content-Type: application/json');
-	else header('Content-Type: text/plain');
+	header('Content-Type: application/json');
 	if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['user']) && isset($_POST['pass']) && isset($_POST['from'])) {
 		function findNextAvailableUserId() {
 			global $db;
@@ -34,8 +33,7 @@
 			$password = $_POST["pass"];
 			$action = $_POST["from"];
 			if (!preg_match("/^[a-zA-Z_$][a-zA-Z0-9_$]{0,31}$/", $username) || strlen($password) < 8 || strlen($password) > 32 || !preg_match("/[a-z]/", $password) || !preg_match("/[A-Z]/", $password) || !preg_match("/\d/", $password)) {
-				if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => -1, "msg" => $language["invalidFormat"]]);
-				else echo "fail";
+				echo json_encode(["code" => -1, "msg" => $language["invalidFormat"]]);
 				$db->close();
 				exit();
 			}
@@ -47,8 +45,7 @@
 				$resultCheckUsername = $stmtCheckUsername->get_result();
 				$rowCheckUsername = $resultCheckUsername->fetch_assoc();
 				if ($rowCheckUsername["count"] > 0) {
-					if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => -1, "msg" => $language["usernameExists"]]);
-					else echo "exist";
+					echo json_encode(["code" => -1, "msg" => $language["usernameExists"]]);
 					$stmtCheckUsername->close();
 					$db->close();
 					exit();
@@ -58,8 +55,7 @@
 				$stmtInsertUser = $db->prepare("INSERT INTO users (id, user, password, token, nick) VALUES (?, ?, ?, ?, ?)");
 				$stmtInsertUser->bind_param("issss", $nextUserId, $username, $hashedPassword, $tokenForNewUser, $username);
 				$stmtInsertUser->execute();
-				if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => 1, "msg" => $language["registrationSuccess"]]);
-				else echo "success";
+				echo json_encode(["code" => 1, "msg" => $language["registrationSuccess"]]);
 				$stmtCheckUsername->close();
 				$stmtInsertUser->close();
 			} else if ($action == "login") {
@@ -69,25 +65,20 @@
 				$resultLogin = $stmtLogin->get_result();
 				if ($resultLogin && $rowLogin = $resultLogin->fetch_assoc()) {
 					if (password_verify($_POST["pass"], $rowLogin["password"])) {
-						if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => 1, "msg" => $language["loginSuccess"], "token" => $rowLogin["token"]]);
-						else echo $rowLogin["token"];
+						echo json_encode(["code" => 1, "msg" => $language["loginSuccess"], "token" => $rowLogin["token"]]);
 					} else {
-						if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => -1, "msg" => $language["wrongPassword"]]);
-						else echo "wrong";
+						echo json_encode(["code" => -1, "msg" => $language["wrongPassword"]]);
 					}
 				} else {
-					if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => -1, "msg" => $language["userNotFound"]]);
-					else echo "not_exist";
+					echo json_encode(["code" => -1, "msg" => $language["userNotFound"]]);
 				}
 				$stmtLogin->close();
 			}
 			$db->close();
 		} catch (mysqli_sql_exception $e) {
-			if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => -1, "msg" => $language["databaseError"]]);
-			else echo "fail";
+			echo json_encode(["code" => -1, "msg" => $language["databaseError"]]);
 		}
 	} else {
-		if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => -1, "msg" => $language["invalidRequest"]]);
-		else echo "fail";
+		echo json_encode(["code" => -1, "msg" => $language["invalidRequest"]]);
 	}
 ?>

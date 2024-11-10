@@ -7,7 +7,8 @@
 		<link rel="stylesheet" href="style.css" />
 	</head>
 	<body class="flex">
-		<div class="form">
+		<div id="bg" class="bg"></div>
+		<div class="form" style="position:relative">
 			<h2 data-key="editInfo"></h2>
 			<div class="pop2" id="pop2">
 				<table class="table0">
@@ -20,7 +21,6 @@
 						<td><input type="password" id="repass" class="text"></td>
 					</tr>
 				</table>
-				
 				<div class="buttons">
 					<button class="b" id="no" data-key="close"></button>
 					<button class="main-button" id="ok" data-key="confirm"></button>
@@ -31,6 +31,7 @@
 					<td class="table"><img id="avatar" class="avatar2" src="default.jpg"><div class="gray" data-key="avatarChangePrompt" style="width:80px"></div></td>
 					<td class="table">
 						<span class="t"><span data-key="usernameLabel"></span><span id="user"></span></span><br />
+						<span class="t"><span>ID: </span><span id="id"></span>, <span data-key="userCreatedAt"></span><span id="time"></span></span><br />
 						<span class="t"><label for="nick" data-key="nicknameLabel"></label><input type="text" id="nick" class="text" /></span>
 					</td>
 				</tr>
@@ -59,9 +60,10 @@
 				</tr>
 			</table>
 			<div class="buttons">
-				<button class="b" id="changepass" data-key="changePassword">修改密码</button>
-				<button class="b" id="del" data-key="deleteAccount">注销账户</button>
-				<button class="main-button" id="save" data-key="save">保存</button>
+				<button class="b" id="changepass" data-key="changePassword"></button>
+				<button class="b" id="del" data-key="deleteAccount"></button>
+				<button class="b" id="viewProfile" data-key="viewProfile"></button>
+				<button class="main-button" id="save" data-key="save"></button>
 			</div>
 		</div>
 		<input type="file" class="hidden" id="fileInput" accept="image/jpeg, image/png">
@@ -93,10 +95,7 @@
 				if (!token) {
 					location.href = 'login.html?lang=' + lang;
 				}
-				var params = new URLSearchParams({
-					token: token,
-					v: '2'
-				});
+				var params = new URLSearchParams({token});
 				var xhr = new XMLHttpRequest();
 				xhr.open('POST', 'user_data2.php?lang=' + lang, true);
 				xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
@@ -106,8 +105,16 @@
 						if (response.code === 1) {
 							conf = response.data;
 							document.getElementById('user').innerText = conf.user;
+							document.getElementById('id').innerText = conf.id;
+							document.getElementById('time').innerText = formatDateShort(conf.time, lang);
 							document.getElementById('nick').value = conf.nick;
-							if (conf.avatar) document.getElementById('avatar').src = 'avatar/' + conf.token + '.jpg';
+							if (conf.avatar) {
+								document.getElementById('avatar').src = 'avatar/' + conf.avatar + '.jpg';
+								document.getElementById('bg').style.backgroundImage = 'url(avatar/' + conf.avatar + '.jpg)';
+							} else {
+								document.getElementById('avatar').src = 'default.jpg';
+								document.getElementById('bg').style.backgroundImage = 'url(default.jpg)';
+							}
 							document.getElementById('gender').value = conf.gender;
 							document.getElementById('birth').value = conf.birth;
 							document.getElementById('bio').value = conf.bio;
@@ -150,7 +157,7 @@
 					}}]);
 					return;
 				}
-				var saveParams = new URLSearchParams({p:JSON.stringify(nconf),id:conf.id,token:conf.token,v:'2'});
+				var saveParams = new URLSearchParams({p:JSON.stringify(nconf),id:conf.id,token:conf.token});
 				var xhrSave = new XMLHttpRequest();
 				xhrSave.open('POST', 'save.php?lang=' + lang, true);
 				xhrSave.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
@@ -183,8 +190,7 @@
 				    var accountId = conf.id;
 					var queryParams = new URLSearchParams({
 						id: accountId,
-						token: conf.token,
-						v: '2'
+						token: conf.token
 					});
 					var xhrRequest = new XMLHttpRequest();
 					xhrRequest.open('POST', 'del.php?lang=' + lang, true);
@@ -219,14 +225,14 @@
 				formData.append('avatar', document.getElementById('fileInput').files[0]);
 				formData.append('id', conf.id);
 				formData.append('token', conf.token);
-				formData.append('v', '2');
 				var httpReq = new XMLHttpRequest();
 				httpReq.open('POST', 'avatar.php?lang=' + lang, true);
 				httpReq.onload = function () {
 					if (httpReq.readyState === 4 && httpReq.status === 200) {
 						var serverResponse = JSON.parse(httpReq.responseText);
 						if (serverResponse.code === 1) {
-							document.getElementById('avatar').setAttribute('src', 'avatar/' + conf.token + '.jpg');
+							document.getElementById('avatar').setAttribute('src', 'avatar/' + serverResponse.avatar + '.jpg');
+							document.getElementById('bg').style.backgroundImage = 'url(avatar/' + serverResponse.avatar + '.jpg)';
 							showPop(serverResponse.msg);
 						} else if (serverResponse.code === 0) {
 							showPop2(serverResponse.msg, [{text: language.relogin, fn: function () {
@@ -238,6 +244,9 @@
 					}
 				};
 				httpReq.send(formData);
+			});
+			document.getElementById('viewProfile').addEventListener('click', function() {
+				location.href = 'profile.html?lang=' + lang + '&id=' + conf.id;
 			});
 		</script>
 	</body>

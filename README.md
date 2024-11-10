@@ -54,6 +54,35 @@ CREATE TABLE users (
   birth date DEFAULT NULL,
   bio varchar(1024) NOT NULL DEFAULT ''
 );
+CREATE TABLE friend_requests (
+  id int NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  source int NOT NULL,
+  target int NOT NULL,
+  sent_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  received_at timestamp NULL DEFAULT NULL,
+  FOREIGN KEY (source) REFERENCES users (id),
+  FOREIGN KEY (target) REFERENCES users (id)
+);
+CREATE TABLE friendships (
+  id int NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  source int NOT NULL,
+  target int NOT NULL,
+  request_time timestamp NOT NULL,
+  allowed_time timestamp NOT NULL,
+  FOREIGN KEY (source) REFERENCES users (id),
+  FOREIGN KEY (target) REFERENCES users (id)
+);
+CREATE TABLE chats (
+  id int NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  session int NOT NULL,
+  content text NOT NULL,
+  multi longblob,
+  sent_at timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  is_read tinyint(1) DEFAULT '0',
+  sender int NOT NULL,
+  FOREIGN KEY (session) REFERENCES friendships (id),
+  FOREIGN KEY (sender) REFERENCES users (id)
+);
 ```
 
 ### 服务器配置
@@ -108,6 +137,12 @@ CREATE TABLE users (
 
 ### 版本1.3.1（2024年11月3日发布）
 - 修复部分用户无效头像不显示信息的问题。
+
+### 版本2.0.0（2024年11月10日发布）
+- 我们为用户带来了一个全新的视觉体验，界面设计在保持现代化的同时，更加注重了用户的直觉和操作习惯，使得整体美观度和使用便捷性都得到了显著提升。
+- 为了满足用户在社交方面的需求，我们新增了好友管理功能。用户现在可以轻松地添加、删除好友，并随时查看好友列表，这一功能的加入无疑增强了用户的社交互动体验。
+- 我们新增了消息通知系统，现在用户可以查看系统消息、好友请求、聊天消息等通知。这一功能的加入，让用户能够及时了解平台动态，更加便捷地管理自己的社交关系。
+- 我们推出了一对一聊天功能，旨在为用户提供更加私密、便捷的沟通方式。聊天记录会保存在云端，确保用户数据的安全性和便捷性。
 
 ## 未来规划
 
