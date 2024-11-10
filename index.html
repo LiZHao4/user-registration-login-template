@@ -7,33 +7,25 @@
 		<link rel="stylesheet" href="style.css" />
 	</head>
 	<body>
-		<div id="top" class="top">
+		<div id="bg" class="bg"></div>
+		<div id="top" class="top" style="position:relative;overflow-y: auto;">
 			<div class="right">
-				<select class="select" id="language-choose"></select>
-				<a class="link1" id="logout" data-key="logout"></a>
+				<!-- <div class="small-item" id="articleList" style="flex-shrink:0"><span class="small" data-key="articles"></span></div> -->
+				<div class="small-item" id="friendList" style="flex-shrink:0"><span id="friendListCount" class="small badge2" data-key="friends"></span></div>
+				<div class="small-item" id="config" style="flex-shrink:0">
+					<img class="avatar" id="avatar"><span style="margin-left:5px;" id="nickname" class="small"></span>
+				</div>
+				<select class="select" id="language-choose" style="flex-shrink:0"></select>
+				<a class="link1" id="logout" data-key="logout" style="flex-shrink:0"></a>
 			</div>
 		</div>
-		<div class="card" id="card">
-			<table>
-				<tr>
-					<td class="table"><img class="avatar" id="avatar"></td>
-					<td class="table">
-						<div class="big" id="nickname"></div>
-						<div class="small"><span data-key="usernameLabel"></span><span id="user"></span></div>
-						<div class="small">ID：<span id="id"></span></div>
-						<div class="small"><span data-key="userCreationDateLabel"></span><span id="time"></span></div>
-					</td>
-				</tr>
-			</table>
-			<div class="link1" style="text-align:right;"><span class="pointer" id="config" data-key="edit"></span></div>
-		</div>
-		<div class="card" id="subcard" style="text-align:center"><div class="link"><a class="link1" id="nologin" data-key="notLoggedInMessage"></a></div></div>
+		<div class="card" id="subcard" style="text-align:center;position:relative"><div class="link"><a class="link1" id="nologin" data-key="notLoggedInMessage"></a></div></div>
 		<script src="js/lib.js"></script>
 		<script>
 			var language, lang = new URLSearchParams(window.location.search).get('lang') || 'zh-CN';
 			function request(lang) {
 				var xhr0 = new XMLHttpRequest();
-				xhr0.open('GET', 'languages/' + encodeURIComponent(lang) + '.json', true);
+				xhr0.open('GET', 'languages/' + encodeURIComponent(lang) + '.json');
 				xhr0.onreadystatechange = function() {
 					if (xhr0.readyState === 4) {
 						if (xhr0.status === 200) {
@@ -51,7 +43,7 @@
 			window.onload = function() {
 				request(lang);
 				var xhr = new XMLHttpRequest();
-				xhr.open('GET', 'language_list.json', true);
+				xhr.open('GET', 'language_list.json');
 				xhr.onreadystatechange = function() {
 					if (xhr.readyState === 4 && xhr.status === 200) {
 						var list = JSON.parse(xhr.responseText);
@@ -67,16 +59,16 @@
 				xhr.send();
 				var storedToken = getCookie('_');
 				if (!storedToken) {
-					document.getElementById('card').style.display = 'none';
+					// document.getElementById('card').style.display = 'none';
 					document.getElementById('top').style.display = 'none';
 					document.getElementById('nologin').setAttribute('href', "javascript:logoutAccount('" + lang + "');");
 					document.getElementById('subcard').style.display = 'block';
 					return;
 				}
 				document.getElementById('subcard').style.display = 'none';
+				setCookie('_', storedToken);
 				var queryParams = new URLSearchParams({
-					token: storedToken,
-					v: 2
+					token: storedToken
 				});
 				var xhrRequest = new XMLHttpRequest();
 				xhrRequest.open('POST', 'user_data.php?lang=' + lang, true);
@@ -87,14 +79,14 @@
 						if (serverResponse.code === 1) {
 							var data = serverResponse.data;
 							document.getElementById('nickname').innerText = data.nick;
-							document.getElementById('user').innerText = data.user;
-							document.getElementById('id').innerText = data.id;
-							document.getElementById('time').innerText = data.time;
 							if (data.avatar) {
-								document.getElementById('avatar').setAttribute('src', 'avatar/' + data.token + '.jpg');
+								document.getElementById('avatar').setAttribute('src', 'avatar/' + data.avatar + '.jpg');
+								document.getElementById('bg').style.backgroundImage = 'url(avatar/' + data.avatar + '.jpg)';
 							} else {
 								document.getElementById('avatar').setAttribute('src', 'default.jpg');
+								document.getElementById('bg').style.backgroundImage = 'url(default.jpg)';
 							}
+							document.getElementById('friendListCount').setAttribute('data-count', data.requestCount);
 						} else if (serverResponse.code === 0) {
 							showPop2(serverResponse.msg, [{text: language.relogin, fn: function () {
 								location.href = "login.html?lang=" + lang;
@@ -112,6 +104,12 @@
 			});
 			document.getElementById('language-choose').addEventListener('change', function() {
 				location.href = "?lang=" + this.value;
+			});
+			// document.getElementById('articleList').addEventListener('click', function() {
+			// 	location.href = "articles.html?lang=" + lang;
+			// });
+			document.getElementById('friendList').addEventListener('click', function() {
+				location.href = "friends.html?lang=" + lang;
 			});
 		</script>
 	</body>

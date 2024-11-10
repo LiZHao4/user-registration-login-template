@@ -4,8 +4,7 @@
 	} else {
 		$language = json_decode(file_get_contents("languages/zh-CN.json"), true);
 	}
-	if (isset($_POST["v"]) && $_POST["v"] == "2") header('Content-Type: application/json');
-	else header('Content-Type: text/plain');
+	header('Content-Type: application/json');
 	if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['id']) && isset($_POST['token']) && isset($_POST['p'])) {
 		mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 		$config = parse_ini_file('conf/settings.ini', true);
@@ -17,19 +16,18 @@
 			$databaseConnection = new mysqli($host, $user, $pass, $db);
 			$p = json_decode($_POST['p']);
 			if (empty($p) || !is_object($p)) {
-				if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => -1, "msg" => $language["parameterError"]]);
-				else echo "fail";
+				echo json_encode(["code" => -1, "msg" => $language["parameterError"]]);
 				exit;
 			}
 			$userId = (int)$_POST['id'];
 			$token = $_POST['token'];
-			$stmt = $databaseConnection->prepare("SELECT id, token FROM users WHERE id = ?");
+			$stmt = $databaseConnection->prepare("SELECT token FROM users WHERE id = ?");
 			$stmt->bind_param("i", $userId);
 			$stmt->execute();
 			$res = $stmt->get_result();
 			if ($res->num_rows > 0) {
 				$row = $res->fetch_assoc();
-				if ($row['token'] == $token) {
+				if (hash_equals($row['token'], $token)) {
 					$newNickname = isset($p->nick) ? $p->nick : null;
 					$newPassword = isset($p->password) ? $p->password : null;
 					$newGender = isset($p->gender) ? $p->gender : null;
@@ -67,20 +65,16 @@
 						$st->close();
 					}
 				} else {
-					if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => 0, "msg" => $language["invalidUserOrToken"]]);
-					else echo "fail";
+					echo json_encode(["code" => 0, "msg" => $language["invalidUserOrToken"]]);
 				}
 			}
-			if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => 1, "msg" => $language["updateSuccess"]]);
-			else echo "success";
+			echo json_encode(["code" => 1, "msg" => $language["updateSuccess"]]);
 		} catch (mysqli_sql_exception $sqlException) {
-			if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => -1, "msg" => $language["databaseError"]]);
-			else echo "fail";
+			echo json_encode(["code" => -1, "msg" => $language["databaseError"]]);
 		} finally {
 			$databaseConnection->close();
 		}
 	} else {
-		if (isset($_POST["v"]) && $_POST["v"] == "2") echo json_encode(["code" => -1, "msg" => $language["invalidRequest"]]);
-		else echo "fail";
+		echo json_encode(["code" => -1, "msg" => $language["invalidRequest"]]);
 	}
 ?>

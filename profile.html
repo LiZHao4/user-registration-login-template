@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title data-key="profile"></title>
+		<link rel="stylesheet" href="style.css" />
+	</head>
+	<body class="flex">
+		<div id="bg" class="bg"></div>
+		<div class="form" style="position:relative">
+			<div class="header">
+				<div class="profile">
+					<img id="avatar" class="avatar1">
+					<div class="info">
+						<div id="nick" class="nick"></div>
+						<div id="user" class="user"></div>
+					</div>
+				</div>
+			</div>
+			<div class="sex-age" style="font-size:10px;margin:5px 0">
+				<span id="sex"></span>
+				<span id="age"></span>
+			</div>
+			<div class="user" id="bio" style="font-size:10px;margin:5px 0"></div>
+		</div>
+		<script src="js/lib.js"></script>
+		<script>
+			var language, lang = new URLSearchParams(window.location.search).get('lang') || 'zh-CN', id;
+			function request(lang) {
+				var xhr0 = new XMLHttpRequest();
+				xhr0.open('GET', 'languages/' + encodeURIComponent(lang) + '.json', true);
+				xhr0.onreadystatechange = function() {
+					if (xhr0.readyState === 4) {
+						if (xhr0.status === 200) {
+							language = JSON.parse(xhr0.responseText);
+							document.querySelectorAll('[data-key]').forEach(function(element) {
+								element.innerText = language[element.dataset.key];
+							});
+						} else if (xhr0.status === 404) {
+							request('zh-CN');
+						}
+					}
+				};
+				xhr0.send();
+			}
+			function langSex(sex, lang) {
+			    if (sex == 'N') return '';
+				else if (sex == 'M') return lang.male;
+				else if (sex == 'W') return lang.female;
+			}
+			function langAge(age, lang) {
+				if (!age) return '';
+				var birthDate = new Date(age);
+				var currentDate = new Date();
+				var age = currentDate.getFullYear() - birthDate.getFullYear();
+				if (currentDate.getMonth() < birthDate.getMonth() || (currentDate.getMonth() == birthDate.getMonth() && currentDate.getDate() < birthDate.getDate())) {
+					age--;
+				}
+			    return age + ' ' + lang.age;
+			}
+			window.onload = function() {
+				var storedToken = getCookie('_');
+				request(lang);
+				if (!storedToken) {
+					location.href = 'login.html?lang=' + lang;
+				}
+				var xhr = new XMLHttpRequest();
+				xhr.open('GET', 'other_user_data.php?lang=' + lang + '&id=' + new URLSearchParams(window.location.search).get('id'), true);
+				xhr.onreadystatechange = function() {
+					if (xhr.readyState === 4 && xhr.status === 200) {
+						var data = JSON.parse(xhr.responseText);
+						if (data.code == 1) {
+							document.getElementById('nick').innerText = data.data.nick;
+							document.getElementById('user').innerText = data.data.user;
+							if (data.data.avatar) {
+								document.getElementById('avatar').src = 'avatar/' + data.data.avatar + '.jpg';
+								document.getElementById('bg').style.backgroundImage = 'url(avatar/' + data.data.avatar + '.jpg)';
+							} else {
+								document.getElementById('avatar').src = 'default.jpg';
+								document.getElementById('bg').style.backgroundImage = 'url(default.jpg)';
+							}
+							document.getElementById('sex').innerText = langSex(data.data.gender, language);
+							document.getElementById('age').innerText = langAge(data.data.birth, language);
+							document.getElementById('bio').innerText = data.data.bio;
+						} else if (data.code == -1) {
+						    showPop(data.msg);
+						}
+					}
+				};
+				xhr.send();
+			};
+		</script>
+	</body>
+</html>

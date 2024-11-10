@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title id="title"></title>
+		<link rel="stylesheet" href="style.css">
+	</head>
+	<body>
+		<div class="chat-container">
+			<div class="chat-header">
+				<div class="name" id="name"></div>
+			</div>
+			<div class="chat-window" id="messages"></div>
+			<div class="input-container">
+				<textarea class="textarea-box" id="ta"></textarea>
+				<div class="send-button-container">
+					<button class="send-button" id="send" data-key="send"></button>
+					<button class="more-button" id="more">...</button>
+				</div>
+			</div>
+		</div>
+		<dialog class="more-info" id="dialog">
+			<span data-key="requestTime"></span>:<span id="requestTime"></span><br>
+			<span data-key="acceptTime"></span>:<span id="allowedTime"></span>
+			<button class="more-button" id="deleteFriend" data-key="deleteFriend" style="width:100%;margin:5px 0;"></button>
+			<button class="send-button" id="close" data-key="close" style="width:100%"></button>
+		</dialog>
+		<script src="js/lib.js"></script>
+		<script>
+			var language, lang = new URLSearchParams(window.location.search).get('lang') || 'zh-CN', id, oId, int;
+			function request(lang) {
+				var xhr0 = new XMLHttpRequest();
+				xhr0.open('GET', 'languages/' + encodeURIComponent(lang) + '.json');
+				xhr0.onreadystatechange = function() {
+					if (xhr0.readyState === 4) {
+						if (xhr0.status === 200) {
+							language = JSON.parse(xhr0.responseText);
+							document.querySelectorAll('[data-key]').forEach(function(element) {
+								element.innerText = language[element.dataset.key];
+							});
+							document.getElementById('ta').setAttribute('placeholder', language.inputPlaceholder);
+						} else if (xhr0.status === 404) {
+							request('zh-CN');
+						}
+					}
+				};
+				xhr0.send();
+			}
+			function requestChat() {
+				var xhr = new XMLHttpRequest();
+				var undertale = new URLSearchParams({token:getCookie('_'),target:new URLSearchParams(window.location.search).get('id')});
+				xhr.open('POST', 'chats.php?lang=' + lang);
+				xhr.onreadystatechange = function() {
+					if (xhr.readyState === 4 && xhr.status === 200) {
+						var data = JSON.parse(xhr.responseText);
+						if (data.code === 1) {
+							id = data.id;
+							oId = data.oId;
+							document.getElementById('name').innerText  = document.getElementById('title').innerText = data.oName;
+							document.getElementById('requestTime').innerText = formatDateLong(data.time1, lang);
+							document.getElementById('allowedTime').innerText = formatDateLong(data.time2, lang);
+							generate3({
+								target: document.getElementById('messages'),
+								data: data.data,
+								avatar: data.avatar,
+								opposite: data.opposite
+							});
+						} else {
+							clearInterval(int);
+						}
+					}
+				};
+				xhr.send(undertale);
+			}
+			window.onload = function() {
+				request(lang);
+				requestChat();
+				setTimeout(function() {
+				    document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+				}, 500);
+				int = setInterval(requestChat, 5000);
+			};
+			document.getElementById('send').addEventListener('click', function() {
+				var xhr = new XMLHttpRequest();
+				var undertale = new URLSearchParams({token:getCookie('_'),target:new URLSearchParams(window.location.search).get('id'),msg:document.getElementById('ta').value});
+				xhr.open('POST', 'add_message.php?lang=' + lang);
+				xhr.onreadystatechange = function() {
+					if (xhr.readyState === 4 && xhr.status === 200) {
+						requestChat();
+						document.getElementById('ta').value = '';
+						setTimeout(function() {
+							document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+						}, 100);
+					}
+				};
+				xhr.send(undertale);
+			});
+			document.getElementById('name').addEventListener('click', function() {
+				location.href = 'profile.html?lang=' + lang + '&id=' + oId;
+			});
+			document.getElementById('more').addEventListener('click', function() {
+				document.getElementById('dialog').showModal();
+			});
+			document.getElementById('close').addEventListener('click', function() {
+				document.getElementById('dialog').close();
+			});
+			document.getElementById('deleteFriend').addEventListener('click', function() {
+				if (confirm("你确定要删除好友吗？删除好友之后会将聊天记录一并删除。")) {
+					var xhr = new XMLHttpRequest();
+					var undertale = new URLSearchParams({token:getCookie('_'),target:new URLSearchParams(window.location.search).get('id'),id,action:'delete'});
+					xhr.open('POST', 'friends.php?lang=' + lang);
+					xhr.onreadystatechange = function() {
+						if (xhr.readyState === 4 && xhr.status === 200) {
+							var data = JSON.parse(xhr.responseText);
+							if (data.code === 1) {
+								location.href = 'friends.html?lang=' + lang;
+							}
+						}
+					};
+					xhr.send(undertale);
+				}
+			});
+		</script>
+	</body>
+</html>
