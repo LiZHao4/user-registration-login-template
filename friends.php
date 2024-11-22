@@ -63,10 +63,10 @@
 							echo json_encode(["code" => 1, "msg" => $language["deleteSuccessMessage"]]);
 							break;
 						case 'agree':
-							$requestStmt = $databaseConnection->prepare("SELECT sent_at FROM friend_requests WHERE id = ?");
+							$requestStmt = $databaseConnection->prepare("SELECT sent_at, source, target FROM friend_requests WHERE id = ?");
 							$requestStmt->bind_param("i", $_POST['target']);
 							$requestStmt->execute();
-							$requestStmt->bind_result($sentAt);
+							$requestStmt->bind_result($sentAt, $source, $tagret);
 							if ($requestStmt->fetch()) {
 								$requestStmt->close();
 								$updateStmt = $databaseConnection->prepare("UPDATE friend_requests SET received_at = NOW() WHERE id = ?");
@@ -80,7 +80,7 @@
 								$receivedStmt->fetch();
 								$receivedStmt->close();
 								$insertStmt = $databaseConnection->prepare("INSERT INTO friendships (source, target, request_time, allowed_time) VALUES (?, ?, ?, ?)");
-								$insertStmt->bind_param("iiss", $_POST['id'], $_POST['target'], $sentAt, $receivedAt);
+								$insertStmt->bind_param("iiss", $source, $tagret, $sentAt, $receivedAt);
 								$insertStmt->execute();
 								$insertStmt->close();
 								$deleteStmt = $databaseConnection->prepare("DELETE FROM friend_requests WHERE id = ?");

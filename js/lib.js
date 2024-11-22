@@ -231,7 +231,7 @@ function generate1(data) {
 	function approxy(target, buttons) {
 		return function(item) {
 			// <div class="friend-item" data-userid="不定" data-id="item.id">
-			// 	<span style="cursor:default">item.name</span>
+			// 	<span class="username">item.nick</span>
 			// 	<span class="timestamp">item.time</span>
 			// 	<button data-key="approve"></button>
 			// 	<button class="reject" data-key="deny"></button>
@@ -245,7 +245,7 @@ function generate1(data) {
 			}
 			div.setAttribute('data-id', item.id);
 			var span = document.createElement('span');
-			span.style.cursor = 'default';
+			span.className = 'username';
 			span.onclick = function() {
 				location.href = 'profile.html?lang=' + lang + '&id=' + div.dataset.userid;
 			}
