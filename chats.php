@@ -12,6 +12,10 @@
 		$user = $config['database']['user'];
 		$pass = $config['database']['pass'];
 		$db = $config['database']['db'];
+		$fresh = isset($_POST['getNew']);
+		if ($fresh && !isset($_POST['max'])) {
+			echo json_encode(["code" => -1, "msg" => $language["invalidRequest"]]);
+		}
 		try {
 			$conn = new mysqli($host, $user, $pass, $db);
 			$stmt = $conn->prepare("SELECT id FROM users WHERE token = ?");
@@ -20,8 +24,19 @@
 			$result = $stmt->get_result();
 			$data = $result->fetch_assoc();
 			if ($data) {
-				$chatStmt = $conn->prepare("SELECT content, sent_at, sender FROM chats WHERE session = ? ORDER BY sent_at");
-				$chatStmt->bind_param('i', $_POST['target']);
+				if (!$fresh) {
+					$chatPrepare = "SELECT id, content, sent_at, sender FROM chats WHERE session = ? ORDER BY sent_at";
+				} else {
+					$chatPrepare = "SELECT id, content, sent_at, sender FROM chats WHERE session = ? AND id > ? ORDER BY sent_at";
+				}
+				$chatStmt = $conn->prepare($chatPrepare);
+				$intTarget = (int)$_POST['target'];
+				if (!$fresh) {
+					$chatStmt->bind_param('i', $intTarget);
+				} else {
+					$intMax = (int)$_POST['max'];
+					$chatStmt->bind_param('ii', $intTarget, $intMax);
+				}
 				$chatStmt->execute();
 				$chatResult = $chatStmt->get_result();
 				$chatData = $chatResult->fetch_all(MYSQLI_ASSOC);
