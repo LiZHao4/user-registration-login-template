@@ -382,9 +382,9 @@ function generate2(data) {
 	data.target.previousElementSibling.setAttribute('data-count', total);
 }
 function generate3(data) {
-	data.target.innerHTML = '';
+	if (data.fresh) data.target.innerHTML = '';
 	data.data.forEach(function(item) {
-		// <div class="message (sent)">
+		// <div class="message (sent)" data-id="item.id">
 		// 	<div><img class="avatar3"></div>
 		// 	<div class="bubble">item.content</div>
 		// 	<div class="time">item.time</div>
@@ -395,6 +395,7 @@ function generate3(data) {
 		} else {
 			div.className = 'message';
 		}
+		div.dataset.id = item.id;
 		data.target.appendChild(div);
 		var div2 = document.createElement('div');
 		div.appendChild(div2);

@@ -47,9 +47,17 @@
 				};
 				xhr0.send();
 			}
-			function requestChat() {
+			function requestChat(fresh = false) {
 				var xhr = new XMLHttpRequest();
-				var undertale = new URLSearchParams({token:getCookie('_'),target:new URLSearchParams(window.location.search).get('id')});
+				var params = {
+					token: getCookie('_'),
+					target: new URLSearchParams(window.location.search).get('id')
+				};
+				if (!fresh) {
+					params.getNew = "";
+					params.max = document.getElementById('messages').lastElementChild.dataset.id;
+				}
+				var undertale = new URLSearchParams(params);
 				xhr.open('POST', 'chats.php?lang=' + lang);
 				xhr.onreadystatechange = function() {
 					if (xhr.readyState === 4 && xhr.status === 200) {
@@ -57,14 +65,17 @@
 						if (data.code === 1) {
 							id = data.id;
 							oId = data.oId;
-							document.getElementById('name').innerText  = document.getElementById('title').innerText = data.oName;
-							document.getElementById('requestTime').innerText = formatDateLong(data.time1, lang);
-							document.getElementById('allowedTime').innerText = formatDateLong(data.time2, lang);
+							if (fresh) {
+								document.getElementById('name').innerText  = document.getElementById('title').innerText = data.oName;
+								document.getElementById('requestTime').innerText = formatDateLong(data.time1, lang);
+								document.getElementById('allowedTime').innerText = formatDateLong(data.time2, lang);
+							}
 							generate3({
 								target: document.getElementById('messages'),
 								data: data.data,
 								avatar: data.avatar,
-								opposite: data.opposite
+								opposite: data.opposite,
+								fresh
 							});
 						} else {
 							clearInterval(int);
@@ -75,7 +86,7 @@
 			}
 			window.onload = function() {
 				request(lang);
-				requestChat();
+				requestChat(true);
 				setTimeout(function() {
 				    document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
 				}, 500);
@@ -83,7 +94,12 @@
 			};
 			document.getElementById('send').addEventListener('click', function() {
 				var xhr = new XMLHttpRequest();
-				var undertale = new URLSearchParams({token:getCookie('_'),target:new URLSearchParams(window.location.search).get('id'),msg:document.getElementById('ta').value});
+				var params = {
+					token: getCookie('_'),
+					target: new URLSearchParams(window.location.search).get('id'),
+					msg: document.getElementById('ta').value
+				};
+				var undertale = new URLSearchParams(params);
 				xhr.open('POST', 'add_message.php?lang=' + lang);
 				xhr.onreadystatechange = function() {
 					if (xhr.readyState === 4 && xhr.status === 200) {
