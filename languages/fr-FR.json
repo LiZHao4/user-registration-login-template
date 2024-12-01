@@ -24,6 +24,7 @@
 	"databaseError": "Erreur de base de données.",
 	"deleteAccount": "Supprimer le compte",
 	"deleteFriend": "Supprimer un ami",
+	"deleteFriendConfirm": "Êtes-vous sûr de vouloir supprimer cet ami? La suppression de l'ami supprimera également l'historique des conversations.",
 	"deleteSuccessMessage": "Suppression de l'ami réussie.",
 	"deny": "Refuser",
 	"edit": "Modifier",
@@ -70,6 +71,8 @@
 	"requestTime": "Heure d'envoi de la demande",
 	"returnHome": "Retourner à l'accueil",
 	"save": "Enregistrer",
+	"saveChatHistory": "Sauvegarder l'historique des conversations",
+	"saveChatHistorySuccess": "L'historique des conversations a été sauvegardé avec succès.",
 	"search": "Rechercher",
 	"searchEmpty": "Le contenu de la recherche est vide.",
 	"searchPlaceholder": "Rechercher un nom d'utilisateur ou un ID d'utilisateur",
@@ -87,5 +90,6 @@
 	"usernameLabel": "Nom d'utilisateur :",
 	"usernamePasswordRules": "Le nom d'utilisateur doit commencer par une lettre, un trait de soulignement _ ou un dollar $. Il peut contenir des lettres (majuscules et minuscules), des chiffres, des traits de soulignement _ ou des dollars $. Sa longueur peut être de 1 à 32 caractères. Le mot de passe doit être de 8 à 32 caractères et contenir au moins une lettre minuscule, une lettre majuscule et un chiffre.",
 	"viewProfile": "Voir la page de profil",
-	"wrongPassword": "Mot de passe incorrect."
+	"wrongPassword": "Mot de passe incorrect.",
+	"you": "[vous]"
 }

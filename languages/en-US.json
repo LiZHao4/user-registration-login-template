@@ -24,6 +24,7 @@
 	"databaseError": "Database error.",
 	"deleteAccount": "Delete Account",
 	"deleteFriend": "Delete Friend",
+	"deleteFriendConfirm": "Are you sure you want to delete this friend? Deleting the friend will also delete the chat history.",
 	"deleteSuccessMessage": "Friend deleted successfully.",
 	"deny": "Deny",
 	"edit": "Edit",
@@ -70,6 +71,8 @@
 	"requestTime": "Request Sent Time",
 	"returnHome": "Return to Home",
 	"save": "Save",
+	"saveChatHistory": "Save Chat History",
+	"saveChatHistorySuccess": "Chat history saved successfully.",
 	"search": "Search",
 	"searchEmpty": "Search content is empty.",
 	"searchPlaceholder": "Search for username or user ID",
@@ -87,5 +90,6 @@
 	"usernameLabel": "Username:",
 	"usernamePasswordRules": "Username must start with a letter, underscore (_), or dollar sign ($), and can contain letters (uppercase and lowercase), numbers, underscores (_), or dollar signs ($), with a total length of 1 to 32 characters. Password length must be 8 to 32 characters, and must contain at least 1 lowercase letter, 1 uppercase letter, and 1 number.",
 	"viewProfile": "View profile",
-	"wrongPassword": "Incorrect password."
+	"wrongPassword": "Incorrect password.",
+	"you": "[You]"
 }

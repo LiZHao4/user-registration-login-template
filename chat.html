@@ -24,6 +24,7 @@
 			<span data-key="requestTime"></span>:<span id="requestTime"></span><br>
 			<span data-key="acceptTime"></span>:<span id="allowedTime"></span>
 			<button class="more-button" id="deleteFriend" data-key="deleteFriend" style="width:100%;margin:5px 0;"></button>
+			<button class="more-button" id="save" data-key="saveChatHistory" style="width:100%;margin:5px 0;"></button>
 			<button class="send-button" id="close" data-key="close" style="width:100%"></button>
 		</dialog>
 		<script src="js/lib.js"></script>
@@ -122,7 +123,7 @@
 				document.getElementById('dialog').close();
 			});
 			document.getElementById('deleteFriend').addEventListener('click', function() {
-				if (confirm("你确定要删除好友吗？删除好友之后会将聊天记录一并删除。")) {
+				if (confirm(language.deleteFriendConfirm)) {
 					var xhr = new XMLHttpRequest();
 					var undertale = new URLSearchParams({token:getCookie('_'),target:new URLSearchParams(window.location.search).get('id'),id,action:'delete'});
 					xhr.open('POST', 'friends.php?lang=' + lang);
@@ -136,6 +137,29 @@
 					};
 					xhr.send(undertale);
 				}
+			});
+			document.getElementById('save').addEventListener('click', function() {
+			    var xhr = new XMLHttpRequest();
+				var undertale = new URLSearchParams({token:getCookie('_'),target:new URLSearchParams(window.location.search).get('id')});
+				xhr.open('POST', 'save_chats.php?lang=' + lang);
+				xhr.onreadystatechange = function() {
+					if (xhr.readyState === 4 && xhr.status === 200) {
+						var data = JSON.parse(xhr.responseText);
+						if (data.code === 1) {
+							var blob = new Blob([data.data], {type:'text/plain'});
+							var url = URL.createObjectURL(blob);
+							var a = document.createElement('a');
+							a.href = url;
+							a.download = 'chat.txt';
+							a.style.display = 'none';
+							document.body.appendChild(a);
+							a.click();
+							URL.revokeObjectURL(url);
+							document.body.removeChild(a);
+						}
+					}
+				};
+				xhr.send(undertale);
 			});
 		</script>
 	</body>
