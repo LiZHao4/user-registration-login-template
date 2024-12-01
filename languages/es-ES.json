@@ -24,6 +24,7 @@
 	"databaseError": "Error de base de datos.",
 	"deleteAccount": "Eliminar cuenta",
 	"deleteFriend": "Eliminar amigo",
+	"deleteFriendConfirm": "¿Está seguro de que quiere eliminar el amigo? Al eliminar el amigo, también se eliminarán los registros de chat.",
 	"deleteSuccessMessage": "El amigo ha sido eliminado correctamente.",
 	"deny": "Denegar",
 	"edit": "Editar",
@@ -70,6 +71,8 @@
 	"requestTime": "Tiempo de envío de solicitud",
 	"returnHome": "Volver a inicio",
 	"save": "Guardar",
+	"saveChatHistory": "Guardar historial de chat",
+	"saveChatHistorySuccess": "El historial de chat se ha guardado correctamente.",
 	"search": "Buscar",
 	"searchEmpty": "El contenido de la búsqueda está vacío.",
 	"searchPlaceholder": "Buscar nombre de usuario o ID de usuario",
@@ -87,5 +90,6 @@
 	"usernameLabel": "Nombre de usuario:",
 	"usernamePasswordRules": "El nombre de usuario debe comenzar por una letra, guión bajo _ o símbolo de dólar $, puede contener letras (mayúsculas y minúsculas), dígitos, guión bajo _ o símbolo de dólar $, y debe tener una longitud de 1 a 32 caracteres. La contraseña debe tener una longitud de 8 a 32 caracteres, y debe contener al menos una letra minúscula, una letra mayúscula y un dígito.",
 	"viewProfile": "Ver página de perfil",
-	"wrongPassword": "Contraseña incorrecta."
+	"wrongPassword": "Contraseña incorrecta.",
+	"you": "[usted]"
 }

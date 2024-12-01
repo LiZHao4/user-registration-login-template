@@ -24,6 +24,7 @@
 	"databaseError": "資料庫錯誤。",
 	"deleteAccount": "註銷帳戶",
 	"deleteFriend": "刪除好友",
+	"deleteFriendConfirm": "你確定要刪除好友嗎？刪除好友後會將聊天紀錄一併刪除。",
 	"deleteSuccessMessage": "刪除好友成功。",
 	"deny": "拒絕",
 	"edit": "編輯",
@@ -70,6 +71,8 @@
 	"requestTime": "發送請求時間",
 	"returnHome": "回到首頁",
 	"save": "保存",
+	"saveChatHistory": "保存聊天紀錄",
+	"saveChatHistorySuccess": "聊天紀錄保存成功。",
 	"search": "搜尋",
 	"searchEmpty": "搜尋內容為空。",
 	"searchPlaceholder": "搜尋使用者名稱或用戶ID",
@@ -87,5 +90,6 @@
 	"usernameLabel": "用戶名：",
 	"usernamePasswordRules": "用戶名必須以字母、下劃線_或美元符號$開頭，可包含字母（大小寫）、數字、下劃線_或美元符號$，總長度1到32位。密碼長度8到32位，必須包含至少1個小寫字母、1個大寫字母和1個數字。",
 	"viewProfile": "查看個人資訊頁",
-	"wrongPassword": "密碼錯誤。"
+	"wrongPassword": "密碼錯誤。",
+	"you": "[你]"
 }
