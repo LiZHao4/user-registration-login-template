@@ -23,9 +23,9 @@
 		<dialog class="more-info" id="dialog">
 			<span data-key="requestTime"></span>:<span id="requestTime"></span><br>
 			<span data-key="acceptTime"></span>:<span id="allowedTime"></span>
-			<button class="more-button" id="deleteFriend" data-key="deleteFriend" style="width:100%;margin:5px 0;"></button>
-			<button class="more-button" id="save" data-key="saveChatHistory" style="width:100%;margin:5px 0;"></button>
-			<button class="send-button" id="close" data-key="close" style="width:100%"></button>
+			<button class="more-button" id="deleteFriend" data-key="deleteFriend" style="width:100%;margin:5px 0"></button>
+			<button class="more-button" id="save" data-key="saveChatHistory" style="width:100%;margin:5px 0"></button>
+			<button class="send-button" id="close" data-key="close" style="width:100%;margin:5px 0"></button>
 		</dialog>
 		<script src="js/lib.js"></script>
 		<script>
@@ -48,7 +48,7 @@
 				};
 				xhr0.send();
 			}
-			function requestChat(fresh = false) {
+			function requestChat(fresh = false, scroll = false) {
 				var xhr = new XMLHttpRequest();
 				var params = {
 					token: getCookie('_'),
@@ -56,7 +56,12 @@
 				};
 				if (!fresh) {
 					params.getNew = "";
-					params.max = document.getElementById('messages').lastElementChild.dataset.id;
+					var lastMessageElement = document.getElementById('messages').lastElementChild;
+					if (lastMessageElement) {
+						params.max = lastMessageElement.dataset.id;
+					} else {
+						params.max = 0;
+					}
 				}
 				var undertale = new URLSearchParams(params);
 				xhr.open('POST', 'chats.php?lang=' + lang);
@@ -78,6 +83,9 @@
 								opposite: data.opposite,
 								fresh
 							});
+							if (scroll) {
+								document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+							}
 						} else {
 							clearInterval(int);
 						}
@@ -87,10 +95,7 @@
 			}
 			window.onload = function() {
 				request(lang);
-				requestChat(true);
-				setTimeout(function() {
-				    document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
-				}, 500);
+				requestChat(true, true);
 				int = setInterval(requestChat, 5000);
 			};
 			document.getElementById('send').addEventListener('click', function() {
@@ -104,11 +109,9 @@
 				xhr.open('POST', 'add_message.php?lang=' + lang);
 				xhr.onreadystatechange = function() {
 					if (xhr.readyState === 4 && xhr.status === 200) {
-						requestChat();
+						requestChat(false, true);
 						document.getElementById('ta').value = '';
-						setTimeout(function() {
-							document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
-						}, 100);
+						document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
 					}
 				};
 				xhr.send(undertale);
@@ -139,7 +142,7 @@
 				}
 			});
 			document.getElementById('save').addEventListener('click', function() {
-			    var xhr = new XMLHttpRequest();
+				var xhr = new XMLHttpRequest();
 				var undertale = new URLSearchParams({token:getCookie('_'),target:new URLSearchParams(window.location.search).get('id')});
 				xhr.open('POST', 'save_chats.php?lang=' + lang);
 				xhr.onreadystatechange = function() {

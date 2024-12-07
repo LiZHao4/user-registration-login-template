@@ -128,7 +128,7 @@
 					var xhr1 = new XMLHttpRequest();
 					xhr1.open('GET', 'search.php?lang=' + lang + '&q=' + encodeURIComponent(search.value));
 					xhr1.onreadystatechange = function() {
-					    if (xhr1.readyState === 4 && xhr1.status === 200) {
+						if (xhr1.readyState === 4 && xhr1.status === 200) {
 							var response = JSON.parse(xhr1.responseText);
 							if (response.code === 1) {
 								document.getElementById('searchResult').style.display = 'block';
