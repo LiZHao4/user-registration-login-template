@@ -45,7 +45,7 @@
 				xhr0.send();
 			}
 			function langSex(sex, lang) {
-			    if (sex == 'N') return '';
+				if (sex == 'N') return '';
 				else if (sex == 'M') return lang.male;
 				else if (sex == 'W') return lang.female;
 			}
@@ -57,7 +57,7 @@
 				if (currentDate.getMonth() < birthDate.getMonth() || (currentDate.getMonth() == birthDate.getMonth() && currentDate.getDate() < birthDate.getDate())) {
 					age--;
 				}
-			    return age + ' ' + lang.age;
+				return age + ' ' + lang.age;
 			}
 			window.onload = function() {
 				var storedToken = getCookie('_');
@@ -84,7 +84,7 @@
 							document.getElementById('age').innerText = langAge(data.data.birth, language);
 							document.getElementById('bio').innerText = data.data.bio;
 						} else if (data.code == -1) {
-						    showPop(data.msg);
+							showPop(data.msg);
 						}
 					}
 				};

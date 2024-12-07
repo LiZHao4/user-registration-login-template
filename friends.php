@@ -36,7 +36,7 @@
 							$isFriendStmt->fetch();
 							$isFriendStmt->close();
 							$checkStmt = $databaseConnection->prepare("SELECT COUNT(*) FROM friend_requests WHERE source = ? AND target = ? OR source = ? AND target = ?");
-    						$checkStmt->bind_param("iiii", $_POST['id'], $_POST['target'], $_POST['target'], $_POST['id']);
+							$checkStmt->bind_param("iiii", $_POST['id'], $_POST['target'], $_POST['target'], $_POST['id']);
 							$checkStmt->execute();
 							$checkStmt->bind_result($count);
 							$checkStmt->fetch();
