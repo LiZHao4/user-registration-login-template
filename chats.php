@@ -60,7 +60,7 @@
 				$validateStmt->fetch();
 				$validateStmt->close();
 				if (!$validate) {
-				    echo json_encode(["code" => -1, "msg" => $language["cannotViewOthersChat"]]);
+					echo json_encode(["code" => -1, "msg" => $language["cannotViewOthersChat"]]);
 					exit;
 				}
 				foreach ($chatData as $chatRow) {

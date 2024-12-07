@@ -187,7 +187,7 @@
 			});
 			document.getElementById('del').addEventListener('click', function() {
 				var confirmDeletion = showPop2(language.confirmAccountDeletion, [{text: language.confirm, fn: function() {
-				    var accountId = conf.id;
+					var accountId = conf.id;
 					var queryParams = new URLSearchParams({
 						id: accountId,
 						token: conf.token
@@ -200,7 +200,7 @@
 							var responseText = JSON.parse(xhrRequest.responseText);
 							if (responseText.code === 0 || responseText.code === 1) {
 								showPop2(responseText.msg, [{text: language.relogin, fn: function() {
-								    location.href = "login.html?lang=" + lang;
+									location.href = "login.html?lang=" + lang;
 								}}]);
 							} else {
 								showPop(responseText.msg);
