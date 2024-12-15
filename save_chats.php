@@ -6,7 +6,7 @@
 	}
 	header('Content-Type: application/json');
 	
-	if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['token']) && isset($_POST['target'])) {
+	if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_COOKIE['_']) && isset($_POST['target'])) {
 		mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 		$config = parse_ini_file('conf/settings.ini', true);
 		$host = $config['database']['host'];
@@ -16,12 +16,12 @@
 		try {
 			$conn = new mysqli($host, $user, $pass, $db);
 			$stmt = $conn->prepare("SELECT id FROM users WHERE token = ?");
-			$stmt->bind_param('s', $_POST['token']);
+			$stmt->bind_param('s', $_COOKIE['_']);
 			$stmt->execute();
 			$result = $stmt->get_result();
 			$data = $result->fetch_assoc();
 			if ($data) {
-				$chatPrepare = "SELECT id, content, sent_at, sender FROM chats WHERE session = ? ORDER BY sent_at";
+				$chatPrepare = "SELECT id, content, sent_at, sender, multi FROM chats WHERE session = ? ORDER BY sent_at";
 				$chatStmt = $conn->prepare($chatPrepare);
 				$intTarget = (int)$_POST['target'];
 				$chatStmt->bind_param('i', $intTarget);
@@ -59,7 +59,7 @@
 					$isoFormat = $dateTime->format(DateTime::ATOM);
 					$isoFormatWithZ = str_replace('+00:00', 'Z', $isoFormat);
 					if ($data["id"] == $chatRow['sender']) {
-						$chatContent .= $nameMine . $language["you"] . "(id: " . $data["id"] . ")" . "(" . $isoFormatWithZ . "): \n" . $chatRow["content"] . "\n\n";
+						$chatContent .= $nameMine . $language["you"] . "(id: " . $data["id"] . ")" . "(" . $isoFormatWithZ . ")" . ($chatRow['multi'] ? " *" : "") . ": \n" . $chatRow["content"] . "\n\n";
 					} else {
 						$chatContent .= $nameOpposite . "(id: " . $otherUserId . ")" . "(" . $isoFormatWithZ . "): \n" . $chatRow["content"] . "\n\n";
 					}

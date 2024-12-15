@@ -5,7 +5,7 @@
 		$language = json_decode(file_get_contents("languages/zh-CN.json"), true);
 	}
 	header('Content-Type: application/json');
-	if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['token'])) {
+	if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_COOKIE['_'])) {
 		mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 		$config = parse_ini_file('conf/settings.ini', true);
 		$host = $config['database']['host'];
@@ -14,7 +14,7 @@
 		$db = $config['database']['db'];
 		try {
 			$databaseConnection = new mysqli($host, $user, $pass, $db);
-			$postedToken = $_POST["token"];
+			$postedToken = $_COOKIE["_"];
 			$query = "SELECT id, user, nick, created_at, user_avatar, token, gender, birth, bio FROM users WHERE token = ?";
 			$statement = $databaseConnection->prepare($query);
 			$statement->bind_param("s", $postedToken);

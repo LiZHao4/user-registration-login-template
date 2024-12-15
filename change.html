@@ -67,186 +67,181 @@
 			</div>
 		</div>
 		<input type="file" class="hidden" id="fileInput" accept="image/jpeg, image/png">
-		<script src="js/lib.js"></script>
+		<script src="lib.js"></script>
 		<script>
-			var isPopupVisible = false, conf = {}, nconf = {}, language, lang = new URLSearchParams(window.location.search).get('lang') || 'zh-CN';
-			function request(lang) {
-				var xhr0 = new XMLHttpRequest();
-				xhr0.open('GET', 'languages/' + encodeURIComponent(lang) + '.json', true);
-				xhr0.onreadystatechange = function() {
-					if (xhr0.readyState === 4) {
-						if (xhr0.status === 200) {
-							language = JSON.parse(xhr0.responseText);
+			var isPopupVisible = false, userData = {}, updatedData = {}, localizedStrings, languageCode = new URLSearchParams(location.search).get('lang') || 'zh-CN';
+			function loadLanguage(lang) {
+				var xhr = new XMLHttpRequest();
+				xhr.open('GET', 'languages/' + encodeURIComponent(lang) + '.json', true);
+				xhr.onreadystatechange = function() {
+					if (xhr.readyState === 4) {
+						if (xhr.status === 200) {
+							localizedStrings = JSON.parse(xhr.responseText);
 							document.querySelectorAll('[data-key]').forEach(function(element) {
-								element.innerText = language[element.dataset.key];
+								element.innerText = localizedStrings[element.dataset.key];
 							});
-							document.getElementById('nick').setAttribute('placeholder', language.enterNickname);
-							document.getElementById('bio').setAttribute('placeholder', language.enterSignature);
-						} else if (xhr0.status === 404) {
-							request('zh-CN');
+							document.getElementById('nick').setAttribute('placeholder', localizedStrings.enterNickname);
+							document.getElementById('bio').setAttribute('placeholder', localizedStrings.enterSignature);
+						} else if (xhr.status === 404) {
+							loadLanguage('zh-CN');
 						}
 					}
 				};
-				xhr0.send();
+				xhr.send();
 			}
 			window.onload = function() {
-				var token = getCookie('_');
-				request(lang);
-				if (!token) {
-					location.href = 'login.html?lang=' + lang;
+				var sessionCookie = getCookie('_');
+				loadLanguage(languageCode);
+				if (!sessionCookie) {
+					location.href = 'login.html?lang=' + languageCode;
 				}
-				var params = new URLSearchParams({token});
-				var xhr = new XMLHttpRequest();
-				xhr.open('POST', 'user_data2.php?lang=' + lang, true);
-				xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-				xhr.onreadystatechange = function() {
-					if (xhr.readyState === 4 && xhr.status === 200) {
-						var response = JSON.parse(xhr.responseText);
-						if (response.code === 1) {
-							conf = response.data;
-							document.getElementById('user').innerText = conf.user;
-							document.getElementById('id').innerText = conf.id;
-							document.getElementById('time').innerText = formatDateShort(conf.time, lang);
-							document.getElementById('nick').value = conf.nick;
-							if (conf.avatar) {
-								document.getElementById('avatar').src = 'avatar/' + conf.avatar + '.jpg';
-								document.getElementById('bg').style.backgroundImage = 'url(avatar/' + conf.avatar + '.jpg)';
+				var xhrUserData = new XMLHttpRequest();
+				xhrUserData.open('POST', 'user_data2.php?lang=' + languageCode, true);
+				xhrUserData.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+				xhrUserData.onreadystatechange = function() {
+					if (xhrUserData.readyState === 4 && xhrUserData.status === 200) {
+						var responseData = JSON.parse(xhrUserData.responseText);
+						if (responseData.code === 1) {
+							userData = responseData.data;
+							document.getElementById('user').innerText = userData.user;
+							document.getElementById('id').innerText = userData.id;
+							document.getElementById('time').innerText = formatDateShort(userData.time, languageCode);
+							document.getElementById('nick').value = userData.nick;
+							if (userData.avatar) {
+								document.getElementById('avatar').src = 'avatar/' + userData.avatar + '.jpg';
+								document.getElementById('bg').style.backgroundImage = 'url(avatar/' + userData.avatar + '.jpg)';
 							} else {
 								document.getElementById('avatar').src = 'default.jpg';
 								document.getElementById('bg').style.backgroundImage = 'url(default.jpg)';
 							}
-							document.getElementById('gender').value = conf.gender;
-							document.getElementById('birth').value = conf.birth;
-							document.getElementById('bio').value = conf.bio;
-						} else if (response.code === 0) {
-							showPop2(response.msg, [{text: language.relogin, fn: function () {
-								location.href = 'login.html?lang=' + lang;
+							document.getElementById('gender').value = userData.gender;
+							document.getElementById('birth').value = userData.birth;
+							document.getElementById('bio').value = userData.bio;
+						} else if (responseData.code === 0) {
+							showPop2(responseData.msg, [{text: localizedStrings.relogin, fn: function () {
+								location.href = 'login.html?lang=' + languageCode;
 							}}]);
 						}
 					}
 				};
-				xhr.send(params.toString());
+				xhrUserData.send();
 			};
 			document.getElementById('changepass').addEventListener('click', togglePopupVisibility);
 			document.getElementById('no').addEventListener('click', togglePopupVisibility);
 			document.getElementById('save').addEventListener('click', function() {
-				if (conf.nick !== document.getElementById('nick').value.trim()) {
+				if (userData.nick !== document.getElementById('nick').value.trim()) {
 					var newNickname = document.getElementById('nick').value.trim();
 					if (!newNickname) {
-						showPop(language.nicknameRequired);
+						showPop(localizedStrings.nicknameRequired);
 						return;
 					}
-					nconf.nick = newNickname;
+					updatedData.nick = newNickname;
 				}
-				if (conf.gender !== document.getElementById('gender').value) {
-					nconf.gender = document.getElementById('gender').value;
+				if (userData.gender !== document.getElementById('gender').value) {
+					updatedData.gender = document.getElementById('gender').value;
 				}
-				if (conf.birth !== document.getElementById('birth').value) {
+				if (userData.birth !== document.getElementById('birth').value) {
 					if (testFuture(new Date(document.getElementById('birth').value))) {
-						showPop(language.birthdayFutureError);
+						showPop(localizedStrings.birthdayFutureError);
 						return;
 					}
-					nconf.birth = document.getElementById('birth').value;
+					updatedData.birth = document.getElementById('birth').value;
 				}
-				if (conf.bio !== document.getElementById('bio').value) {
-					nconf.bio = document.getElementById('bio').value.trim();
+				if (userData.bio !== document.getElementById('bio').value) {
+					updatedData.bio = document.getElementById('bio').value.trim();
 				}
-				if (Object.keys(nconf).length === 0) {
-					showPop2(language.noChanges, [{text: language.returnHome, fn: function() {
-						location.href = "index.html?lang=" + lang;
+				if (Object.keys(updatedData).length === 0) {
+					showPop2(localizedStrings.noChanges, [{text: localizedStrings.returnHome, fn: function() {
+						location.href = "index.html?lang=" + languageCode;
 					}}]);
 					return;
 				}
-				var saveParams = new URLSearchParams({p:JSON.stringify(nconf),id:conf.id,token:conf.token});
+				var params = new URLSearchParams({p:JSON.stringify(updatedData),id:userData.id});
 				var xhrSave = new XMLHttpRequest();
-				xhrSave.open('POST', 'save.php?lang=' + lang, true);
+				xhrSave.open('POST', 'save.php?lang=' + languageCode, true);
 				xhrSave.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
 				xhrSave.onreadystatechange = function() {
 					if (xhrSave.readyState === 4 && xhrSave.status === 200) {
 						var response = JSON.parse(xhrSave.responseText);
 						if (response.code === 1) {
-							location.href = "index.html?lang=" + lang;
+							location.href = "index.html?lang=" + languageCode;
 						} else if (response.code === 0) {
-							showPop2(response.msg, [{text: language.relogin, fn: function () {
-								location.href = "login.html?lang=" + lang;
+							showPop2(response.msg, [{text: localizedStrings.relogin, fn: function () {
+								location.href = "login.html?lang=" + languageCode;
 							}}]);
 						} else {
 							showPop(response.msg);
 						}
 					}
 				};
-				xhrSave.send(saveParams);
+				xhrSave.send(params);
 			});
 			document.getElementById('ok').addEventListener('click', function() {
 				if (checkPassword(document.getElementById('pass').value, document.getElementById('repass').value)) {
-					nconf.pass = document.getElementById('pass').value;
-					showPop(language.passwordSavedMessage);
+					updatedData.pass = document.getElementById('pass').value;
+					showPop(localizedStrings.passwordSavedMessage);
 				} else {
-					showPop(language.invalidPassword);
+					showPop(localizedStrings.invalidPassword);
 				}
 			});
 			document.getElementById('del').addEventListener('click', function() {
-				var confirmDeletion = showPop2(language.confirmAccountDeletion, [{text: language.confirm, fn: function() {
-					var accountId = conf.id;
-					var queryParams = new URLSearchParams({
-						id: accountId,
-						token: conf.token
-					});
-					var xhrRequest = new XMLHttpRequest();
-					xhrRequest.open('POST', 'del.php?lang=' + lang, true);
-					xhrRequest.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-					xhrRequest.onreadystatechange = function() {
-						if (xhrRequest.readyState === 4 && xhrRequest.status === 200) {
-							var responseText = JSON.parse(xhrRequest.responseText);
-							if (responseText.code === 0 || responseText.code === 1) {
-								showPop2(responseText.msg, [{text: language.relogin, fn: function() {
-									location.href = "login.html?lang=" + lang;
+				showPop2(localizedStrings.confirmAccountDeletion, [{text: localizedStrings.confirm, fn: function() {
+					var userId = userData.id;
+					var params = new URLSearchParams({id: userId});
+					var xhrDelete = new XMLHttpRequest();
+					xhrDelete.open('POST', 'del.php?lang=' + languageCode, true);
+					xhrDelete.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+					xhrDelete.onreadystatechange = function() {
+						if (xhrDelete.readyState === 4 && xhrDelete.status === 200) {
+							var response = JSON.parse(xhrDelete.responseText);
+							if (response.code === 0 || response.code === 1) {
+								showPop2(response.msg, [{text: localizedStrings.relogin, fn: function() {
+									location.href = "login.html?lang=" + languageCode;
 								}}]);
 							} else {
-								showPop(responseText.msg);
+								showPop(response.msg);
 							}
 						}
 					};
-					xhrRequest.send(queryParams.toString());
-				}}, {text: language.cancel}]);
+					xhrDelete.send(params.toString());
+				}}, {text: localizedStrings.cancel}]);
 			});
 			document.getElementById('avatar').addEventListener('click', function() {
 				document.getElementById('fileInput').click();
 			});
 			document.getElementById('fileInput').addEventListener('change', function(event) {
-				var selectedFile = event.target.files[0];
-				if (!selectedFile) return;
-				var fileExtension = selectedFile.name.split('.').pop().toLowerCase();
+				var file = event.target.files[0];
+				if (!file) return;
+				var fileExtension = file.name.split('.').pop().toLowerCase();
 				if (fileExtension !== 'jpg' && fileExtension !== 'png') {
-					alert(language.imageFormatError);
+					alert(localizedStrings.imageFormatError);
 					return;
 				}
 				var formData = new FormData();
 				formData.append('avatar', document.getElementById('fileInput').files[0]);
-				formData.append('id', conf.id);
-				formData.append('token', conf.token);
-				var httpReq = new XMLHttpRequest();
-				httpReq.open('POST', 'avatar.php?lang=' + lang, true);
-				httpReq.onload = function () {
-					if (httpReq.readyState === 4 && httpReq.status === 200) {
-						var serverResponse = JSON.parse(httpReq.responseText);
-						if (serverResponse.code === 1) {
-							document.getElementById('avatar').setAttribute('src', 'avatar/' + serverResponse.avatar + '.jpg');
-							document.getElementById('bg').style.backgroundImage = 'url(avatar/' + serverResponse.avatar + '.jpg)';
-							showPop(serverResponse.msg);
-						} else if (serverResponse.code === 0) {
-							showPop2(serverResponse.msg, [{text: language.relogin, fn: function () {
-								location.href = "login.html?lang=" + lang;
+				formData.append('id', userData.id);
+				var xhrAvatar = new XMLHttpRequest();
+				xhrAvatar.open('POST', 'avatar.php?lang=' + languageCode, true);
+				xhrAvatar.onload = function () {
+					if (xhrAvatar.readyState === 4 && xhrAvatar.status === 200) {
+						var response = JSON.parse(xhrAvatar.responseText);
+						if (response.code === 1) {
+							document.getElementById('avatar').setAttribute('src', 'avatar/' + response.avatar + '.jpg');
+							document.getElementById('bg').style.backgroundImage = 'url(avatar/' + response.avatar + '.jpg)';
+							showPop(response.msg);
+						} else if (response.code === 0) {
+							showPop2(response.msg, [{text: localizedStrings.relogin, fn: function () {
+								location.href = "login.html?lang=" + languageCode;
 							}}]);
 						} else {
-							showPop(serverResponse.msg);
+							showPop(response.msg);
 						}
 					}
 				};
-				httpReq.send(formData);
+				xhrAvatar.send(formData);
 			});
 			document.getElementById('viewProfile').addEventListener('click', function() {
-				location.href = 'profile.html?lang=' + lang + '&id=' + conf.id;
+				location.href = 'profile.html?lang=' + languageCode + '&id=' + userData.id;
 			});
 		</script>
 	</body>
