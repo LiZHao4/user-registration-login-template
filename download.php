@@ -4,12 +4,8 @@
 	} else {
 		$language = json_decode(file_get_contents("languages/zh-CN.json"), true);
 	}
-	header('Content-Type: application/json');
-	if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_COOKIE['_']) && isset($_POST['target']) && isset($_POST['msg'])) {
-		if (trim($_POST['msg']) === '') {
-			echo json_encode(["code" => -1, "msg" => $language["invalidRequest"]]);
-			exit;
-		}
+	// header('Content-Type: application/json');
+	if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_COOKIE['_']) && isset($_POST['source'])) {
 		mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 		$config = parse_ini_file('conf/settings.ini', true);
 		$host = $config['database']['host'];
@@ -24,21 +20,21 @@
 			$result = $stmt->get_result();
 			$data = $result->fetch_assoc();
 			if ($data) {
-				$userId = $data['id'];
-				$target = (int)$_POST['target'];
-				$testStmt = $conn->prepare("SELECT id, source, target FROM friendships WHERE id = ? AND (source = ? OR target = ?)");
-				$testStmt->bind_param('iii', $target, $userId, $userId);
-				$testStmt->execute();
-				$testResult = $testStmt->get_result();
-				$testData = $testResult->fetch_assoc();
-				if ($testData) {
-					$trimmedMsg = trim($_POST['msg']);
-					$addStmt = $conn->prepare("INSERT INTO chats (session, content, sender) VALUES (?, ?, ?)");
-					$addStmt->bind_param('ssi', $target, $trimmedMsg, $userId);
-					$addStmt->execute();
-					echo json_encode(["code" => 1, "msg" => $language["sendSuccessMessage"]]);
+				$source = $_POST['source'];
+				$stmt = $conn->prepare("SELECT COUNT(*) FROM chats WHERE multi = ?");
+				$stmt->bind_param('s', $source);
+				$stmt->execute();
+				$result = $stmt->get_result();
+				$fileData = $result->fetch_assoc();
+				if ($fileData) {
+					$filePath = "files/" . $source;
+					if (file_exists($filePath)) {
+						echo json_encode(["code" => 1, "msg" => $language["fileContentFetched"], "content" => $filePath]);
+					} else {
+						echo json_encode(["code" => -1, "msg" => $language["fileNotFound"]]);
+					}
 				} else {
-					echo json_encode(["code" => -1, "msg" => $language["invalidRequest"]]);
+					echo json_encode(["code" => -1, "msg" => $language["fileNotFound"]]);
 				}
 			} else {
 				echo json_encode(["code" => 0, "msg" => $language["invalidUserOrToken"]]);

@@ -6,10 +6,10 @@
 	}
 	header('Content-Type: application/json');
 	error_reporting(E_ALL);
-	if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES['avatar']) && $_FILES['avatar']['error'] == UPLOAD_ERR_OK && isset($_POST['id']) && isset($_POST['token'])) {
+	if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES['avatar']) && $_FILES['avatar']['error'] == UPLOAD_ERR_OK && isset($_COOKIE['_'])) {
 		mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 		function generateRandomFileName() {
-			$characters = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+			$characters = "0123456789abcdefghijklmnopqrstuvwxyz";
 			$charactersLength = strlen($characters);
 			$generatedToken = "";
 			for ($i = 0; $i < 60; $i++) {
@@ -18,7 +18,6 @@
 			return $generatedToken;
 		}
 		$fileExtension = strtolower(pathinfo($_FILES["avatar"]["name"], PATHINFO_EXTENSION));
-		$userId = $_POST['id'];
 		$config = parse_ini_file('conf/settings.ini', true);
 		$host = $config['database']['host'];
 		$user = $config['database']['user'];
@@ -26,14 +25,15 @@
 		$db = $config['database']['db'];
 		try {
 			$dbConnection = new mysqli($host, $user, $pass, $db);
-			$querySelectToken = "SELECT token FROM users WHERE id = ?";
+			$querySelectToken = "SELECT id FROM users WHERE token = ?";
 			$stmtSelectToken = $dbConnection->prepare($querySelectToken);
-			$stmtSelectToken->bind_param("i", $userId);
+			$stmtSelectToken->bind_param("s", $_COOKIE['_']);
 			$stmtSelectToken->execute();
 			$resultToken = $stmtSelectToken->get_result();
 			$userRow = $resultToken->fetch_assoc();
-			if ($userRow && hash_equals($userRow['token'], $_POST['token'])) {
+			if ($userRow) {
 				$fileName = generateRandomFileName();
+				$userId = $userRow['id'];
 				$avatarFilePath = "avatar/" . $fileName . ".jpg";
 				if (move_uploaded_file($_FILES["avatar"]["tmp_name"], $avatarFilePath . ".tmp")) {
 					$tempFilePath = $avatarFilePath . ".tmp";

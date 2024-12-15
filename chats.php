@@ -5,7 +5,7 @@
 		$language = json_decode(file_get_contents("languages/zh-CN.json"), true);
 	}
 	header('Content-Type: application/json');
-	if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['token']) && isset($_POST['target'])) {
+	if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_COOKIE['_']) && isset($_POST['target'])) {
 		mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 		$config = parse_ini_file('conf/settings.ini', true);
 		$host = $config['database']['host'];
@@ -19,15 +19,15 @@
 		try {
 			$conn = new mysqli($host, $user, $pass, $db);
 			$stmt = $conn->prepare("SELECT id FROM users WHERE token = ?");
-			$stmt->bind_param('s', $_POST['token']);
+			$stmt->bind_param('s', $_COOKIE['_']);
 			$stmt->execute();
 			$result = $stmt->get_result();
 			$data = $result->fetch_assoc();
 			if ($data) {
 				if (!$fresh) {
-					$chatPrepare = "SELECT id, content, sent_at, sender FROM chats WHERE session = ? ORDER BY sent_at";
+					$chatPrepare = "SELECT id, content, sent_at, sender, multi FROM chats WHERE session = ? ORDER BY sent_at";
 				} else {
-					$chatPrepare = "SELECT id, content, sent_at, sender FROM chats WHERE session = ? AND id > ? ORDER BY sent_at";
+					$chatPrepare = "SELECT id, content, sent_at, sender, multi FROM chats WHERE session = ? AND id > ? ORDER BY sent_at";
 				}
 				$chatStmt = $conn->prepare($chatPrepare);
 				$intTarget = (int)$_POST['target'];
@@ -53,8 +53,8 @@
 				$oppositeStmt->bind_result($otherUserId, $requestTime, $allowedTime);
 				$oppositeStmt->fetch();
 				$oppositeStmt->close();
-				$validateStmt = $conn->prepare("SELECT COUNT(*) FROM friendships WHERE source = ? AND target = ? OR source = ? AND target = ?");
-				$validateStmt->bind_param('iiii', $data["id"], $otherUserId, $otherUserId, $data["id"]);
+				$validateStmt = $conn->prepare("SELECT COUNT(*) FROM friendships WHERE id = ? AND (source = ? OR target = ?)");
+				$validateStmt->bind_param('iii', $intTarget, $data["id"], $data["id"]);
 				$validateStmt->execute();
 				$validateStmt->bind_result($validate);
 				$validateStmt->fetch();
@@ -84,7 +84,11 @@
 					$oppositeName = $avatarData2['nick'];
 				}
 				$chatStmt->close();
-				echo json_encode(["code" => 1, "msg" => $language["chatInfoSuccessMessage"], "data" => $chatData, "id" => $data["id"], "oId" => $otherUserId, "avatar" => $avatarMine, "opposite" => $avatarUrl, "oName" => $oppositeName, "time1" => $requestTime, "time2" => $allowedTime]);
+				if ($fresh) {
+					echo json_encode(["code" => 1, "msg" => $language["chatInfoSuccessMessage"], "data" => $chatData, "avatar" => $avatarMine, "opposite" => $avatarUrl]);
+				} else {
+					echo json_encode(["code" => 1, "msg" => $language["chatInfoSuccessMessage"], "data" => $chatData, "id" => $data["id"], "oId" => $otherUserId, "avatar" => $avatarMine, "opposite" => $avatarUrl, "oName" => $oppositeName, "time1" => $requestTime, "time2" => $allowedTime]);
+				}
 			} else {
 				echo json_encode(["code" => 0, "msg" => $language["invalidUserOrToken"]]);
 			}

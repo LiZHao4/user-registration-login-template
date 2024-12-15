@@ -6,7 +6,7 @@
 	}
 	header('Content-Type: application/json');
 	error_reporting(E_ALL);
-	if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['token'])) {
+	if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_COOKIE['_'])) {
 		mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 		$config = parse_ini_file('conf/settings.ini', true);
 		$host = $config['database']['host'];
@@ -16,7 +16,7 @@
 		try {
 			$mysqli = new mysqli($host, $user, $pass, $db);
 			$stmt = "SELECT id FROM users WHERE token = ?";
-			$token = $_POST['token'];
+			$token = $_COOKIE['_'];
 			$stmtPrepared = $mysqli->prepare($stmt);
 			$stmtPrepared->bind_param('s', $token);
 			$stmtPrepared->execute();

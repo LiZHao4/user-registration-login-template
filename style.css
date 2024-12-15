@@ -145,10 +145,10 @@ html, body {
 	border-radius: 10px;
 }
 .bubble {
-	max-width: 60%;
 	padding: 10px;
 	border-radius: 10px;
 	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	word-break: break-word;
 }
 .buttons {
 	display: flex;
@@ -181,7 +181,7 @@ html, body {
 	border-bottom: 1px solid #ddd;
 }
 .chat-info {
-	flex: 1;
+	width: 210px;
 }
 .chat-item {
 	display: flex;
@@ -204,12 +204,15 @@ html, body {
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
-	max-width: 250px;
+	max-width: 210px;
 }
 .chat-time {
 	font-size: 12px;
 	color: #888;
 	flex-shrink: 0;
+	display: flex;
+	justify-content: center;
+	align-items: center;
 }
 .chat-top {
 	display: flex;
@@ -237,6 +240,33 @@ html, body {
 	box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 	border-radius: 8px;
 }
+.file {
+	padding: 10px;
+	border-radius: 10px;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	word-break: break-word;
+	width: 300px;
+	height: 36px;
+	display: flex;
+	flex-direction: row;
+	cursor: default;
+}
+.file-icon {
+	width: 36px;
+	height: 36px;
+	background-image: url(file_icon.png);
+	background-size: cover;
+	flex-shrink: 0;
+	display: inline-block;
+}
+.file-name {
+	width: 286px;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
 .flex {
 	display: flex;
 }
@@ -246,6 +276,18 @@ html, body {
 	border-radius: 8px;
 	box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 	width: 300px;
+	max-height: 100vh;
+	overflow-y: auto;
+}
+.form2 {
+	background-color: #fff;
+	padding: 20px;
+	border-radius: 8px;
+	box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+	width: 300px;
+	max-height: 100vh;
+    box-sizing: border-box;
+    overflow-y: auto;
 }
 .friend {
 	margin: 5px 0;
@@ -283,7 +325,6 @@ html, body {
 .friend-list {
 	list-style-type: none;
 	padding: 0;
-	max-height: calc(100vh - 200px);
 	overflow-y: auto;
 }
 .gray {
@@ -345,6 +386,14 @@ html, body {
 	display: flex;
 	align-items: center;
 	gap: 10px;
+}
+.message-container {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+}
+.message-container.sent {
+	align-items: flex-end;
 }
 .message.sent {
 	flex-direction: row-reverse;
@@ -462,6 +511,7 @@ html, body {
 	padding: 5px 10px;
 	border-radius: 10px;
 	background-color: white;
+	font-size: 14px;
 }
 .selection {
 	background-color: white;
@@ -493,7 +543,7 @@ html, body {
 	gap: 10px;
 }
 .small {
-	font-size: 10px;
+	font-size: 14px;
 	line-height: 7px;
 	color: black;
 }
