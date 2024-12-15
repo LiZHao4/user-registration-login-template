@@ -32,63 +32,62 @@
 			</table>
 			<button class="submit" id="submit" data-key="register"></button>
 		</div>
-		<script src="js/lib.js"></script>
+		<script src="lib.js"></script>
 		<script>
-			var language, lang = new URLSearchParams(window.location.search).get('lang') || 'zh-CN';
-			function request(lang) {
-				var xhr0 = new XMLHttpRequest();
-				xhr0.open('GET', 'languages/' + encodeURIComponent(lang) + '.json', true);
-				xhr0.onreadystatechange = function() {
-					if (xhr0.readyState === 4) {
-						if (xhr0.status === 200) {
-							language = JSON.parse(xhr0.responseText);
+			var currentLanguage, defaultLanguage = new URLSearchParams(location.search).get('lang') || 'zh-CN';
+			function loadLanguageFile(languageCode) {
+				var xhr = new XMLHttpRequest();
+				xhr.open('GET', 'languages/' + encodeURIComponent(languageCode) + '.json', true);
+				xhr.onreadystatechange = function() {
+					if (xhr.readyState === 4) {
+						if (xhr.status === 200) {
+							currentLanguage = JSON.parse(xhr.responseText);
 							document.querySelectorAll('[data-key]').forEach(function(element) {
-								element.innerText = language[element.dataset.key];
+								element.innerText = currentLanguage[element.dataset.key];
 							});
-							document.getElementById('user').setAttribute('placeholder', language.enterUsername);
-							document.getElementById('pass').setAttribute('placeholder', language.enterPassword);
-							document.getElementById('repass').setAttribute('placeholder', language.confirmPasswordField);
-						} else if (xhr0.status === 404) {
-							request('zh-CN');
+							document.getElementById('user').setAttribute('placeholder', currentLanguage.enterUsername);
+							document.getElementById('pass').setAttribute('placeholder', currentLanguage.enterPassword);
+							document.getElementById('repass').setAttribute('placeholder', currentLanguage.confirmPasswordField);
+						} else if (xhr.status === 404) {
+							loadLanguageFile('zh-CN');
 						}
 					}
 				};
-				xhr0.send();
+				xhr.send();
 			}
 			window.onload = function() {
-				request(lang);
+				loadLanguageFile(defaultLanguage);
 			};
 			document.getElementById('submit').addEventListener('click', function() {
 				var username = document.getElementById('user').value;
 				var password = document.getElementById('pass').value;
 				var confirmPassword = document.getElementById('repass').value;
 				if (!/^[a-zA-Z_$][a-zA-Z0-9_$]{0,31}$/.test(username) || password.length < 8 || password.length > 32 || !/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/\d/.test(password)) {
-					showPop(language.invalidUsernamePassword);
+					showPop(currentLanguage.invalidUsernamePassword);
 					return;
 				} else if (password !== confirmPassword) {
-					showPop(language.passwordsDoNotMatch);
+					showPop(currentLanguage.passwordsDoNotMatch);
 					return;
 				} else {
-					var authParams = new URLSearchParams({
+					var formData = new URLSearchParams({
 						user: username,
 						pass: password,
-						from: 'regist',
-						v: '2'
+						from: 'regist'
 					});
 					var xhr = new XMLHttpRequest();
-					xhr.open('POST', 'user_auth.php?lang=' + lang, true);
+					xhr.open('POST', 'user_auth.php?lang=' + defaultLanguage, true);
 					xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
 					xhr.onreadystatechange = function() {
 						if (xhr.readyState === 4 && xhr.status === 200) {
-							var response = JSON.parse(xhr.responseText);
-							if (response.code === 1) {
-								location.href = 'login.html?lang=' + lang;
+							var responseData = JSON.parse(xhr.responseText);
+							if (responseData.code === 1) {
+								location.href = 'login.html?lang=' + defaultLanguage;
 							} else {
-								showPop(response.msg);
+								showPop(responseData.msg);
 							}
 						}
 					};
-					xhr.send(authParams.toString());
+					xhr.send(formData);
 				}
 			});
 			document.getElementById('icon').addEventListener('mouseenter', function() {

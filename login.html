@@ -22,7 +22,7 @@
 			</table>
 			<button class="submit" id="submit" data-key="loginLabel"></button><a id="reg"><button class="regist" id="regist" data-key="register"></button></a>
 		</div>
-		<script src="js/lib.js"></script>
+		<script src="lib.js"></script>
 		<script>
 			var language, lang = new URLSearchParams(window.location.search).get('lang') || 'zh-CN';
 			function request(lang) {
@@ -58,8 +58,7 @@
 					var authParams = new URLSearchParams({
 						user: username,
 						pass: password,
-						from: 'login',
-						v: '2'
+						from: 'login'
 					});
 					var xhr = new XMLHttpRequest();
 					xhr.open('POST', 'user_auth.php?lang=' + lang, true);

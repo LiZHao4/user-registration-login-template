@@ -16,6 +16,7 @@
 				<textarea class="textarea-box" id="ta"></textarea>
 				<div class="send-button-container">
 					<button class="send-button" id="send" data-key="send"></button>
+					<button class="more-button" id="addFile" data-key="addFile"></button>
 					<button class="more-button" id="more">...</button>
 				</div>
 			</div>
@@ -27,97 +28,95 @@
 			<button class="more-button" id="save" data-key="saveChatHistory" style="width:100%;margin:5px 0"></button>
 			<button class="send-button" id="close" data-key="close" style="width:100%;margin:5px 0"></button>
 		</dialog>
-		<script src="js/lib.js"></script>
+		<input type="file" id="fileInput" style="display:none" accept="*" single>
+		<script src="lib.js"></script>
 		<script>
-			var language, lang = new URLSearchParams(window.location.search).get('lang') || 'zh-CN', id, oId, int;
-			function request(lang) {
-				var xhr0 = new XMLHttpRequest();
-				xhr0.open('GET', 'languages/' + encodeURIComponent(lang) + '.json');
-				xhr0.onreadystatechange = function() {
-					if (xhr0.readyState === 4) {
-						if (xhr0.status === 200) {
-							language = JSON.parse(xhr0.responseText);
+			var languageData, userId, otherUserId, chatInterval, queryParams = new URLSearchParams(location.search), langCode = queryParams.get('lang') || 'zh-CN', idFromUrl = queryParams.get('id');
+			function loadLanguageFile(language) {
+				var xhrRequest = new XMLHttpRequest();
+				xhrRequest.open('GET', 'languages/' + encodeURIComponent(language) + '.json');
+				xhrRequest.onreadystatechange = function() {
+					if (xhrRequest.readyState === 4) {
+						if (xhrRequest.status === 200) {
+							languageData = JSON.parse(xhrRequest.responseText);
 							document.querySelectorAll('[data-key]').forEach(function(element) {
-								element.innerText = language[element.dataset.key];
+								element.innerText = languageData[element.dataset.key];
 							});
-							document.getElementById('ta').setAttribute('placeholder', language.inputPlaceholder);
-						} else if (xhr0.status === 404) {
-							request('zh-CN');
+							document.getElementById('ta').setAttribute('placeholder', languageData.inputPlaceholder);
+						} else if (xhrRequest.status === 404) {
+							loadLanguageFile('zh-CN');
 						}
 					}
 				};
-				xhr0.send();
+				xhrRequest.send();
 			}
-			function requestChat(fresh = false, scroll = false) {
-				var xhr = new XMLHttpRequest();
-				var params = {
-					token: getCookie('_'),
-					target: new URLSearchParams(window.location.search).get('id')
+			function fetchChatData(isNew = false, scrollToBottom = false) {
+				var chatRequest = new XMLHttpRequest();
+				var requestData = {
+					target: idFromUrl
 				};
-				if (!fresh) {
-					params.getNew = "";
-					var lastMessageElement = document.getElementById('messages').lastElementChild;
-					if (lastMessageElement) {
-						params.max = lastMessageElement.dataset.id;
+				if (!isNew) {
+					requestData.getNew = "";
+					var lastMessage = document.getElementById('messages').lastElementChild;
+					if (lastMessage) {
+						requestData.max = lastMessage.dataset.id;
 					} else {
-						params.max = 0;
+						requestData.max = 0;
 					}
 				}
-				var undertale = new URLSearchParams(params);
-				xhr.open('POST', 'chats.php?lang=' + lang);
-				xhr.onreadystatechange = function() {
-					if (xhr.readyState === 4 && xhr.status === 200) {
-						var data = JSON.parse(xhr.responseText);
-						if (data.code === 1) {
-							id = data.id;
-							oId = data.oId;
-							if (fresh) {
-								document.getElementById('name').innerText  = document.getElementById('title').innerText = data.oName;
-								document.getElementById('requestTime').innerText = formatDateLong(data.time1, lang);
-								document.getElementById('allowedTime').innerText = formatDateLong(data.time2, lang);
+				var requestParams = new URLSearchParams(requestData);
+				chatRequest.open('POST', 'chats.php?lang=' + langCode);
+				chatRequest.onreadystatechange = function() {
+					if (chatRequest.readyState === 4 && chatRequest.status === 200) {
+						var chatData = JSON.parse(chatRequest.responseText);
+						if (chatData.code === 1) {
+							if (isNew) {
+								userId = chatData.id;
+								otherUserId = chatData.oId;
+								document.getElementById('name').innerText = document.getElementById('title').innerText = chatData.oName;
+								document.getElementById('requestTime').innerText = formatDateLong(chatData.time1, langCode);
+								document.getElementById('allowedTime').innerText = formatDateLong(chatData.time2, langCode);
 							}
 							generate3({
 								target: document.getElementById('messages'),
-								data: data.data,
-								avatar: data.avatar,
-								opposite: data.opposite,
-								fresh
+								data: chatData.data,
+								avatar: chatData.avatar,
+								opposite: chatData.opposite,
+								fresh: isNew
 							});
-							if (scroll) {
+							if (scrollToBottom) {
 								document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
 							}
 						} else {
-							clearInterval(int);
+							clearInterval(chatInterval);
 						}
 					}
 				};
-				xhr.send(undertale);
+				chatRequest.send(requestParams);
 			}
 			window.onload = function() {
-				request(lang);
-				requestChat(true, true);
-				int = setInterval(requestChat, 5000);
+				loadLanguageFile(langCode);
+				fetchChatData(true, true);
+				chatInterval = setInterval(fetchChatData, 5000);
 			};
 			document.getElementById('send').addEventListener('click', function() {
-				var xhr = new XMLHttpRequest();
-				var params = {
-					token: getCookie('_'),
-					target: new URLSearchParams(window.location.search).get('id'),
+				var sendMessageRequest = new XMLHttpRequest();
+				var messageParams = new URLSearchParams({
+					target: idFromUrl,
 					msg: document.getElementById('ta').value
-				};
-				var undertale = new URLSearchParams(params);
-				xhr.open('POST', 'add_message.php?lang=' + lang);
-				xhr.onreadystatechange = function() {
-					if (xhr.readyState === 4 && xhr.status === 200) {
-						requestChat(false, true);
+				});
+				sendMessageRequest.open('POST', 'add_message.php?lang=' + langCode);
+				sendMessageRequest.onreadystatechange = function() {
+					if (sendMessageRequest.readyState === 4 && sendMessageRequest.status === 200) {
+						fetchChatData(false, true);
 						document.getElementById('ta').value = '';
 						document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
 					}
 				};
-				xhr.send(undertale);
+				sendMessageRequest.send(messageParams);
 			});
 			document.getElementById('name').addEventListener('click', function() {
-				location.href = 'profile.html?lang=' + lang + '&id=' + oId;
+				location.href = 'profile.html?lang=' + langCode + '&id=' + otherUserId;
 			});
 			document.getElementById('more').addEventListener('click', function() {
 				document.getElementById('dialog').showModal();
@@ -126,43 +125,73 @@
 				document.getElementById('dialog').close();
 			});
 			document.getElementById('deleteFriend').addEventListener('click', function() {
-				if (confirm(language.deleteFriendConfirm)) {
-					var xhr = new XMLHttpRequest();
-					var undertale = new URLSearchParams({token:getCookie('_'),target:new URLSearchParams(window.location.search).get('id'),id,action:'delete'});
-					xhr.open('POST', 'friends.php?lang=' + lang);
-					xhr.onreadystatechange = function() {
-						if (xhr.readyState === 4 && xhr.status === 200) {
-							var data = JSON.parse(xhr.responseText);
-							if (data.code === 1) {
-								location.href = 'friends.html?lang=' + lang;
+				if (confirm(languageData.deleteFriendConfirm)) {
+					var deleteFriendRequest = new XMLHttpRequest();
+					var deleteParams = new URLSearchParams({
+						target: idFromUrl,
+						action: 'delete'
+					});
+					deleteFriendRequest.open('POST', 'friends.php?lang=' + langCode);
+					deleteFriendRequest.onreadystatechange = function() {
+						if (deleteFriendRequest.readyState === 4 && deleteFriendRequest.status === 200) {
+							var responseData = JSON.parse(deleteFriendRequest.responseText);
+							if (responseData.code === 1) {
+								location.href = 'friends.html?lang=' + langCode;
 							}
 						}
 					};
-					xhr.send(undertale);
+					deleteFriendRequest.send(deleteParams);
 				}
 			});
 			document.getElementById('save').addEventListener('click', function() {
-				var xhr = new XMLHttpRequest();
-				var undertale = new URLSearchParams({token:getCookie('_'),target:new URLSearchParams(window.location.search).get('id')});
-				xhr.open('POST', 'save_chats.php?lang=' + lang);
-				xhr.onreadystatechange = function() {
-					if (xhr.readyState === 4 && xhr.status === 200) {
-						var data = JSON.parse(xhr.responseText);
-						if (data.code === 1) {
-							var blob = new Blob([data.data], {type:'text/plain'});
-							var url = URL.createObjectURL(blob);
-							var a = document.createElement('a');
-							a.href = url;
-							a.download = 'chat.txt';
-							a.style.display = 'none';
-							document.body.appendChild(a);
-							a.click();
-							URL.revokeObjectURL(url);
-							document.body.removeChild(a);
+				var saveChatRequest = new XMLHttpRequest();
+				var saveParams = new URLSearchParams({target: idFromUrl});
+				saveChatRequest.open('POST', 'save_chats.php?lang=' + langCode);
+				saveChatRequest.onreadystatechange = function() {
+					if (saveChatRequest.readyState === 4 && saveChatRequest.status === 200) {
+						var responseData = JSON.parse(saveChatRequest.responseText);
+						if (responseData.code === 1) {
+							var blobData = new Blob([responseData.data], {type:'text/plain'});
+							var blobUrl = URL.createObjectURL(blobData);
+							var downloadLink = document.createElement('a');
+							downloadLink.href = blobUrl;
+							downloadLink.download = 'chat.txt';
+							downloadLink.style.display = 'none';
+							document.body.appendChild(downloadLink);
+							downloadLink.click();
+							URL.revokeObjectURL(blobUrl);
+							document.body.removeChild(downloadLink);
 						}
 					}
 				};
-				xhr.send(undertale);
+				saveChatRequest.send(saveParams);
+			});
+			document.getElementById('addFile').addEventListener('click', function() {
+				document.getElementById('fileInput').click();
+			});
+			document.getElementById('fileInput').addEventListener('change', function(event) {
+				var file = event.target.files[0];
+				if (!file) {
+					return;
+				}
+				var fileName = file.name;
+				console.log(fileName);
+				var formData = new FormData();
+				formData.append('file', file);
+				formData.append('target', idFromUrl);
+				var xhr = new XMLHttpRequest();
+				xhr.open('POST', 'add_file.php', true);
+				xhr.onreadystatechange = function() {
+					if (xhr.readyState === 4 && xhr.status === 200) {
+						var responseData = JSON.parse(xhr.responseText);
+						if (responseData.code === 1) {
+							console.log('File uploaded successfully');
+						} else {
+							console.log('Error uploading file: ' + responseData.message);
+						}
+					}
+				};
+				xhr.send(formData);
 			});
 		</script>
 	</body>

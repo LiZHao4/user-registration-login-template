@@ -5,7 +5,7 @@
 		$language = json_decode(file_get_contents("languages/zh-CN.json"), true);
 	}
 	header('Content-Type: application/json');
-	if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['token']) && isset($_POST['id']) && isset($_POST['target']) && isset($_POST['action'])) {
+	if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_COOKIE['_']) && isset($_POST['target']) && isset($_POST['action'])) {
 		mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 		$config = parse_ini_file('conf/settings.ini', true);
 		$host = $config['database']['host'];
@@ -14,29 +14,28 @@
 		$db = $config['database']['db'];
 		try {
 			$databaseConnection = new mysqli($host, $user, $pass, $db);
-			$stmt = $databaseConnection->prepare("SELECT token FROM users WHERE id = ?");
-			$stmt->bind_param("i", $_POST['id']);
+			$stmt = $databaseConnection->prepare("SELECT id FROM users WHERE token = ?");
+			$stmt->bind_param("s", $_COOKIE['_']);
 			$stmt->execute();
 			$stmt->store_result();
-			$stmt->bind_result($dbToken);
-			if ($stmt->fetch() && hash_equals($_POST['token'], $dbToken)) {
-				$stmt->close();
+			$stmt->bind_result($id);
+			if ($stmt->fetch()) {
 				try {
 					$databaseConnection->begin_transaction();
 					switch ($_POST['action']) {
 						case 'add':
-							if ($_POST['id'] == $_POST['target']) {
+							if ($id == $_POST['target']) {
 								echo json_encode(["code" => -1, "msg" => $language["cannotAddSelf"]]);
 								break;
 							}
 							$isFriendStmt = $databaseConnection->prepare("SELECT COUNT(*) FROM friendships WHERE source = ? AND target = ? OR source = ? AND target = ?");
-							$isFriendStmt->bind_param("iiii", $_POST['id'], $_POST['target'], $_POST['target'], $_POST['id']);
+							$isFriendStmt->bind_param("iiii",$id, $_POST['target'], $_POST['target'],$id);
 							$isFriendStmt->execute();
 							$isFriendStmt->bind_result($isFriendCount);
 							$isFriendStmt->fetch();
 							$isFriendStmt->close();
 							$checkStmt = $databaseConnection->prepare("SELECT COUNT(*) FROM friend_requests WHERE source = ? AND target = ? OR source = ? AND target = ?");
-							$checkStmt->bind_param("iiii", $_POST['id'], $_POST['target'], $_POST['target'], $_POST['id']);
+							$checkStmt->bind_param("iiii", $id, $_POST['target'], $_POST['target'], $id);
 							$checkStmt->execute();
 							$checkStmt->bind_result($count);
 							$checkStmt->fetch();
@@ -46,12 +45,26 @@
 								break;
 							}
 							$addStmt = $databaseConnection->prepare("INSERT INTO friend_requests (source, target) VALUES (?, ?)");
-							$addStmt->bind_param("ii", $_POST['id'], $_POST['target']);
+							$addStmt->bind_param("ii", $id, $_POST['target']);
 							$addStmt->execute();
 							$addStmt->close();
 							echo json_encode(["code" => 1, "msg" => $language["successMessage"]]);
 							break;
 						case 'delete':
+							$lookupFileStmt = $databaseConnection->prepare("SELECT multi FROM chats WHERE session = ? AND multi IS NOT NULL");
+							$lookupFileStmt->bind_param("i", $_POST['target']);
+							$lookupFileStmt->execute();
+							$results = $lookupFileStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+							$lookupFileStmt->close();
+							if (count($results) > 0) {
+								foreach ($results as $row) {
+									$fileName = $row['multi'];
+									$filePath = "files/" . $fileName;
+									if (file_exists($filePath)) {
+										unlink($filePath);
+									}
+								}
+							}
 							$deleteChatsStmt = $databaseConnection->prepare("DELETE FROM chats WHERE session = ?");
 							$deleteChatsStmt->bind_param("i", $_POST['target']);
 							$deleteChatsStmt->execute();
@@ -108,6 +121,7 @@
 			} else {
 				echo json_encode(["code" => 0, "msg" => $language["invalidUserOrToken"]]);
 			}
+			$stmt->close();
 		} catch (mysqli_sql_exception $sqlException) {
 			echo json_encode(["code" => -1, "msg" => $language["databaseError"] . " " . $sqlException->getMessage()]);
 		}

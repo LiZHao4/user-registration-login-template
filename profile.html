@@ -24,71 +24,71 @@
 			</div>
 			<div class="user" id="bio" style="font-size:10px;margin:5px 0"></div>
 		</div>
-		<script src="js/lib.js"></script>
+		<script src="lib.js"></script>
 		<script>
-			var language, lang = new URLSearchParams(window.location.search).get('lang') || 'zh-CN', id;
-			function request(lang) {
-				var xhr0 = new XMLHttpRequest();
-				xhr0.open('GET', 'languages/' + encodeURIComponent(lang) + '.json', true);
-				xhr0.onreadystatechange = function() {
-					if (xhr0.readyState === 4) {
-						if (xhr0.status === 200) {
-							language = JSON.parse(xhr0.responseText);
-							document.querySelectorAll('[data-key]').forEach(function(element) {
-								element.innerText = language[element.dataset.key];
-							});
-						} else if (xhr0.status === 404) {
-							request('zh-CN');
-						}
-					}
-				};
-				xhr0.send();
-			}
-			function langSex(sex, lang) {
-				if (sex == 'N') return '';
-				else if (sex == 'M') return lang.male;
-				else if (sex == 'W') return lang.female;
-			}
-			function langAge(age, lang) {
-				if (!age) return '';
-				var birthDate = new Date(age);
-				var currentDate = new Date();
-				var age = currentDate.getFullYear() - birthDate.getFullYear();
-				if (currentDate.getMonth() < birthDate.getMonth() || (currentDate.getMonth() == birthDate.getMonth() && currentDate.getDate() < birthDate.getDate())) {
-					age--;
-				}
-				return age + ' ' + lang.age;
-			}
-			window.onload = function() {
-				var storedToken = getCookie('_');
-				request(lang);
-				if (!storedToken) {
-					location.href = 'login.html?lang=' + lang;
-				}
+			var translationData, currentLanguage = new URLSearchParams(location.search).get('lang') || 'zh-CN';
+			function loadLanguageFile(languageCode) {
 				var xhr = new XMLHttpRequest();
-				xhr.open('GET', 'other_user_data.php?lang=' + lang + '&id=' + new URLSearchParams(window.location.search).get('id'), true);
+				xhr.open('GET', 'languages/' + encodeURIComponent(languageCode) + '.json', true);
 				xhr.onreadystatechange = function() {
-					if (xhr.readyState === 4 && xhr.status === 200) {
-						var data = JSON.parse(xhr.responseText);
-						if (data.code == 1) {
-							document.getElementById('nick').innerText = data.data.nick;
-							document.getElementById('user').innerText = data.data.user;
-							if (data.data.avatar) {
-								document.getElementById('avatar').src = 'avatar/' + data.data.avatar + '.jpg';
-								document.getElementById('bg').style.backgroundImage = 'url(avatar/' + data.data.avatar + '.jpg)';
-							} else {
-								document.getElementById('avatar').src = 'default.jpg';
-								document.getElementById('bg').style.backgroundImage = 'url(default.jpg)';
-							}
-							document.getElementById('sex').innerText = langSex(data.data.gender, language);
-							document.getElementById('age').innerText = langAge(data.data.birth, language);
-							document.getElementById('bio').innerText = data.data.bio;
-						} else if (data.code == -1) {
-							showPop(data.msg);
+					if (xhr.readyState === 4) {
+						if (xhr.status === 200) {
+							translationData = JSON.parse(xhr.responseText);
+							document.querySelectorAll('[data-key]').forEach(function(element) {
+								element.innerText = translationData[element.dataset.key];
+							});
+						} else if (xhr.status === 404) {
+							loadLanguageFile('zh-CN');
 						}
 					}
 				};
 				xhr.send();
+			}
+			function getGenderText(genderCode, genderData) {
+				if (genderCode == 'N') return '';
+				else if (genderCode == 'M') return genderData.male;
+				else if (genderCode == 'W') return genderData.female;
+			}
+			function getAgeText(birthDate, languageData) {
+				if (!birthDate) return '';
+				var birth = new Date(birthDate);
+				var now = new Date();
+				var age = now.getFullYear() - birth.getFullYear();
+				if (now.getMonth() < birth.getMonth() || (now.getMonth() == birth.getMonth() && now.getDate() < birth.getDate())) {
+					age--;
+				}
+				return age + ' ' + languageData.age;
+			}
+			window.onload = function() {
+				var sessionToken = getCookie('_');
+				loadLanguageFile(currentLanguage);
+				if (!sessionToken) {
+					location.href = 'login.html?lang=' + currentLanguage;
+				}
+				var xhrUserData = new XMLHttpRequest();
+				xhrUserData.open('GET', 'other_user_data.php?lang=' + currentLanguage + '&id=' + new URLSearchParams(window.location.search).get('id'), true);
+				xhrUserData.onreadystatechange = function() {
+					if (xhrUserData.readyState === 4 && xhrUserData.status === 200) {
+						var userData = JSON.parse(xhrUserData.responseText);
+						if (userData.code == 1) {
+							document.getElementById('nick').innerText = userData.data.nick;
+							document.getElementById('user').innerText = userData.data.user;
+							if (userData.data.avatar) {
+								document.getElementById('avatar').src = 'avatar/' + userData.data.avatar + '.jpg';
+								document.getElementById('bg').style.backgroundImage = 'url(avatar/' + userData.data.avatar + '.jpg)';
+							} else {
+								document.getElementById('avatar').src = 'default.jpg';
+								document.getElementById('bg').style.backgroundImage = 'url(default.jpg)';
+							}
+							document.getElementById('sex').innerText = getGenderText(userData.data.gender, translationData);
+							document.getElementById('age').innerText = getAgeText(userData.data.birth, translationData);
+							document.getElementById('bio').innerText = userData.data.bio;
+						} else if (userData.code == -1) {
+							showPop(userData.msg);
+						}
+					}
+				};
+				xhrUserData.send();
 			};
 		</script>
 	</body>

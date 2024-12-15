@@ -5,7 +5,7 @@
 		$language = json_decode(file_get_contents("languages/zh-CN.json"), true);
 	}
 	header('Content-Type: application/json');
-	if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['id']) && isset($_POST['token'])) {
+	if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_COOKIE['_'])) {
 		mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 		$config = parse_ini_file('conf/settings.ini', true);
 		$host = $config['database']['host'];
@@ -14,14 +14,14 @@
 		$db = $config['database']['db'];
 		try {
 			$dbConnection = new mysqli($host, $user, $pass, $db);
-			$userId = (int)$_POST["id"];
-			$token = $_POST["token"];
-			$stmt = $dbConnection->prepare("SELECT id, token FROM users WHERE id = ?");
-			$stmt->bind_param("i", $userId);
+			$token = $_COOKIE["_"];
+			$stmt = $dbConnection->prepare("SELECT id FROM users WHERE token = ?");
+			$stmt->bind_param("s", $token);
 			$stmt->execute();
 			$res = $stmt->get_result();
 			if ($res->num_rows > 0) {
 				$row = $res->fetch_assoc();
+				$userId = $row['id'];
 				if (hash_equals($row['token'], $token)) {
 					$avatarStmt = $dbConnection->prepare("SELECT user_avatar FROM users WHERE id = ?");
 					$avatarStmt->bind_param("i", $userId);

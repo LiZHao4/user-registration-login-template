@@ -247,24 +247,22 @@ function generate1(data) {
 			var span = document.createElement('span');
 			span.className = 'username';
 			span.onclick = function() {
-				location.href = 'profile.html?lang=' + lang + '&id=' + div.dataset.userid;
+				location.href = 'profile.html?lang=' + defaultLang + '&id=' + div.dataset.userid;
 			}
 			span.innerText = item.nick;
 			div.appendChild(span);
 			var span2 = document.createElement('span');
 			span2.className = 'timestamp';
-			span2.innerText = formatDateShort(item.sent_at, lang);
+			span2.innerText = formatDateShort(item.sent_at, defaultLang);
 			div.appendChild(span2);
 			if (buttons) {
 				var button = document.createElement('button');
 				button.setAttribute('data-key', 'approve');
 				button.onclick = function() {
 					var xhr = new XMLHttpRequest();
-					xhr.open('POST', 'friends.php?lang=' + lang, true);
+					xhr.open('POST', 'friends.php?lang=' + defaultLang, true);
 					xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
 					var ul = new URLSearchParams({
-						token: data.token,
-						id: data.id,
 						target: div.dataset.id,
 						action: 'agree'
 					});
@@ -274,8 +272,8 @@ function generate1(data) {
 							if (response.code === 1) {
 								location.reload();
 							} else if (response.code === 0) {
-								showPop2(response.msg, [{text: language.relogin, fn: function() {
-									location.href = "login.html?lang=" + lang;
+								showPop2(response.msg, [{text: currentLang.relogin, fn: function() {
+									location.href = "login.html?lang=" + defaultLang;
 								}}]);
 							} else {
 								showPop(response.msg);
@@ -289,12 +287,10 @@ function generate1(data) {
 				button2.className = 'reject';
 				button2.onclick = function() {
 					var xhr = new XMLHttpRequest();
-					xhr.open('POST', 'friends.php?lang=' + lang, true);
+					xhr.open('POST', 'friends.php?lang=' + defaultLang, true);
 					xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
 					var ul = new URLSearchParams({
-						token: data.token,
-						id: data.id,
-						target: item.source,
+						target: div.dataset.id,
 						action: 'refuse'
 					});
 					xhr.onreadystatechange = function() {
@@ -303,8 +299,8 @@ function generate1(data) {
 							if (response.code === 1) {
 								location.reload();
 							} else if (response.code === 0) {
-								showPop2(response.msg, [{text: language.relogin, fn: function() {
-									location.href = "login.html?lang=" + lang;
+								showPop2(response.msg, [{text: currentLang.relogin, fn: function() {
+									location.href = "login.html?lang=" + defaultLang;
 								}}]);
 							} else {
 								showPop(response.msg);
@@ -344,7 +340,7 @@ function generate2(data) {
 		div.className = 'chat-item';
 		div.setAttribute('data-id', item.id);
 		div.onclick = function() {
-			location.href = 'chat.html?lang=' + lang + '&id=' + this.dataset.id;
+			location.href = 'chat.html?lang=' + defaultLang + '&id=' + this.dataset.id;
 		};
 		data.target.appendChild(div);
 		var div2 = document.createElement('div');
@@ -369,13 +365,13 @@ function generate2(data) {
 		div4.appendChild(div5);
 		var div6 = document.createElement('div');
 		div6.className = 'chat-time';
-		div6.innerText = formatDateShort(item.time, lang);
+		div6.innerText = formatDateShort(item.time, defaultLang);
 		div4.appendChild(div6);
 		var div7 = document.createElement('div');
 		div7.className = 'chat-preview badge3';
 		div7.setAttribute('data-count', item.count);
 		total += item.count;
-		div7.innerText = item.content;
+		div7.innerText = item.content.replace(/\n/g, ' ');
 		div3.appendChild(div7);
 		data.target.appendChild(div);
 	});
@@ -386,22 +382,46 @@ function generate3(data) {
 	data.data.forEach(function(item) {
 		// <div class="message (sent)" data-id="item.id">
 		// 	<div><img class="avatar3"></div>
-		// 	<div class="bubble">item.content</div>
-		// 	<div class="time">item.time</div>
+		// 	<div class="message-container">
+		// 		<div class="bubble/file"><div class="file-name">item.content</div>(<div class="file-icon"></div>)</div>
+		// 		<div class="time">item.time</div>
+		// 	</div>
 		// </div>
+		var condition = item.sender === userId;
+		var hasMulti = !!item.multi;
 		var div = document.createElement('div');
-		if (item.sender === id) {
+		if (condition) {
 			div.className = 'message sent';
 		} else {
 			div.className = 'message';
 		}
 		div.dataset.id = item.id;
 		data.target.appendChild(div);
+		if (hasMulti) {
+			div.dataset.attr = item.multi;
+			div.addEventListener('click', function() {
+				var xhr = new XMLHttpRequest();
+				var params = new URLSearchParams({source: this.dataset.attr});
+				xhr.open('POST', 'download.php?lang=' + langCode, true);
+				xhr.onreadystatechange = function() {
+					if (xhr.readyState === 4 && xhr.status === 200) {
+						var response = JSON.parse(xhr.responseText);
+						if (response.code == 1) {
+							var link = document.createElement('a');
+							link.href = response.content;
+							link.download = item.content;
+							link.click();
+						}
+					}
+				};
+				xhr.send(params);
+			});
+		}
 		var div2 = document.createElement('div');
 		div.appendChild(div2);
 		var img = document.createElement('img');
 		img.className = 'avatar3';
-		if (item.sender === id) {
+		if (condition) {
 			if (data.avatar) {
 				img.src = 'avatar/' + data.avatar + '.jpg';
 			} else {
@@ -415,14 +435,35 @@ function generate3(data) {
 			}
 		}
 		div2.appendChild(img);
+		var divMessageContent = document.createElement('div');
+		if (condition) {
+			divMessageContent.className = 'message-container sent';
+		} else {
+			divMessageContent.className = 'message-container';
+		}
 		var div3 = document.createElement('div');
-		div3.className = 'bubble';
-		div3.innerText = item.content;
-		div.appendChild(div3);
-		var div4 = document.createElement('div');
-		div4.className = 'time';
-		div4.innerText = formatDateLong(item.sent_at, lang);
-		div.appendChild(div4);
+		if (hasMulti) {
+			div3.className = 'file';
+		} else {
+			div3.className = 'bubble';
+		}
+		if (hasMulti) {
+			var divText = document.createElement('div');
+			divText.className = 'file-name';
+			divText.innerText = item.content;
+			div3.appendChild(divText);
+			var div4 = document.createElement('div');
+			div4.className = 'file-icon';
+			div3.appendChild(div4);
+		} else {
+			div3.innerText = item.content;
+		}
+		divMessageContent.appendChild(div3);
+		var div5 = document.createElement('div');
+		div5.className = 'time';
+		div5.innerText = formatDateLong(item.sent_at, langCode);
+		divMessageContent.appendChild(div5);
+		div.appendChild(divMessageContent);
 		data.target.appendChild(div);
 	});
 }

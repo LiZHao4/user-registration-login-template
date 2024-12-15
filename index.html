@@ -8,108 +8,105 @@
 	</head>
 	<body>
 		<div id="bg" class="bg"></div>
-		<div id="top" class="top" style="position:relative;overflow-y: auto;">
+		<div id="top" class="top" style="position:relative;overflow-y:auto">
 			<div class="right">
 				<!-- <div class="small-item" id="articleList" style="flex-shrink:0"><span class="small" data-key="articles"></span></div> -->
 				<div class="small-item" id="friendList" style="flex-shrink:0"><span id="friendListCount" class="small badge2" data-key="friends"></span></div>
 				<div class="small-item" id="config" style="flex-shrink:0">
-					<img class="avatar" id="avatar"><span style="margin-left:5px;" id="nickname" class="small"></span>
+					<img class="avatar" id="avatar"><span style="margin-left:5px" id="nickname" class="small"></span>
 				</div>
 				<select class="select" id="language-choose" style="flex-shrink:0"></select>
 				<a class="link1" id="logout" data-key="logout" style="flex-shrink:0"></a>
 			</div>
 		</div>
 		<div class="card" id="subcard" style="text-align:center;position:relative"><div class="link"><a class="link1" id="nologin" data-key="notLoggedInMessage"></a></div></div>
-		<script src="js/lib.js"></script>
+		<script src="lib.js"></script>
 		<script>
-			var language, lang = new URLSearchParams(window.location.search).get('lang') || 'zh-CN';
-			function request(lang) {
-				var xhr0 = new XMLHttpRequest();
-				xhr0.open('GET', 'languages/' + encodeURIComponent(lang) + '.json');
-				xhr0.onreadystatechange = function() {
-					if (xhr0.readyState === 4) {
-						if (xhr0.status === 200) {
-							language = JSON.parse(xhr0.responseText);
+			var languageData, selectedLang = new URLSearchParams(location.search).get('lang') || 'zh-CN';
+			function loadLanguage(langCode) {
+				var xhrRequest = new XMLHttpRequest();
+				xhrRequest.open('GET', 'languages/' + encodeURIComponent(langCode) + '.json');
+				xhrRequest.onreadystatechange = function() {
+					if (xhrRequest.readyState === 4) {
+						if (xhrRequest.status === 200) {
+							languageData = JSON.parse(xhrRequest.responseText);
 							document.querySelectorAll('[data-key]').forEach(function(element) {
-								element.innerText = language[element.dataset.key];
+								element.innerText = languageData[element.dataset.key];
 							});
-						} else if (xhr0.status === 404) {
-							request('zh-CN');
+						} else if (xhrRequest.status === 404) {
+							loadLanguage('zh-CN');
 						}
 					}
 				};
-				xhr0.send();
+				xhrRequest.send();
 			}
 			window.onload = function() {
-				request(lang);
-				var xhr = new XMLHttpRequest();
-				xhr.open('GET', 'language_list.json');
-				xhr.onreadystatechange = function() {
-					if (xhr.readyState === 4 && xhr.status === 200) {
-						var list = JSON.parse(xhr.responseText);
-						for (var i in list) {
+				loadLanguage(selectedLang);
+				var xhrLangList = new XMLHttpRequest();
+				xhrLangList.open('GET', 'language_list.json');
+				xhrLangList.onreadystatechange = function() {
+					if (xhrLangList.readyState === 4 && xhrLangList.status === 200) {
+						var langList = JSON.parse(xhrLangList.responseText);
+						for (var langCode in langList) {
 							var option = document.createElement('option');
-							option.setAttribute('value', i);
-							option.innerText = list[i];
+							option.setAttribute('value', langCode);
+							option.innerText = langList[langCode];
 							document.getElementById('language-choose').appendChild(option);
 						}
-						document.getElementById('language-choose').value = lang in list ? lang : 'zh-CN';
+						document.getElementById('language-choose').value = selectedLang in langList ? selectedLang : 'zh-CN';
 					}
 				};
-				xhr.send();
-				var storedToken = getCookie('_');
-				if (!storedToken) {
+				xhrLangList.send();
+				var userCookie = getCookie('_');
+				if (!userCookie) {
 					// document.getElementById('card').style.display = 'none';
 					document.getElementById('top').style.display = 'none';
-					document.getElementById('nologin').setAttribute('href', "javascript:logoutAccount('" + lang + "');");
+					document.getElementById('nologin').setAttribute('href', "javascript:logoutAccount('" + selectedLang + "');");
 					document.getElementById('subcard').style.display = 'block';
 					return;
 				}
 				document.getElementById('subcard').style.display = 'none';
-				setCookie('_', storedToken);
-				var queryParams = new URLSearchParams({
-					token: storedToken
-				});
-				var xhrRequest = new XMLHttpRequest();
-				xhrRequest.open('POST', 'user_data.php?lang=' + lang, true);
-				xhrRequest.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-				xhrRequest.onreadystatechange = function() {
-					if (xhrRequest.readyState === 4 && xhrRequest.status === 200) {
-						var serverResponse = JSON.parse(xhrRequest.responseText);
-						if (serverResponse.code === 1) {
-							var data = serverResponse.data;
-							document.getElementById('nickname').innerText = data.nick;
-							if (data.avatar) {
-								document.getElementById('avatar').setAttribute('src', 'avatar/' + data.avatar + '.jpg');
-								document.getElementById('bg').style.backgroundImage = 'url(avatar/' + data.avatar + '.jpg)';
+				setCookie('_', userCookie);
+				var xhrUserData = new XMLHttpRequest();
+				xhrUserData.open('POST', 'user_data.php?lang=' + selectedLang, true);
+				xhrUserData.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+				xhrUserData.onreadystatechange = function() {
+					if (xhrUserData.readyState === 4 && xhrUserData.status === 200) {
+						var userData = JSON.parse(xhrUserData.responseText);
+						if (userData.code === 1) {
+							var userInfo = userData.data;
+							document.getElementById('nickname').innerText = userInfo.nick;
+							if (userInfo.avatar) {
+								document.getElementById('avatar').setAttribute('src', 'avatar/' + userInfo.avatar + '.jpg');
+								document.getElementById('bg').style.backgroundImage = 'url(avatar/' + userInfo.avatar + '.jpg)';
 							} else {
 								document.getElementById('avatar').setAttribute('src', 'default.jpg');
 								document.getElementById('bg').style.backgroundImage = 'url(default.jpg)';
 							}
-							document.getElementById('friendListCount').setAttribute('data-count', data.requestCount);
-						} else if (serverResponse.code === 0) {
-							showPop2(serverResponse.msg, [{text: language.relogin, fn: function () {
-								location.href = "login.html?lang=" + lang;
+							document.getElementById('friendListCount').setAttribute('data-count', userInfo.requestCount);
+						} else if (userData.code === 0) {
+							showPop2(userData.msg, [{text: languageData.relogin, fn: function () {
+								location.href = "login.html?lang=" + selectedLang;
 							}}]);
-						} else if (serverResponse.code === -1) {
-							showPop(serverResponse.msg);
+						} else if (userData.code === -1) {
+							showPop(userData.msg);
 						}
 					}
 				};
-				xhrRequest.send(queryParams.toString());
-				document.getElementById('logout').setAttribute('href', "javascript:logoutAccount('" + lang + "');");
+				xhrUserData.send();
+				document.getElementById('logout').setAttribute('href', "javascript:logoutAccount('" + selectedLang + "');");
 			};
 			document.getElementById('config').addEventListener('click', function() {
-				location.href = "change.html?lang=" + lang;
+				location.href = "change.html?lang=" + selectedLang;
 			});
 			document.getElementById('language-choose').addEventListener('change', function() {
 				location.href = "?lang=" + this.value;
 			});
 			// document.getElementById('articleList').addEventListener('click', function() {
-			// 	location.href = "articles.html?lang=" + lang;
+			// 	location.href = "articles.html?lang=" + selectedLang;
 			// });
 			document.getElementById('friendList').addEventListener('click', function() {
-				location.href = "friends.html?lang=" + lang;
+				location.href = "friends.html?lang=" + selectedLang;
 			});
 		</script>
 	</body>
