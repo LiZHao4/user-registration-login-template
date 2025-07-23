@@ -1,70 +1,78 @@
 <?php
-	if (isset($_GET["lang"]) && file_exists("languages/" . $_GET["lang"] . ".json")) {
-		$language = json_decode(file_get_contents("languages/" . $_GET["lang"] . ".json"), true);
-	} else {
-		$language = json_decode(file_get_contents("languages/zh-CN.json"), true);
-	}
-	header('Content-Type: application/json');
-	if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_COOKIE['_'])) {
-		mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
-		$config = parse_ini_file('conf/settings.ini', true);
-		$host = $config['database']['host'];
-		$user = $config['database']['user'];
-		$pass = $config['database']['pass'];
-		$db = $config['database']['db'];
-		try {
-			$databaseConnection = new mysqli($host, $user, $pass, $db);
-			$receivedToken = $_COOKIE["_"];
-			if ($receivedToken) {
-				$query = "SELECT id, token, nick, user_avatar FROM users WHERE token = ?";
-				$preparedStatement = $databaseConnection->prepare($query);
-				$preparedStatement->bind_param("s", $receivedToken);
-				$preparedStatement->execute();
-				$result = $preparedStatement->get_result();
-				if ($result && $userData = $result->fetch_assoc()) {
+	header("Content-Type: application/json");
+	if ($_SERVER["REQUEST_METHOD"] === "GET"){
+		if (isset($_COOKIE["_"])) {
+			mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+			$config = parse_ini_file("conf/settings.ini", true);
+			$host = $config["database"]["host"];
+			$user = $config["database"]["user"];
+			$pass = $config["database"]["pass"];
+			$db = $config["database"]["db"];
+			try {
+				$databaseConnection = new mysqli($host, $user, $pass, $db);
+				$receivedToken = $_COOKIE["_"];
+				$userData = null;
+				$sessionStatement = $databaseConnection->prepare("SELECT user FROM user_session WHERE token = ? AND expires >= NOW()");
+				$sessionStatement->bind_param("s", $receivedToken);
+				$sessionStatement->execute();
+				$sessionResult = $sessionStatement->get_result();
+				if ($sessionResult && ($sessionData = $sessionResult->fetch_assoc())) {
+					$userId = $sessionData["user"];
+					$userStatement = $databaseConnection->prepare("SELECT id, nick, user, user_avatar, is_admin FROM users WHERE id = ?");
+					$userStatement->bind_param("i", $userId);
+					$userStatement->execute();
+					$userResult = $userStatement->get_result();
+					if ($userResult) {
+						$userData = $userResult->fetch_assoc();
+					}
+					$userStatement->close();
+				}
+				$sessionStatement->close();
+				if ($userData) {
+					$unreadStmt = $databaseConnection->prepare("SELECT COUNT(*) AS unread_count FROM system_messages WHERE target = ? AND is_read = 0");
+					$unreadStmt->bind_param("i", $userId);
+					$unreadStmt->execute();
+					$unreadResult = $unreadStmt->get_result();
+					$unreadData = $unreadResult->fetch_assoc();
+					$unreadCount = $unreadData["unread_count"];
+					$unreadStmt->close();
+					$sessionExpiresStmt = $databaseConnection->prepare("SELECT expires FROM user_session WHERE token = ?");
+					$sessionExpiresStmt->bind_param("s", $receivedToken);
+					$sessionExpiresStmt->execute();
+					$sessionExpiresResult = $sessionExpiresStmt->get_result();
+					if ($sessionExpiresResult && ($sessionExpiresData = $sessionExpiresResult->fetch_assoc())) {
+						$utcTime = new DateTime($sessionExpiresData["expires"], new DateTimeZone('UTC'));
+						$sessionExpiresTimestamp = $utcTime->getTimestamp();
+					}
+					$sessionExpiresStmt->close();
 					$data = [
 						"id" => $userData["id"],
-						"token" => $userData["token"],
 						"nick" => $userData["nick"],
-						"avatar" => $userData["user_avatar"]
+						"user" => $userData["user"],
+						"avatar" => $userData["user_avatar"], 
+						"isAdmin" => (bool)($userData["is_admin"] ?? false),
+						"systemMessageUnreadCount" => $unreadCount,
+						"token_expires" => $sessionExpiresTimestamp
 					];
-					$friendRequestQuery = "SELECT COUNT(*) as request_count FROM friend_requests WHERE target = ?";
-					$friendRequestPreparedStatement = $databaseConnection->prepare($friendRequestQuery);
-					$friendRequestPreparedStatement->bind_param("i", $userData["id"]);
-					$friendRequestPreparedStatement->execute();
-					$friendRequestResult = $friendRequestPreparedStatement->get_result();
-					$friendRequestRow = $friendRequestResult->fetch_assoc();
-					$data["requestCount"] = $friendRequestRow["request_count"];
-					$friendRequestPreparedStatement->close();
-					$friendMessageQuery = "SELECT id, source, target FROM friendships WHERE source = ? OR target = ?";
-					$friendMessagePreparedStatement = $databaseConnection->prepare($friendMessageQuery);
-					$friendMessagePreparedStatement->bind_param("ii", $userData["id"], $userData["id"]);
-					$friendMessagePreparedStatement->execute();
-					$friendMessageResult = $friendMessagePreparedStatement->get_result();
-					$friendMessageData = [];
-					while ($friendMessageRow = $friendMessageResult->fetch_assoc()) {
-						$friendMessageQuery2 = "SELECT COUNT(*) as message_count FROM chats WHERE session = ? AND is_read = 0 AND sender != ?";
-						$friendMessagePreparedStatement2 = $databaseConnection->prepare($friendMessageQuery2);
-						$friendMessagePreparedStatement2->bind_param("ii", $friendMessageRow["id"], $userData["id"]);
-						$friendMessagePreparedStatement2->execute();
-						$friendMessageResult2 = $friendMessagePreparedStatement2->get_result();
-						$friendMessageRow2 = $friendMessageResult2->fetch_assoc();
-						$data["requestCount"] += $friendMessageRow2["message_count"];
-						$friendMessagePreparedStatement2->close();
-					}
-					echo json_encode(["code" => 1, "msg" => $language["userInfoFetched"], "data" => $data]);
+					echo json_encode(["code" => 1, "msg" => "用户信息获取成功。", "data" => $data]);
 				} else {
-					echo json_encode(["code" => 0, "msg" => $language["invalidUserOrToken"]]);
+					http_response_code(401);
+					echo json_encode(["code" => 0, "msg" => "用户不存在或token无效，请重新登录。"]);
 				}
-				$preparedStatement->close();
-			} else {
-				echo json_encode(["code" => -1, "msg" => $language["missingToken"]]);
+				$deleteStmt = $databaseConnection->prepare("DELETE FROM user_session WHERE expires < NOW()");
+				$deleteStmt->execute();
+				$deleteStmt->close();
+				$databaseConnection->close();
+			} catch (mysqli_sql_exception $sqlException) {
+				http_response_code(500);
+				echo json_encode(["code" => -1, "msg" => "数据库错误。"]);
 			}
-			$databaseConnection->close();
-		} catch (mysqli_sql_exception $sqlException) {
-			echo json_encode(["code" => -1, "msg" => $language["databaseError"]]);
+		} else {
+			http_response_code(400);
+			echo json_encode(["code" => -1, "msg" => "缺少必要的参数。"]);
 		}
 	} else {
-		echo json_encode(["code" => -1, "msg" => $language["invalidRequest"]]);
+		http_response_code(405);
+		echo json_encode(["code" => -1, "msg" => "请求方法不正确。"]);
 	}
 ?>

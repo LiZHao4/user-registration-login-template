@@ -2,33 +2,57 @@
 
 ## 项目简介
 
-本项目旨在开发一个简洁、实用的用户操作平台，该平台无需依赖任何第三方框架，完全基于原生代码实现。通过此平台，用户可以轻松完成注册、登录、个人信息管理等一系列操作。随着项目的不断发展，我们已陆续推出了多个版本，以不断优化平台功能，提升用户体验。
+本项目旨在开发一个功能完备的用户操作平台，目前已演进为集**账户管理、社交互动、即时通讯**于一体的综合性系统。通过持续迭代，平台已从基础账户系统发展为支持多层级社交互动的成熟解决方案，为用户提供安全、高效的操作体验。
 
-## 核心功能
+## 核心功能体系
 
-1. **注册与登录**
-   - 用户可以通过填写必要的注册信息（如用户名、密码等）进行账户注册。
-   - 注册成功后，系统将为用户分配一个唯一的用户ID，并记录用户的创建时间。
-   - 用户可以使用注册时填写的用户名和密码进行登录，登录成功后即可进入个人信息管理界面。
+### 1. 账户管理
+- **注册与登录**
+  - 用户名/密码注册，自动分配唯一ID
+  - 多设备登录状态同步
+- **个人信息管理**
+  - 昵称/头像/性别/生日/简介设置
+  - 密码修改与安全验证
+- **账户控制**
+  - 账户注销与数据清除
+  - 登录状态实时监控
 
-2. **个人信息管理**
-   - 用户可以在个人信息管理界面中修改自己的昵称，以满足个性化需求。
-   - 用户可以上传自己的照片作为头像，以增强平台的互动性和趣味性。
-   - 用户可以随时在个人信息管理界面中修改自己的登录密码，以确保账户安全。
-   - 用户可以设置自己的性别、生日以及个人简介，以丰富个人档案。
+### 2. 社交关系管理
+- **好友系统**
+  - 双向好友添加/删除机制
+  - 好友请求发送/接收/处理
+  - 完整好友列表展示
+- **群组系统**
+  - 群组创建/解散/权限管理
+  - 群成员邀请/移除
+  - 群资料修改（名称/头像）
 
-3. **账户管理**
-   - 对于不再需要使用该平台的用户，可以选择注销自己的账户，以保护个人隐私。
-   - 用户可以查看自己的用户ID、账户创建时间、性别、生日、个人简介以及当前登录状态等信息。
+### 3. 即时通讯
+- **好友聊天**
+  - 一对一实时消息传输
+  - 文字/文件/富媒体支持
+- **群组聊天**
+  - 多人实时群聊室
+  - 聊天记录云端同步
+- **会话管理**
+  - 聊天会话分类（好友/群组）
+  - 聊天记录导出(TXT)
 
-4. **退出登录**
-   - 为确保用户账户的安全，平台提供了退出登录功能，用户可以随时选择退出当前登录状态。
+### 4. 通知中心
+- **社交通知**
+  - 好友请求实时提醒
+  - 群组邀请通知
+  - 消息到达提示
+- **系统通知**
+  - 好友关系变更通知
+  - 好友注销通知
+  - 群解散通知
 
 ## 配置要求
 
 ### 数据库配置
 
-本项目使用MySQL作为数据库。在配置文件中，请确保数据库连接信息正确，请在[配置文件](conf/settings.ini)中相应修改数据库连接信息，或者你可以在PHP配置文件中修改。
+本项目使用MySQL作为数据库。在配置文件中，请确保数据库连接信息正确，请在[配置文件](conf/settings.ini)中相应修改数据库连接信息。
 
 #### 数据表结构
 
@@ -36,45 +60,85 @@
 
 ```sql
 CREATE TABLE users (
-  id int NOT NULL PRIMARY KEY,
+  id int PRIMARY KEY NOT NULL,
   user varchar(32) NOT NULL,
   password varchar(60) NOT NULL,
   created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  token varchar(32) NOT NULL,
   nick varchar(100) NOT NULL,
-  user_avatar tinyint(1) NOT NULL DEFAULT '0',
+  user_avatar varchar(72) NOT NULL DEFAULT '/default.png',
   gender enum('M','W','N') NOT NULL DEFAULT 'N',
   birth date DEFAULT NULL,
-  bio varchar(1024) NOT NULL DEFAULT ''
+  bio varchar(1024) NOT NULL DEFAULT '',
+  unbanned_at timestamp NULL DEFAULT NULL,
+  is_admin tinyint(1) NOT NULL DEFAULT '0',
+  background varchar(69) DEFAULT NULL,
+  theme_color varbinary(3) DEFAULT NULL
+);
+CREATE TABLE user_session (
+  id int PRIMARY KEY NOT NULL AUTO_INCREMENT,
+  user int DEFAULT NULL,
+  token varchar(32) NOT NULL,
+  expires timestamp NOT NULL,
+  creation timestamp NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE user_remarks (
+  user_id int NOT NULL,
+  target_user_id int NOT NULL,
+  remark varchar(100) NOT NULL DEFAULT '',
+  created_at timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (user_id,target_user_id)
 );
 CREATE TABLE friend_requests (
-  id int NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  id int PRIMARY KEY NOT NULL AUTO_INCREMENT,
   source int NOT NULL,
   target int NOT NULL,
-  sent_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  received_at timestamp NULL DEFAULT NULL,
-  FOREIGN KEY (source) REFERENCES users (id),
-  FOREIGN KEY (target) REFERENCES users (id)
+  sent_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE friendships (
-  id int NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  id int PRIMARY KEY NOT NULL,
   source int NOT NULL,
   target int NOT NULL,
   request_time timestamp NOT NULL,
-  allowed_time timestamp NOT NULL,
-  FOREIGN KEY (source) REFERENCES users (id),
-  FOREIGN KEY (target) REFERENCES users (id)
+  allowed_time timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE `groups` (
+  id int PRIMARY KEY NOT NULL,
+  group_name varchar(100) NOT NULL,
+  creator int NOT NULL,
+  created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  group_info_permission enum('1','2','3') NOT NULL DEFAULT '1',
+  group_avatar varchar(72) NOT NULL DEFAULT '/group_default.png'
+);
+CREATE TABLE group_members (
+  `group` int NOT NULL,
+  user int NOT NULL,
+  joined_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  role enum('owner','admin','member') NOT NULL DEFAULT 'member',
+  group_nickname varchar(100) DEFAULT NULL,
+  PRIMARY KEY (`group`,user)
 );
 CREATE TABLE chats (
-  id int NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  id int PRIMARY KEY NOT NULL AUTO_INCREMENT,
   session int NOT NULL,
   content text NOT NULL,
-  multi longblob,
+  multi varchar(100) DEFAULT NULL,
   sent_at timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-  is_read tinyint(1) DEFAULT '0',
   sender int NOT NULL,
-  FOREIGN KEY (session) REFERENCES friendships (id),
-  FOREIGN KEY (sender) REFERENCES users (id)
+  type int NOT NULL DEFAULT '1'
+);
+CREATE TABLE message_read_status (
+  user_id int NOT NULL,
+  session_id int NOT NULL,
+  max_id int NOT NULL,
+  PRIMARY KEY (user_id,session_id)
+);
+CREATE TABLE system_messages (
+  id int PRIMARY KEY NOT NULL AUTO_INCREMENT,
+  content json NOT NULL,
+  sent_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  target int NOT NULL,
+  is_read tinyint(1) NOT NULL DEFAULT '0'
 );
 ```
 
@@ -90,8 +154,14 @@ CREATE TABLE chats (
 
 - **mysqli**：用于连接MySQL数据库。
 - **gd**：用于处理图像，例如用户头像的上传和显示。
+- **exif**：用于处理图像元数据。
+- **mbstring**：用于处理多字节字符串。
 
-您可以通过修改`php.ini`文件来启用这些扩展。找到`extension=mysqli`和`extension=gd`这两行（如果它们被注释掉了，即前面有`;`），去掉前面的注释符号`;`即可启用。
+### 第三方库配置
+
+- **[jQuery](https://code.jquery.com/jquery-3.7.1.min.js)**：用于前端交互和DOM操作。请存放于`/libs/jquery-3.7.1.js`。
+- **[Bootstrap](https://github.com/twbs/bootstrap/releases/download/v5.1.3/bootstrap-5.1.3-dist.zip)**：用于前端样式和布局。请存放于`/libs/bootstrap-5.1.3-dist/`。
+- **[Font Awesome](https://github.com/FortAwesome/Font-Awesome/releases/download/5.15.4/fontawesome-free-5.15.4-web.zip)**：用于前端图标。请存放于`/libs/fontawesome-free-5.15.4-web/`。
 
 ## 更新日志
 
@@ -152,8 +222,42 @@ CREATE TABLE chats (
 ### 版本3.0.0（2024年12月15日发布）
 - 统一主页顶部字体大小，调整聊天记录显示逻辑，优化聊天界面，修复好友请求、搜索、聊天记录功能及界面布局问题，新增好友聊天文件传输功能。
 
+### 版本4.0.0（2025年7月23日发布）
+- 全新界面与功能整合：
+  - 全面更新所有页面界面，采用现代化设计风格
+  - 将好友列表、好友请求和用户搜索功能整合到主页
+  - 引入新的前端库支持，提升用户体验
+- 个人主页系统：
+  - 新增个人主页功能，可查看其他用户的公开信息
+  - 支持自定义个人主页背景图
+  - 可为用户设置专属备注（仅自己可见）
+- 安全与账户管理增强：
+  - 改进登录安全机制：每次登录生成唯一动态Token
+  - 新增Token管理中心：
+    - 查看当前所有有效Token
+    - 自定义Token有效期
+    - 支持立即更换Token
+    - 可一键下线指定设备
+- 群组功能全面升级：
+  - 群组创建与管理：
+    - 可创建新群组
+    - 群主可解散群组或转让群主身份
+    - 支持成员主动退出群组
+  - 权限分级系统：
+    - 三种角色：群主、管理员、普通成员
+    - 群主可任命/撤销管理员
+    - 群主和管理员可移除成员
+  - 群信息控制：
+    - 可设置群名称/头像的修改权限（仅群主、管理员或全体成员）
+  - 个性化设置：
+    - 设置自己在群内的昵称
+  - 群聊功能增强：
+    - 支持群内文字聊天和文件传输
+- 其他改进：
+  - 优化移动设备显示效果
+  - 修复若干已知问题，提升系统稳定性
+
 ## 未来规划
 
-- 我们将继续优化平台功能，提升用户体验，如增加用户反馈机制、优化登录流程等。
-- 同时，我们也将关注平台的安全性，加强密码加密和验证机制，确保用户数据的安全。
-- 在未来版本中，我们还将考虑增加更多个性化设置和社交功能，以满足用户的多样化需求。
+- 完善API文档
+- 增强群组管理功能（禁言/投票等）

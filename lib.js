@@ -3,467 +3,554 @@ function checkPassword(password, repassword) {
 }
 function clearCookie(name) {
 	var date = new Date(0);
-	document.cookie = name + "=1; expires=" + date.toUTCString() + "; path=/";
+	document.cookie = name + "=; expires=" + date.toUTCString() + "; path=/";
 }
 function getCookie(name) {
 	var value = `; ${document.cookie}`;
 	var parts = value.split(`; ${name}=`);
-	if (parts.length === 2) return parts.pop().split(';').shift();
+	if (parts.length === 2) return decodeURIComponent(parts.pop().split(';').shift());
 	return null;
 }
-function logoutAccount(lang) {
-	clearCookie('_');
-	location.href = 'login.html?lang=' + lang;
-}
-function setCookie(name, value) {
+function setCookie(name, value, expires) {
 	var date = new Date();
-	date.setTime(date.getTime() + 2592e6);
-	document.cookie = name + "=" + (value || "") + "; expires=" + date.toUTCString() + "; path=/";
+	date.setTime(expires * 1000);
+	document.cookie = name + "=" + encodeURIComponent(value || "") + "; expires=" + date.toUTCString() + "; path=/";
 }
-function showPop(msg, seconds=5) {
-	// <div class="pop"></div>
-	var pop = document.createElement('div');
-	pop.className = 'pop';
-	pop.innerText = msg;
-	pop.style.visibility = 'visible';
-	document.body.appendChild(pop);
-	setTimeout(function() {
-		pop.remove();
-	}, seconds * 1000);
+function getFriendAdded(getFriendAddedId) {
+	return fetch('get_friend_added.php?' + new URLSearchParams({target: getFriendAddedId})).then(response => response.json()).then(responseData => {
+		if (responseData.code === 1) {
+			var returns = {
+				added: responseData.added
+			};
+			if (returns.added === 'pending_in') {
+				returns.request_id = responseData.request_id;
+			}
+			return returns;
+		}
+	});
 }
-function showPop2(msg, buttons) {
-	// <div class="pop">
-	// 	<div id="text"></div>
-	// 	<div class="between"></div>
-	// </div>
-	var pop = document.createElement('div');
-	pop.className = 'pop';
-	pop.style.visibility = 'visible';
-	var text = document.createElement('div');
-	text.id = 'text';
-	text.innerText = msg;
-	pop.appendChild(text);
-	var between = document.createElement('div');
-	between.className = 'between';
-	for (var i = 0; i < buttons.length; i++) {
-		var button = document.createElement('button');
-		button.innerText = buttons[i].text;
-		button.className = 'b';
-		let j = i;
-		button.onclick = function() {
-			if (buttons[j].fn && typeof buttons[j].fn === 'function') buttons[j].fn();
-			pop.remove();
-		};
-		between.appendChild(button);
-	}
-	pop.appendChild(between);
-	document.body.appendChild(pop);
+function logoutAccount() {
+	fetch('logout.php', {method: 'POST'}).then(response => response.json()).then(responseData => {
+		if (responseData.code === 1) {
+			location.href = 'login.html';
+		} else {
+			$('#errors').text(responseData.msg).removeClass('d-none');
+		}
+	})
 }
 function testFuture(date) {
 	return new Date(date) > new Date();
 }
-function togglePopupVisibility() {
-	if (isPopupVisible) {
-		document.getElementById('pop2').style.visibility = 'hidden';
-		isPopupVisible = false;
-	} else {
-		document.getElementById('pop2').style.visibility = 'visible';
-		isPopupVisible = true;
-	}
-}
-function formatDateShort(date, lang) {
-	var Date_ = new Date(date);
+function formatDateShort(date) {
+	var Date_ = new Date(date * 1000);
 	var now = new Date();
-	var languages;
-	if (lang == 'zh-CN' || lang == 'zh-TW') {
-		languages = {
-			yesterday: '昨天',
-			tomorrow: '明天',
-			format: function(d, full) {
-				if (full) return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
-				else return `${d.getMonth() + 1}月${d.getDate()}日`;
-			}
-		};
-	} else if (lang == 'en-US') {
-		languages = {
-			yesterday: 'yesterday',
-			tomorrow: 'tomorrow',
-			format: function(d, full) {
-				const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-				if (full) return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
-				else return `${months[d.getMonth()]} ${d.getDate()}`;
-			}
-		};
-	} else if (lang == 'es-ES') {
-		languages = {
-			yesterday: 'ayer',
-			tomorrow: 'mañana',
-			format: function(d, full) {
-				const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-				if (full) return `${d.getDate()} de ${months[d.getMonth()]} de ${d.getFullYear()}`;
-				else return `${d.getDate()} de ${months[d.getMonth()]}`;
-			}
-		};
-	} else if (lang == 'fr-FR') {
-		languages = {
-			yesterday: 'hier',
-			tomorrow: 'demain',
-			format: function(d, full) {
-				const months = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
-				if (full) return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
-				else return `${d.getDate()} ${months[d.getMonth()]}`;
-			}
+	var languages = {
+		yesterday: '昨天',
+		tomorrow: '明天',
+		format: function(d, full) {
+			if (full) return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+			else return `${d.getMonth() + 1}月${d.getDate()}日`;
 		}
-	} else if (lang == 'ru-RU') {
-		languages = {
-			yesterday: 'вчера',
-			tomorrow: 'завтра',
-			format: function(d, full) {
-				const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
-				if (full) return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
-				else return `${d.getDate()} ${months[d.getMonth()]}`;
-			}
-		}
-	} else if (lang == 'ar-SA') {
-		languages = {
-			yesterday: 'أمس',
-			tomorrow: 'غدًا',
-			format: function(d, full) {
-				const months = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
-				if (full) return `${d.getFullYear()} ${months[d.getMonth()]} ${d.getDate()}`;
-				else return `${months[d.getMonth()]} ${d.getDate()}`;
-			}
-		}
-	}
-	var yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-	var tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-	if (Date_.getFullYear() === now.getFullYear() && Date_.getMonth() === now.getMonth() && Date_.getDate() === now.getDate()) {
+	};
+	var currentYear = now.getFullYear();
+	var currentMonth = now.getMonth();
+	var currentDay = now.getDate();
+	var dateYear = Date_.getFullYear();
+	var dateMonth = Date_.getMonth();
+	var dateDay = Date_.getDate();
+	var yesterday = new Date(currentYear, currentMonth, currentDay - 1);
+	var tomorrow = new Date(currentYear, currentMonth, currentDay + 1);
+	if (dateYear === currentYear && dateMonth === currentMonth && dateDay === currentDay) {
 		return Date_.getHours().toString().padStart(2, '0') + ':' + Date_.getMinutes().toString().padStart(2, '0');
-	} else if (Date_.getFullYear() === yesterday.getFullYear() && Date_.getMonth() === yesterday.getMonth() && Date_.getDate() === yesterday.getDate()) {
+	} else if (dateYear === yesterday.getFullYear() && dateMonth === yesterday.getMonth() && dateDay === yesterday.getDate()) {
 		return languages.yesterday;
-	} else if (Date_.getFullYear() === tomorrow.getFullYear() && Date_.getMonth() === tomorrow.getMonth() && Date_.getDate() === tomorrow.getDate()) {
+	} else if (dateYear === tomorrow.getFullYear() && dateMonth === tomorrow.getMonth() && dateDay === tomorrow.getDate()) {
 		return languages.tomorrow;
-	} else if (Date_.getFullYear() === now.getFullYear()) {
+	} else if (dateYear === currentYear) {
 		return languages.format(Date_, false);
 	} else {
 		return languages.format(Date_, true);
 	}
 }
-function formatDateLong(date, lang) {
-	var Date_ = new Date(date.replace(' ', 'T') + '+08:00');
+function formatDateLong(date) {
+	var Date_ = new Date(date * 1000);
 	var now = new Date();
-	var languages;
-	if (lang == 'zh-CN' || lang == 'zh-TW') {
-		languages = {
-			yesterday: '昨天',
-			tomorrow: '明天',
-			format: function(d, full) {
-				if (full) return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 ${d.getHours()}:${d.getMinutes().toString().padStart(2, '0')}`;
-				else return `${d.getMonth() + 1}月${d.getDate()}日 ${d.getHours()}:${d.getMinutes().toString().padStart(2, '0')}`;
-			}
-		};
-	} else if (lang == 'en-US') {
-		languages = {
-			yesterday: 'yesterday',
-			tomorrow: 'tomorrow',
-			format: function(d, full) {
-				const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-				if (full) return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
-				else return `${months[d.getMonth()]} ${d.getDate()} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
-			}
-		};
-	} else if (lang == 'es-ES') {
-		languages = {
-			yesterday: 'ayer',
-			tomorrow: 'mañana',
-			format: function(d, full) {
-				const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-				if (full) return `${d.getDate()} de ${months[d.getMonth()]} de ${d.getFullYear()} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
-				else return `${d.getDate()} de ${months[d.getMonth()]} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
-			}
-		};
-	} else if (lang == 'fr-FR') {
-		languages = {
-			yesterday: 'hier',
-			tomorrow: 'demain',
-			format: function(d, full) {
-				const months = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
-				if (full) return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
-				else return `${d.getDate()} ${months[d.getMonth()]} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
-			}
+	var languages = {
+		yesterday: '昨天',
+		tomorrow: '明天',
+		format: function(d, full) {
+			if (full) return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 ${d.getHours()}:${d.getMinutes().toString().padStart(2, '0')}`;
+			else return `${d.getMonth() + 1}月${d.getDate()}日 ${d.getHours()}:${d.getMinutes().toString().padStart(2, '0')}`;
 		}
-	} else if (lang == 'ru-RU') {
-		languages = {
-			yesterday: 'вчера',
-			tomorrow: 'завтра',
-			format: function(d, full) {
-				const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
-				if (full) return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
-				else return `${d.getDate()} ${months[d.getMonth()]} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
-			}
-		}
-	} else if (lang == 'ar-SA') {
-		languages = {
-			yesterday: 'أمس',
-			tomorrow: 'غدًا',
-			format: function(d, full) {
-				const months = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
-				if (full) return `${d.getFullYear()} ${months[d.getMonth()]} ${d.getDate()} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
-				else return `${months[d.getMonth()]} ${d.getDate()} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
-			}
-		}
-	}
-	var yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-	var tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-	if (Date_.getFullYear() === now.getFullYear() && Date_.getMonth() === now.getMonth() && Date_.getDate() === now.getDate()) {
-		return Date_.getHours().toString().padStart(2, '0') + ':' + Date_.getMinutes().toString().padStart(2, '0');
-	} else if (Date_.getFullYear() === yesterday.getFullYear() && Date_.getMonth() === yesterday.getMonth() && Date_.getDate() === yesterday.getDate()) {
-		return languages.yesterday + ' ' + Date_.getHours().toString().padStart(2, '0') + ':' + Date_.getMinutes().toString().padStart(2, '0');
-	} else if (Date_.getFullYear() === tomorrow.getFullYear() && Date_.getMonth() === tomorrow.getMonth() && Date_.getDate() === tomorrow.getDate()) {
-		return languages.tomorrow + ' ' + Date_.getHours().toString().padStart(2, '0') + ':' + Date_.getMinutes().toString().padStart(2, '0');
-	} else if (Date_.getFullYear() === now.getFullYear()) {
+	};
+	var currentYear = now.getFullYear();
+	var currentMonth = now.getMonth();
+	var currentDay = now.getDate();
+	var dateYear = Date_.getFullYear();
+	var dateMonth = Date_.getMonth();
+	var dateDay = Date_.getDate();
+	var dateHours = Date_.getHours();
+	var dateHoursFormatted = dateHours.toString().padStart(2, '0');
+	var dateMinutes = Date_.getMinutes();
+	var dateMinutesFormatted = dateMinutes.toString().padStart(2, '0');
+	var yesterday = new Date(currentYear, currentMonth, currentDay - 1);
+	var tomorrow = new Date(currentYear, currentMonth, currentDay + 1);
+	if (dateYear === currentYear && dateMonth === currentMonth && dateDay === currentDay) {
+		return dateHoursFormatted + ':' + dateMinutesFormatted;
+	} else if (dateYear === yesterday.getFullYear() && dateMonth === yesterday.getMonth() && dateDay === yesterday.getDate()) {
+		return languages.yesterday + ' ' + dateHoursFormatted + ':' + dateMinutesFormatted;
+	} else if (dateYear === tomorrow.getFullYear() && dateMonth === tomorrow.getMonth() && dateDay === tomorrow.getDate()) {
+		return languages.tomorrow + ' ' + dateHoursFormatted + ':' + dateMinutesFormatted;
+	} else if (dateYear === currentYear) {
 		return languages.format(Date_, false);
 	} else {
 		return languages.format(Date_, true);
 	}
 }
 function generate1(data) {
-	function approxy(target, buttons) {
-		return function(item) {
-			// <div class="friend-item" data-userid="不定" data-id="item.id">
-			// 	<span class="username">item.nick</span>
-			// 	<span class="timestamp">item.time</span>
-			// 	<button data-key="approve"></button>
-			// 	<button class="reject" data-key="deny"></button>
-			// </div>
-			var div = document.createElement('div');
-			div.className = 'friend-item';
-			if (buttons) {
-				div.setAttribute('data-userid', item.source);
+	var increase = function() {
+		var total = data.data.length;
+		if (total !== 0) {
+			data.count.text(total);
+		}
+		return function() {
+			total--;
+			if (total !== 0) {
+				data.count.text(total);
 			} else {
-				div.setAttribute('data-userid', item.target);
+				data.count.text('');
 			}
-			div.setAttribute('data-id', item.id);
-			var span = document.createElement('span');
-			span.className = 'username';
-			span.onclick = function() {
-				location.href = 'profile.html?lang=' + defaultLang + '&id=' + div.dataset.userid;
+		};
+	};
+	var increaseInstance = increase();
+	function approxy(target, type) {
+		return function(item) {
+			var div = $('<div>');
+			div.addClass('d-flex align-items-center flex-row justify-content-between cursor-default mt-2');
+			div.css('gap', '5px');
+			if (type == 1) {
+				div.attr('data-userid', item.source);
+			} else if (type == 2) {
+				div.attr('data-userid', item.target);
 			}
-			span.innerText = item.nick;
-			div.appendChild(span);
-			var span2 = document.createElement('span');
-			span2.className = 'timestamp';
-			span2.innerText = formatDateShort(item.sent_at, defaultLang);
-			div.appendChild(span2);
-			if (buttons) {
-				var button = document.createElement('button');
-				button.setAttribute('data-key', 'approve');
-				button.onclick = function() {
-					var xhr = new XMLHttpRequest();
-					xhr.open('POST', 'friends.php?lang=' + defaultLang, true);
-					xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-					var ul = new URLSearchParams({
-						target: div.dataset.id,
-						action: 'agree'
-					});
-					xhr.onreadystatechange = function() {
-						if (xhr.readyState === 4 && xhr.status === 200) {
-							var response = JSON.parse(xhr.responseText);
-							if (response.code === 1) {
-								location.reload();
-							} else if (response.code === 0) {
-								showPop2(response.msg, [{text: currentLang.relogin, fn: function() {
-									location.href = "login.html?lang=" + defaultLang;
-								}}]);
-							} else {
-								showPop(response.msg);
-							}
+			div.attr('data-id', item.id);
+			var div2 = $('<div>');
+			div2.addClass('text-ellipsis');
+			div2.css({
+				'flex-shrink': 1,
+				'flex-grow': 0
+			});
+			div2.click(function() {
+				location.href = 'profile.html?id=' + div.attr('data-userid');
+			});
+			div2.text(item.nick);
+			div.append(div2);
+			var div3 = $('<div>');
+			div3.addClass('d-flex align-items-center');
+			div3.css({
+				'flex-shrink': 0,
+				'gap': '5px'
+			});
+			div.append(div3);
+			var span = $('<span>');
+			span.addClass('text-muted');
+			span.text(formatDateShort(item.time));
+			div3.append(span);
+			if (type == 1) {
+				var button = $('<button>');
+				button.addClass('btn bg-success text-white btn-small');
+				button.click(function() {
+					fetch('friends.php', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/x-www-form-urlencoded'
+						},
+						body: new URLSearchParams({
+							target: div.attr('data-id'),
+							action: 'agree',
+						})
+					}).then(response => {
+						return response.json();
+					}).then(data => {
+						if (data.code === 1) {
+							div.remove();
+							increaseInstance();
+							fetch('friend_list.php', { method: 'POST' }).then(res => res.json()).then(data => {
+								if (data.code === 1) {
+									var el = $('#friends-list');
+									el.empty();
+									generate2({
+										target: el,
+										data: data.data
+									});
+									var num = parseInt($('#friend-apply-badge').text());
+									if (num - 1 > 0) {
+										$('#friend-apply-badge').text(num);
+									} else {
+										$('#friend-apply-badge').text('');
+									}
+								} else {
+									$('#errors').text(data.msg).removeClass('d-none');
+									$('#errors').delay(3000).fadeOut(500);
+								}
+							});
+						} else {
+							$('#error').text(data.msg).removeClass('d-none');
 						}
-					};
-					xhr.send(ul.toString());
-				};
-				div.appendChild(button);
-				var button2 = document.createElement('button');
-				button2.className = 'reject';
-				button2.onclick = function() {
-					var xhr = new XMLHttpRequest();
-					xhr.open('POST', 'friends.php?lang=' + defaultLang, true);
-					xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-					var ul = new URLSearchParams({
-						target: div.dataset.id,
-						action: 'refuse'
-					});
-					xhr.onreadystatechange = function() {
-						if (xhr.readyState === 4 && xhr.status === 200) {
-							var response = JSON.parse(xhr.responseText);
-							if (response.code === 1) {
-								location.reload();
-							} else if (response.code === 0) {
-								showPop2(response.msg, [{text: currentLang.relogin, fn: function() {
-									location.href = "login.html?lang=" + defaultLang;
-								}}]);
-							} else {
-								showPop(response.msg);
-							}
+					})
+				});
+				button.text('同意');
+				div3.append(button);
+				var button2 = $('<button>');
+				button2.addClass('btn bg-danger text-white btn-small');
+				button2.click(function() {
+					fetch('friends.php', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/x-www-form-urlencoded'
+						},
+						body: new URLSearchParams({
+							target: div.attr('data-id'),
+							action: 'refuse'
+						})
+					}).then(response => {
+						return response.json();
+					}).then(data => {
+						if (data.code === 1) {
+							div.remove();
+							increaseInstance();
+						} else {
+							$('#error').text(data.msg).removeClass('d-none');
+							$('#error').delay(3000).fadeOut(500);
 						}
-					};
-					xhr.send(ul.toString());
-				};
-				button2.setAttribute('data-key', 'deny');
-				div.appendChild(button2);
+					});
+				});
+				button2.text('拒绝');
+				div3.append(button2);
+			} else if (type == 2) {
+				var deleteBtn = $('<button>');
+				deleteBtn.addClass('btn btn-link text-primary p-0');
+				deleteBtn.css({
+					'background': 'none',
+					'border': 'none',
+					'box-shadow': 'none'
+				});
+				deleteBtn.text('撤回');
+				deleteBtn.click(function() {
+					fetch('friends.php', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/x-www-form-urlencoded'
+						},
+						body: new URLSearchParams({
+							target: div.attr('data-id'),
+							action: 'revoke'
+						})
+					}).then(response => response.json()).then(data => {
+						if (data.code === 1) {
+							div.remove();
+						} else {
+							$('#error').text(data.msg).removeClass('d-none');
+							$('#error').delay(3000).fadeOut(500);
+						}
+					});
+				});
+				div3.append(deleteBtn);
 			}
-			target.appendChild(div);
+			target.append(div);
 		};
 	}
-	var dataDesc = data.data.sort((a, b) => Date.parse(b.sent_at) - Date.parse(a.sent_at));
-	var dataDesc2 = data.fData.sort((a, b) => Date.parse(b.sent_at) - Date.parse(a.sent_at));
-	dataDesc.forEach(approxy(data.target, true));
-	dataDesc2.forEach(approxy(data.target2));
-	data.count.setAttribute('data-count', data.data.length);
+	var dataDesc = data.data.sort((a, b) => Date.parse(b.time) - Date.parse(a.time));
+	var dataDesc2 = data.fData.sort((a, b) => Date.parse(b.time) - Date.parse(a.time));
+	dataDesc.forEach(approxy(data.target, 1));
+	dataDesc2.forEach(approxy(data.target2, 2));
 }
 function generate2(data) {
 	var desc = data.data.sort((a, b) => Date.parse(b.time) - Date.parse(a.time)), total = 0;
 	desc.forEach(function(item) {
-		// <div class="chat-item" data-id="item.id">
-		// 	<div>
-		// 		<img class="chat-avatar" src="avatar/item.avatar.jpg">
-		// 	</div>
-		// 	<div class="chat-info">
-		// 		<div class="chat-top">
-		// 			<div class="chat-name">item.nick</div>
-		// 			<div class="chat-time">item.time</div>
-		// 		</div>
-		// 		<div class="chat-preview badge3" data-count="item.count">item.content</div>
-		// 	</div>
-		// </div>
-		var div = document.createElement('div');
-		div.className = 'chat-item';
-		div.setAttribute('data-id', item.id);
-		div.onclick = function() {
-			location.href = 'chat.html?lang=' + defaultLang + '&id=' + this.dataset.id;
-		};
-		data.target.appendChild(div);
-		var div2 = document.createElement('div');
-		div.appendChild(div2);
-		var img = document.createElement('img');
-		img.className = 'chat-avatar';
-		if (item.avatar) {
-			img.src = 'avatar/' + item.avatar + '.jpg';
-		} else {
-			img.src = 'default.jpg';
+		var isTypeFriend = item.type == 'friend';
+		var isTypeGroup = item.type == 'group';
+		var li = $('<li>');
+		li.addClass('list-group-item d-flex align-items-center');
+		li.attr('data-id', item.id);
+		li.css('cursor', 'pointer');
+		li.click(function() {
+			location.href = 'chat.html?id=' + $(this).attr('data-id');
+		});
+		data.target.append(li);
+		var img = $('<img>');
+		img.addClass('rounded-circle me-3 avatar');
+		img.attr('src', item.avatar);
+		li.append(img);
+		var div = $('<div>');
+		div.addClass('flex-item');
+		li.append(div);
+		var p1 = $('<p>');
+		p1.addClass('mb-1 d-flex flex-row align-items-center justify-content-between');
+		var div3 = $('<div>');
+		div3.addClass('text-ellipsis');
+		if (isTypeFriend) {
+			div3.text(item.nick);
+		} else if (isTypeGroup) {
+			div3.text(item.nick + ' (' + item.member_count + ')');
 		}
-		div2.appendChild(img);
-		var div3 = document.createElement('div');
-		div3.className = 'chat-info';
-		div.appendChild(div3);
-		var div4 = document.createElement('div');
-		div4.className = 'chat-top';
-		div3.appendChild(div4);
-		var div5 = document.createElement('div');
-		div5.className = 'chat-name';
-		div5.innerText = item.nick;
-		div4.appendChild(div5);
-		var div6 = document.createElement('div');
-		div6.className = 'chat-time';
-		div6.innerText = formatDateShort(item.time, defaultLang);
-		div4.appendChild(div6);
-		var div7 = document.createElement('div');
-		div7.className = 'chat-preview badge3';
-		div7.setAttribute('data-count', item.count);
+		p1.append(div3);
+		var span = $('<span>');
+		span.addClass('badge rounded-pill bg-primary');
+		if (item.count !== 0) {
+			span.text(item.count);
+		}
+		p1.append(span);
+		div.append(p1);
+		var p2 = $('<p>');
+		p2.addClass('text-muted mb-0 text-ellipsis');
+		if ([1, 2].includes(item.msg_type)) {
+			var contentString = '';
+			if (item.msg_type == 1) {
+				if (isTypeGroup && item.msg_sender != id) {
+					contentString += item.msg_nick + ': ';
+				}
+				contentString += item.content.replace(/\n/g, ' ');
+				p2.text(contentString);
+			} else if (item.msg_type == 2) {
+				if (isTypeGroup && item.msg_sender != id) {
+					contentString += item.msg_nick + ': ';
+				}
+				contentString += '[文件] ' + item.content;
+				p2.text(contentString);
+			}
+		} else if (item.msg_type == 3 || item.msg_type == 4) {
+			var jsonObj = JSON.parse(item.content);
+			if (item.msg_type == 3) {
+				var string = '[群聊邀请] ';
+				var c1 = item.msg_sender == id;
+				var c2 = jsonObj.finish;
+				if (c1 && c2) {
+					string += '对方已加入“' + jsonObj.name + '”群聊。';
+				} else if (c1 && !c2) {
+					string += '您已邀请对方加入“' + jsonObj.name + '”群聊。';
+				} else if (!c1 && c2) {
+					string += '您已加入“' + jsonObj.name + '”群聊。';
+				} else if (!c1 && !c2) {
+					string += '对方已邀请您加入“' + jsonObj.name + '”群聊。';
+				}
+				p2.text(string);
+			} else if (item.msg_type == 4) {
+				if (jsonObj.type == 'quit') {
+					p2.text('[群聊退出] “' + item.msg_nick + '”已退出群聊。');
+				} else if (jsonObj.type == 'logoff') {
+				    p2.text('[群聊退出] “' + jsonObj.nick + '”因注销而退出群聊。');
+				} else if (jsonObj.type == 'adminadd') {
+					p2.text('[群聊管理员] “' + item.msg_nick + '”已将“' + item.inner_nick + '”设为群聊管理员。');
+				} else if (jsonObj.type == 'adminremove') {
+					p2.text('[群聊管理员] “' + item.msg_nick + '”已将“' + item.inner_nick + '”取消群聊管理员。');
+				} else if (jsonObj.type == 'transfer') {
+					p2.text('[群主转让] “' + item.msg_nick + '”已将群主转让给“' + item.inner_nick + '”。');
+				} else if (jsonObj.type == 'join') {
+					p2.text('[群聊加入] “' + item.msg_nick + '”已加入群聊。');
+				}
+			}
+		}
+		div.append(p2);
+		var div2 = $('<div>');
+		div2.addClass('text-muted ms-auto');
+		div2.text(formatDateShort(item.time));
+		div2.css('flex-shrink', 0);
+		li.append(div2);
 		total += item.count;
-		div7.innerText = item.content.replace(/\n/g, ' ');
-		div3.appendChild(div7);
-		data.target.appendChild(div);
 	});
-	data.target.previousElementSibling.setAttribute('data-count', total);
 }
 function generate3(data) {
-	if (data.fresh) data.target.innerHTML = '';
+	if (data.fresh) data.target.empty();
 	data.data.forEach(function(item) {
-		// <div class="message (sent)" data-id="item.id">
-		// 	<div><img class="avatar3"></div>
-		// 	<div class="message-container">
-		// 		<div class="bubble/file"><div class="file-name">item.content</div>(<div class="file-icon"></div>)</div>
-		// 		<div class="time">item.time</div>
-		// 	</div>
-		// </div>
-		var condition = item.sender === userId;
-		var hasMulti = !!item.multi;
-		var div = document.createElement('div');
+		var condition = item.sender == userId;
+		var div = $('<div>');
 		if (condition) {
-			div.className = 'message sent';
+			div.addClass('d-flex flex-row-reverse justify-content-start align-items-sm-start my-2');
 		} else {
-			div.className = 'message';
+			div.addClass('d-flex flex-row align-items-sm-start my-2');
 		}
-		div.dataset.id = item.id;
-		data.target.appendChild(div);
-		if (hasMulti) {
-			div.dataset.attr = item.multi;
-			div.addEventListener('click', function() {
-				var xhr = new XMLHttpRequest();
-				var params = new URLSearchParams({source: this.dataset.attr});
-				xhr.open('POST', 'download.php?lang=' + langCode, true);
-				xhr.onreadystatechange = function() {
-					if (xhr.readyState === 4 && xhr.status === 200) {
-						var response = JSON.parse(xhr.responseText);
-						if (response.code == 1) {
-							var link = document.createElement('a');
-							link.href = response.content;
-							link.download = item.content;
-							link.click();
-						}
+		div.css('gap', '5px');
+		div.attr('data-id', item.id);
+		data.target.append(div);
+		var img = $('<img>');
+		img.addClass('chat-avatar');
+		var small2 = $('<small>');
+		if (type == 'friend') {
+			if (condition) {
+				img.attr('src', data.avatar);
+			} else {
+				img.attr('src', data.opposite);
+			}
+		} else if (type == 'group') {
+			var user = members.find(item2 => item2.id == item.sender);
+			if (user) {
+				img.attr('src', user.avatar);
+			} else {
+				fetch('other_user_data.php?id=' + encodeURIComponent(item.sender)).then(response => response.json()).then(data => {
+					if (data.code == 1) {
+						img.attr('src', data.data.avatar);
+						small2.text(data.data.nick);
+					} else {
+						img.attr('src', '/default.jpg');
+						small2.text('未知用户');
 					}
-				};
-				xhr.send(params);
+				});
+			}
+		}
+		img.click(function() {
+			location.href = 'profile.html?id=' + item.sender;
+		});
+		div.append(img);
+		var divMessageContent = $('<div>');
+		if (condition) {
+			divMessageContent.addClass('d-flex flex-column align-items-end');
+		} else {
+			divMessageContent.addClass('d-flex flex-column align-items-start');
+		}
+		div.append(divMessageContent);
+		if (!condition) {
+			if (type == 'friend') {
+				small2.addClass('text-muted');
+				small2.text(data.remark || data.oName);
+				divMessageContent.append(small2);
+			} else if (type == 'group') {
+				small2.addClass('text-muted');
+				var user_ = members.find(i => i.id == item.sender)
+				if (user_) {
+					small2.text(user_.remark || user_.group_nickname || user_.nick);
+				}
+				divMessageContent.append(small2);
+			}
+		}
+		var p = $('<p>');
+		divMessageContent.append(p);
+		if (condition) {
+			p.addClass('chat-message-right');
+		} else {
+			p.addClass('chat-message-left');
+		}
+		p.css({
+			'word-break': 'break-word',
+			'cursor': 'default',
+			'white-space': 'pre-wrap'
+		});
+		if (item.type == 2) {
+			div.attr('data-attr', item.multi);
+			var $a = $('<a>', { html: p.html() });
+			$.each(p[0].attributes, function() {
+				if (this.name !== 'id') {
+					$a.attr(this.name, this.value);
+				}
 			});
-		}
-		var div2 = document.createElement('div');
-		div.appendChild(div2);
-		var img = document.createElement('img');
-		img.className = 'avatar3';
-		if (condition) {
-			if (data.avatar) {
-				img.src = 'avatar/' + data.avatar + '.jpg';
-			} else {
-				img.src = 'default.jpg';
+			p.remove();
+			divMessageContent.append($a);
+			$a.css({
+				'text-decoration': 'none',
+				'color': '#000'
+			});
+			var fileExt = item.content.split('.').pop().toLowerCase();
+			var iconClass = 'fas fa-file';
+			if (['doc', 'docx'].includes(fileExt)) {
+				iconClass = 'fas fa-file-word text-primary';
+			} else if (['xls', 'xlsx', 'csv'].includes(fileExt)) {
+				iconClass = 'fas fa-file-excel text-success';
+			} else if (['ppt', 'pptx'].includes(fileExt)) {
+				iconClass = 'fas fa-file-powerpoint text-danger';
+			} else if (['pdf'].includes(fileExt)) {
+				iconClass = 'fas fa-file-pdf text-danger';
+			} else if (['zip', 'rar', '7z', 'tar', 'gz'].includes(fileExt)) {
+				iconClass = 'fas fa-file-archive text-warning';
+			} else if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg'].includes(fileExt)) {
+				iconClass = 'fas fa-file-image text-info';
+			} else if (['mp3', 'wav', 'flac', 'aac'].includes(fileExt)) {
+				iconClass = 'fas fa-file-audio text-info';
+			} else if (['mp4', 'avi', 'mov', 'wmv', 'flv'].includes(fileExt)) {
+				iconClass = 'fas fa-file-video text-info';
+			} else if (['txt', 'log', 'ini', 'conf'].includes(fileExt)) {
+				iconClass = 'fas fa-file-alt text-secondary';
 			}
-		} else {
-			if (data.opposite) {
-				img.src = 'avatar/' + data.opposite + '.jpg';
-			} else {
-				img.src = 'default.jpg';
+			var icon = $('<i>', {
+				class: iconClass + ' me-2',
+				css: { 'font-size': '1.2em' }
+			});
+			var typeLabel = $('<small>');
+			typeLabel.addClass('text-muted d-block');
+			typeLabel.text('文件');
+			var fileNameContainer = $('<div>').addClass('d-flex align-items-center');
+			fileNameContainer.append(icon);
+			fileNameContainer.append(item.content);
+			$a.append(typeLabel, fileNameContainer);
+			fetch('download.php?' + new URLSearchParams({source: div.attr('data-attr')})).then(res => res.json()).then(data => {
+				if (data.code == 1) {
+					$a.attr('href', data.link);
+					$a.attr('download', item.content);
+				} else {
+					$('#errors-body').text(data.msg);
+					$('#errors').show();
+					$('#errors').delay(3000).fadeOut();
+				}
+			});
+		} else if (item.type == 1) {
+			p.text(item.content);
+		} else if (item.type == 3) {
+			var tl = $('<small>');
+			var button;
+			tl.addClass('text-muted d-block');
+			tl.text('群聊邀请');
+			var msgLabel;
+			if (condition && !item.content.finish) {
+				msgLabel = '您已邀请对方加入“' + item.content.name + '”群聊。';
+			} else if (!condition && !item.content.finish) {
+				msgLabel = '对方邀请您加入“' + item.content.name + '”群聊。';
+				button = $('<button>');
+				button.addClass('btn btn-primary');
+				button.text('加入');
+				button.click(function() {
+					fetch('groups.php', {
+						method: 'POST',
+						body: new URLSearchParams({
+							action: 'invitation',
+							extra: item.id
+						})
+					}).then(res => res.json()).then(data => {
+						$('#errors-body').text(data.msg);
+						$('#errors').show();
+						$('#errors').delay(3000).fadeOut();
+					})
+				});
+			} else if (condition && item.content.finish) {
+				msgLabel = '对方已加入“' + item.content.name + '”群聊。';
+			} else if (!condition && item.content.finish) {
+				msgLabel = '您已加入“' + item.content.name + '”群聊。';
 			}
+			var textNode = document.createTextNode(msgLabel);
+			p.append(tl, textNode);
+			if (button) {
+				p.append('<br>', button);
+			}
+		} else if (item.type == 4) {
+			var tl = $('<small>');
+			var button;
+			tl.addClass('text-muted d-block');
+			if (item.content.type == 'quit') {
+				tl.text('退出群聊');
+			} else if (item.content.type == 'logoff') {
+				tl.text(item.content.nick + ' 因注销而退出群聊');
+			} else if (item.content.type == 'adminadd') {
+				tl.text('已添加管理员：' + item.inner_nick);
+			} else if (item.content.type == 'adminremove') {
+				tl.text('已移除管理员：' + item.inner_nick);
+			} else if (item.content.type == 'transfer') {
+				tl.text('已转让群主：' + item.inner_nick);
+			} else if (item.content.type == 'join') {
+			    tl.text('已加入群聊');
+			}
+			p.append(tl);
 		}
-		div2.appendChild(img);
-		var divMessageContent = document.createElement('div');
-		if (condition) {
-			divMessageContent.className = 'message-container sent';
-		} else {
-			divMessageContent.className = 'message-container';
-		}
-		var div3 = document.createElement('div');
-		if (hasMulti) {
-			div3.className = 'file';
-		} else {
-			div3.className = 'bubble';
-		}
-		if (hasMulti) {
-			var divText = document.createElement('div');
-			divText.className = 'file-name';
-			divText.innerText = item.content;
-			div3.appendChild(divText);
-			var div4 = document.createElement('div');
-			div4.className = 'file-icon';
-			div3.appendChild(div4);
-		} else {
-			div3.innerText = item.content;
-		}
-		divMessageContent.appendChild(div3);
-		var div5 = document.createElement('div');
-		div5.className = 'time';
-		div5.innerText = formatDateLong(item.sent_at, langCode);
-		divMessageContent.appendChild(div5);
-		div.appendChild(divMessageContent);
-		data.target.appendChild(div);
+		var small = $('<small>');
+		small.addClass('text-muted');
+		small.text(formatDateLong(item.sent_at));
+		divMessageContent.append(small);
 	});
 }

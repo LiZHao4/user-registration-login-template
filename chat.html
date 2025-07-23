@@ -5,193 +5,1026 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<title id="title"></title>
 		<link rel="stylesheet" href="style.css">
+		<link rel="stylesheet" href="libs/bootstrap-5.1.3-dist/css/bootstrap.min.css">
+		<link rel="stylesheet" href="libs/fontawesome-free-5.15.4-web/css/all.min.css">
+		<style>
+			.action-buttons {
+				display: flex;
+				justify-content: space-between;
+				margin-top: 10px;
+			}
+			.avatar-container {
+				position: relative;
+				display: inline-block;
+			}
+			.col:hover {
+				background-color: #f8f9fa;
+				border-radius: 8px;
+				cursor: pointer;
+			}
+			.friend-avatar {
+				width: 40px;
+				height: 40px;
+				border-radius: 50%;
+				object-fit: cover;
+				margin-right: 10px;
+			}
+			.friend-info {
+				flex-grow: 1;
+			}
+			.friend-item {
+				padding: 8px;
+				border-bottom: 1px solid #eee;
+				display: flex;
+				align-items: center;
+			}
+			.friend-item:last-child {
+				border-bottom: none;
+			}
+			.friend-nick {
+				font-weight: 500;
+			}
+			.friend-username {
+				font-size: 12px;
+				color: #666;
+			}
+			.object-fit-cover {
+				object-fit: cover;
+			}
+			.role-badge {
+				position: absolute;
+				bottom: 5px;
+				right: 5px;
+				background-color: rgba(0,0,0,0.7);
+				color: white;
+				font-size: 10px;
+				padding: 1px 4px;
+				border-radius: 4px;
+				z-index: 10;
+			}
+			.selection-btn {
+				background: none;
+				border: none;
+				padding: 0;
+				color: #0d6efd;
+				cursor: pointer;
+			}
+			.selection-buttons {
+				display: flex;
+				gap: 10px;
+			}
+			.self-badge {
+				position: absolute;
+				top: 5px;
+				right: 5px;
+				background-color: rgba(0,0,0,0.7);
+				color: white;
+				font-size: 10px;
+				padding: 1px 4px;
+				border-radius: 4px;
+				z-index: 10;
+			}
+			.text-truncate {
+				display: block;
+				margin: 0 auto;
+				text-align: center;
+				white-space: nowrap;
+				overflow: hidden;
+				text-overflow: ellipsis;
+			}
+			.user-info-item {
+				margin-bottom: 10px;
+			}
+			.user-info-label {
+				font-weight: bold;
+				margin-right: 5px;
+			}
+			#add-members-container, #original, #user-info {
+				flex-grow: 1;
+			}
+			#friends-list {
+				max-height: 300px;
+				overflow-y: auto;
+				margin-bottom: 15px;
+				border: 1px solid #ddd;
+				border-radius: 5px;
+				padding: 10px;
+			}
+			#group-members-container {
+				max-height: 300px;
+				overflow-y: auto;
+				padding-right: 5px;
+			}
+			#group-members-container::-webkit-scrollbar {
+				width: 6px;
+			}
+			#group-members-container::-webkit-scrollbar-thumb {
+				background-color: #c1c1c1;
+				border-radius: 3px;
+			}
+			#invite-btn {
+				background-color: #0d6efd;
+				color: white;
+				border: none;
+				padding: 5px 15px;
+				border-radius: 4px;
+				cursor: pointer;
+			}
+			#more-menu {
+				max-height: 80vh;
+				flex-direction: column;
+			}
+			#more-menu .toast-header {
+				flex-shrink: 0;
+			}
+
+			#more-menu .toast-body {
+				overflow-y: auto;
+				flex-grow: 1;
+			}
+			#user-info .user-avatar {
+				width: 100px;
+				height: 100px;
+				object-fit: cover;
+				border-radius: 50%;
+			}
+		</style>
 	</head>
-	<body>
-		<div class="chat-container">
-			<div class="chat-header">
-				<div class="name" id="name"></div>
+	<body class="a">
+		<div class="container h-100 d-flex flex-column">
+			<nav class="navbar" style="cursor:default">
+				<span id="name" class="navbar-brand mb-0 h1 text-ellipsis"></span>
+			</nav>
+			<div id="messages" style="flex-grow:1;max-height:calc(100% - 112px);overflow-y:auto;padding:10px"></div>
+			<div class="row">
+				<div class="col-md-12">
+					<div class="input-group">
+						<textarea id="ta" class="form-control" placeholder="输入消息..." style="resize:none"></textarea>
+						<button id="send" class="btn btn-primary">发送</button>
+						<button id="add-file" class="btn btn-secondary">发送文件</button>
+						<button id="more" class="btn btn-secondary">…</button>
+					</div>
+				</div>
 			</div>
-			<div class="chat-window" id="messages"></div>
-			<div class="input-container">
-				<textarea class="textarea-box" id="ta"></textarea>
-				<div class="send-button-container">
-					<button class="send-button" id="send" data-key="send"></button>
-					<button class="more-button" id="addFile" data-key="addFile"></button>
-					<button class="more-button" id="more">...</button>
+			<div id="invalid-session-container" class="d-none flex-column align-items-center justify-content-center" style="flex-grow:1;">
+				<div class="alert alert-danger mb-3" style="max-width: 500px;">
+					<h5 class="alert-heading">会话无效</h5>
+					<p id="invalid-session-message"></p>
+				</div>
+				<button id="go-home" class="btn btn-primary">返回聊天列表</button>
+			</div>
+		</div>
+		<div id="errors" class="toast bottom-toast errors">
+			<div class="toast-body" id="errors-body"></div>
+		</div>
+		<div id="progress" class="toast top-toast" style="width:300px">
+			<div style="padding:10px;width:100%;height:40px">
+				<div id="progress-bar" class="progress-bar" role="progressbar" style="width:0%;height:100%;border-radius:5px"></div>
+			</div>
+			<p id="progress-text" style="padding:0 10px"></p>
+		</div>
+		<div id="more-menu" class="toast bottom-toast" style="width:300px">
+			<div class="toast-header">
+				<button id="back-button" type="button" class="btn btn-sm me-2 d-none">&lt;</button>
+				<button id="back-button2" type="button" class="btn btn-sm me-2 d-none">&lt;</button>
+				<div class="me-auto"></div>
+				<button type="button" id="more-menu-close" class="btn-close"></button>
+			</div>
+			<div class="toast-body">
+				<div id="original">
+					<div id="times" style="font-size:16px">
+						<div>请求时间：<span id="request-time"></span></div>
+						<div>接受时间：<span id="allowed-time"></span></div>
+					</div>
+					<div id="buttons">
+						<button id="delete-friend" class="btn btn-danger mt-3 me-3">删除好友</button><button id="save-chat" class="btn btn-secondary mt-3 me-3">保存聊天记录</button>
+					</div>
+				</div>
+				<div class="d-none" id="user-info">
+					<div class="text-center mb-3">
+						<img id="user-avatar" class="user-avatar mb-2" src="">
+						<h5 id="user-nickname"></h5>
+						<div class="text-muted" id="user-username"></div>
+					</div>
+					<div class="user-info-item">
+						<span class="user-info-label">简介:</span>
+						<div id="user-bio" style="white-space:pre-wrap"></div>
+					</div>
+					<div class="user-info-item">
+						<span class="user-info-label">生日:</span>
+						<span id="user-birthday"></span>
+						(<span id="user-age"></span>岁)
+					</div>
+					<div class="user-info-item">
+						<span class="user-info-label">性别:</span>
+						<span id="user-gender"></span>
+					</div>
+					<div id="group-nickname" class="user-info-item">
+						<span class="user-info-label">群昵称:</span>
+						<span id="user-group-nickname"></span>
+					</div>
+					<div id="user-remark-container" class="user-info-item">
+						<span class="user-info-label">备注:</span>
+						<span id="user-remark"></span>
+					</div>
+					<div id="set-remark-container" class="user-info-item">
+						<span class="user-info-label">设置备注:</span>
+						<div class="input-group">
+							<input type="text" id="set-remark-input" class="form-control" placeholder="输入备注">
+							<button class="btn btn-outline-primary" type="button" id="set-remark-btn">保存</button>
+						</div>
+					</div>
+					<div id="user-actions" class="d-grid gap-2 mt-3"></div>
+				</div>
+				<div class="d-none" id="add-members-container">
+					<h6 class="mt-1 mb-3">邀请好友加入群聊</h6>
+					<div id="friends-list"></div>
+					<div class="action-buttons">
+						<div class="selection-buttons">
+							<button id="select-all-btn" class="selection-btn">全选</button>
+							<button id="invert-select-btn" class="selection-btn">反选</button>
+						</div>
+						<button id="invite-btn">邀请</button>
+					</div>
 				</div>
 			</div>
 		</div>
-		<dialog class="more-info" id="dialog">
-			<span data-key="requestTime"></span>:<span id="requestTime"></span><br>
-			<span data-key="acceptTime"></span>:<span id="allowedTime"></span>
-			<button class="more-button" id="deleteFriend" data-key="deleteFriend" style="width:100%;margin:5px 0"></button>
-			<button class="more-button" id="save" data-key="saveChatHistory" style="width:100%;margin:5px 0"></button>
-			<button class="send-button" id="close" data-key="close" style="width:100%;margin:5px 0"></button>
-		</dialog>
-		<input type="file" id="fileInput" style="display:none" accept="*" single>
+		<input type="file" id="file-input" style="display:none" accept="*">
+		<input type="file" id="group-avatar-input" style="display:none" accept="image/jpeg, image/png">
+		<script src="libs/jquery-3.7.1.js"></script>
 		<script src="lib.js"></script>
 		<script>
-			var languageData, userId, otherUserId, chatInterval, queryParams = new URLSearchParams(location.search), langCode = queryParams.get('lang') || 'zh-CN', idFromUrl = queryParams.get('id');
-			function loadLanguageFile(language) {
-				var xhrRequest = new XMLHttpRequest();
-				xhrRequest.open('GET', 'languages/' + encodeURIComponent(language) + '.json');
-				xhrRequest.onreadystatechange = function() {
-					if (xhrRequest.readyState === 4) {
-						if (xhrRequest.status === 200) {
-							languageData = JSON.parse(xhrRequest.responseText);
-							document.querySelectorAll('[data-key]').forEach(function(element) {
-								element.innerText = languageData[element.dataset.key];
-							});
-							document.getElementById('ta').setAttribute('placeholder', languageData.inputPlaceholder);
-						} else if (xhrRequest.status === 404) {
-							loadLanguageFile('zh-CN');
+			var userId, otherUserId, type, members;
+			$(function() {
+				var chatInterval, idFromUrl = new URLSearchParams(location.search).get('id'), myAvatar, oppositeAvatar;
+				function fetchChatData(isNew = false, scrollToBottom = false) {
+					var requestData = { target: idFromUrl };
+					if (!isNew) {
+						var lastMessage = $('#messages').children(':last');
+						if (lastMessage) {
+							requestData.max = lastMessage.attr('data-id');
+						} else {
+							requestData.max = 0;
 						}
 					}
-				};
-				xhrRequest.send();
-			}
-			function fetchChatData(isNew = false, scrollToBottom = false) {
-				var chatRequest = new XMLHttpRequest();
-				var requestData = {
-					target: idFromUrl
-				};
-				if (!isNew) {
-					requestData.getNew = "";
-					var lastMessage = document.getElementById('messages').lastElementChild;
-					if (lastMessage) {
-						requestData.max = lastMessage.dataset.id;
-					} else {
-						requestData.max = 0;
-					}
-				}
-				var requestParams = new URLSearchParams(requestData);
-				chatRequest.open('POST', 'chats.php?lang=' + langCode);
-				chatRequest.onreadystatechange = function() {
-					if (chatRequest.readyState === 4 && chatRequest.status === 200) {
-						var chatData = JSON.parse(chatRequest.responseText);
-						if (chatData.code === 1) {
-							if (isNew) {
-								userId = chatData.id;
-								otherUserId = chatData.oId;
-								document.getElementById('name').innerText = document.getElementById('title').innerText = chatData.oName;
-								document.getElementById('requestTime').innerText = formatDateLong(chatData.time1, langCode);
-								document.getElementById('allowedTime').innerText = formatDateLong(chatData.time2, langCode);
+					var requestParams = new URLSearchParams(requestData);
+					fetch('chats.php?' + requestParams.toString()).then(response => response.json()).then(data => {
+						if (data.code === 1) {
+							if (isNew) type = data.type;
+							switch (type) {
+								case 'friend':
+									if (isNew) {
+										userId = data.id;
+										otherUserId = data.oId;
+										myAvatar = data.avatar;
+										oppositeAvatar = data.opposite;
+										$('#request-time').text(formatDateLong(data.requestTime));
+										$('#allowed-time').text(formatDateLong(data.allowedTime));
+										$('#name').click(function() {
+											location.href = 'profile.html?id=' + otherUserId;
+										});
+										$('#delete-friend').click(function() {
+											if (confirm('你确定要删除好友吗？删除好友之后会将聊天记录一并删除。')) {
+												fetch('friends.php', {
+													method: 'POST',
+													body: new URLSearchParams({
+														target: idFromUrl,
+														action: 'delete'
+													})
+												}).then(res => res.json()).then(data => {
+													if (data.code === 1) {
+														location.href = '.';
+													} else {
+														$('#errors-body').text(data.msg);
+														$('#errors').show();
+														$('#errors').delay(3000).fadeOut();
+													}
+												});
+											}
+										});
+									}
+									$('#name, #title').text(data.remark || data.oName);
+									generate3({
+										target: $('#messages'),
+										data: data.data,
+										avatar: myAvatar,
+										opposite: oppositeAvatar,
+										oName: data.oName,
+										fresh: isNew,
+										remark: data.remark,
+										type
+									});
+									break;
+								case 'group':
+									if (isNew) {
+										var groupInfoPermissionTexts = {
+											1: '仅群主可修改',
+											2: '群主和管理员可修改',
+											3: '所有成员可修改'
+										};
+										members = data.members;
+										userId = members[data.current_user_index].id;
+										function updateMembersList() {
+											row.empty();
+											members.forEach(member => {
+												var col = $('<div>');
+												col.attr('class', 'col');
+												var textCenter = $('<div>');
+												textCenter.attr('class', 'text-center');
+												var avatarContainer = $('<div>');
+												avatarContainer.attr('class', 'avatar-container');
+												var img = $('<img>');
+												img.attr('class', 'rounded-circle mb-1 object-fit-cover');
+												img.attr('style', 'width:50px;height:50px');
+												if (member.avatar) {
+													img.attr('src', member.avatar);
+												} else {
+													img.attr('src', 'default.jpg');
+												}
+												avatarContainer.append(img);
+												if (member.role == 'owner') {
+													var ownerBadge = $('<span>');
+													ownerBadge.attr('class', 'role-badge');
+													ownerBadge.text('群主');
+													avatarContainer.append(ownerBadge);
+												} else if (member.role == 'admin') {
+													var adminBadge = $('<span>');
+													adminBadge.attr('class', 'role-badge');
+													adminBadge.text('管理');
+													avatarContainer.append(adminBadge);
+												}
+												if (member.id == userId) {
+													var selfBadge = $('<span>');
+													selfBadge.attr('class', 'self-badge');
+													selfBadge.text('我');
+													avatarContainer.append(selfBadge);
+												}
+												textCenter.append(avatarContainer);
+												var div = $('<div>');
+												div.attr('class', 'text-truncate');
+												div.attr('style', 'max-width: 80px;');
+												div.text(member.remark || member.group_nickname || member.nick);
+												textCenter.append(div);
+												col.append(textCenter);
+												col.click(function() {
+													fetch('other_user_data.php?id=' + encodeURIComponent(member.id)).then(response => response.json()).then(data2 => {
+														$('#user-avatar').attr('src', data2.data.avatar);
+														if (member.role == 'owner') {
+															$('#user-nickname').text(data2.data.nick + ' (群主)');
+														} else if (member.role == 'admin') {
+															$('#user-nickname').text(data2.data.nick + ' (管理)');
+														} else {
+															$('#user-nickname').text(data2.data.nick);
+														}
+														$('#user-username').text(data2.data.user);
+														$('#user-bio').text(data2.data.bio || '暂无简介');
+														if (data2.data.birth) {
+															var birthDate = new Date(data2.data.birth);
+															var today = new Date();
+															let age = today.getFullYear() - birthDate.getFullYear();
+															var monthDiff = today.getMonth() - birthDate.getMonth();
+															if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+																age--;
+															}
+															$('#user-birthday').text(data2.data.birth);
+															$('#user-age').text(age);
+														} else {
+															$('#user-birthday').text('未知');
+															$('#user-age').text('?');
+														}
+														var genderMap = {
+															N: '未知',
+															M: '男',
+															W: '女'
+														};
+														$('#user-gender').text(genderMap[data2.data.gender]);
+														if (member.group_nickname) {
+															$('#group-nickname').show();
+															$('#user-group-nickname').text(member.group_nickname);
+														} else {
+															$('#group-nickname').hide();
+														}
+														if (member.remark) {
+															$('#user-remark-container').show();
+															$('#user-remark').text(member.remark);
+														} else {
+															$('#user-remark-container').hide();
+														}
+														$('#set-remark-input').val(member.remark || '');
+														$('#set-remark-btn').click(function() {
+															var newRemark = $('#set-remark-input').val().trim();
+															fetch('set_remark.php', {
+																method: 'POST',
+																body: new URLSearchParams({
+																	target: member.id,
+																	remark: newRemark
+																})
+															}).then(response => response.json()).then(data => {
+																if (data.code === 1) {
+																	if (newRemark) {
+																		member.remark = newRemark;
+																	} else {
+																		member.remark = null;
+																	}
+																	if (member.remark) {
+																		$('#user-remark-container').show();
+																		$('#user-remark').text(member.remark);
+																	} else {
+																		$('#user-remark-container').hide();
+																	}
+																	updateMembersList();
+																} else {
+																	alert('备注设置失败: ' + data.msg);
+																}
+															});
+														});
+														var $actions = $('#user-actions').empty();
+														getFriendAdded(member.id).then(added => {
+															var currentUserRole = members[data.current_user_index].role;
+															var targetRole = member.role;
+															function 移除管理员() {
+																if (confirm('确定要移除管理员吗？')) {
+																	fetch('groups.php', {
+																		method: 'POST',
+																		body: new URLSearchParams({
+																			action: 'adminremove',
+																			extra: `${idFromUrl};${member.id}`
+																		})
+																	}).then(response => response.json()).then(data => {
+																		if (data.code == 1) {
+																			alert('移除管理员成功');
+																			location.reload();
+																		} else {
+																			alert('移除管理员失败');
+																		}
+																	});
+																}
+															}
+															function 设为管理员() {
+																if (confirm('确定要设为管理员吗？')) {
+																	fetch('groups.php', {
+																		method: 'POST',
+																		body: new URLSearchParams({
+																			action: 'adminadd',
+																			extra: `${idFromUrl};${member.id}`
+																		})
+																	}).then(response => response.json()).then(data => {
+																		if (data.code == 1) {
+																			alert('设为管理员成功');
+																			location.reload();
+																		} else {
+																			alert('设为管理员失败');
+																		}
+																	});
+																}
+															}
+															function 群主转让() {
+																if (confirm('确定要将群主转让给“' + data2.data.nick + '”吗？此操作不可撤销！')) {
+																	fetch('groups.php', {
+																		method: 'POST',
+																		body: new URLSearchParams({
+																			action: 'transfer',
+																			extra: `${idFromUrl};${member.id}`
+																		})
+																	}).then(response => response.json()).then(data => {
+																		if (data.code == 1) {
+																			alert('群主转让成功！');
+																			location.reload();
+																		} else {
+																			alert('转让失败: ' + data.msg);
+																		}
+																	});
+																}
+															}
+															function 移出群聊() {
+																if (confirm('确定要移出该成员吗？')) {
+																		fetch('groups.php', {
+																		method: 'POST',
+																		body: new URLSearchParams({
+																			action: 'remove',
+																			extra: `${idFromUrl};${member.id}`
+																		})
+																	}).then(response => response.json()).then(data => {
+																		if (data.code == 1) {
+																			alert('移出群聊成功');
+																			location.reload();
+																		} else {
+																			alert('移出群聊失败');
+																		}
+																	});
+																}
+															}
+															function 加为好友() {
+																fetch('friends.php', {
+																	method: 'POST',
+																	body: new URLSearchParams({
+																		action: 'add',
+																		target: member.id
+																	})
+																}).then(response => response.json()).then(data => {
+																	if (data.code == 1) {
+																		alert('添加好友成功');
+																	} else {
+																		alert('添加好友失败');
+																	}
+																});
+															}
+															if (members[data.current_user_index].id != member.id) {
+																$('#set-remark-container').show();
+																if (currentUserRole == 'owner' && targetRole == 'admin') {
+																	var buttonRemoveAdmin = $('<button>');
+																	buttonRemoveAdmin.attr('class', 'btn btn-outline-danger');
+																	buttonRemoveAdmin.attr('type', 'button');
+																	buttonRemoveAdmin.text('移除管理员');
+																	buttonRemoveAdmin.click(移除管理员);
+																	$actions.append(buttonRemoveAdmin);
+																	var buttonTransferOwner = $('<button>');
+																	buttonTransferOwner.attr('class', 'btn btn-outline-primary mt-2');
+																	buttonTransferOwner.attr('type', 'button');
+																	buttonTransferOwner.text('群主转让');
+																	buttonTransferOwner.click(群主转让);
+																	$actions.append(buttonTransferOwner);
+																	var buttonRemoveMember = $('<button>');
+																	buttonRemoveMember.attr('class', 'btn btn-outline-danger mt-2');
+																	buttonRemoveMember.attr('type', 'button');
+																	buttonRemoveMember.text('移出群聊');
+																	buttonRemoveMember.click(移出群聊);
+																	$actions.append(buttonRemoveMember);
+																} else if (currentUserRole == 'owner' && targetRole == 'member') {
+																	var buttonSetAdmin = $('<button>');
+																	buttonSetAdmin.attr('class', 'btn btn-outline-primary');
+																	buttonSetAdmin.attr('type', 'button');
+																	buttonSetAdmin.text('设为管理员');
+																	buttonSetAdmin.click(设为管理员);
+																	$actions.append(buttonSetAdmin);
+																	var buttonTransferOwner = $('<button>');
+																	buttonTransferOwner.attr('class', 'btn btn-outline-primary mt-2');
+																	buttonTransferOwner.attr('type', 'button');
+																	buttonTransferOwner.text('群主转让');
+																	buttonTransferOwner.click(群主转让);
+																	$actions.append(buttonTransferOwner);
+																	var buttonRemoveMember = $('<button>');
+																	buttonRemoveMember.attr('class', 'btn btn-outline-danger mt-2');
+																	buttonRemoveMember.attr('type', 'button');
+																	buttonRemoveMember.text('移出群聊');
+																	buttonRemoveMember.click(移出群聊);
+																	$actions.append(buttonRemoveMember);
+																} else if (currentUserRole == 'admin' && targetRole == 'member') {
+																	var buttonRemoveMember = $('<button>');
+																	buttonRemoveMember.attr('class', 'btn btn-outline-danger');
+																	buttonRemoveMember.attr('type', 'button');
+																	buttonRemoveMember.text('移出群聊');
+																	buttonRemoveMember.click(移出群聊);
+																	$actions.append(buttonRemoveMember);
+																}
+																if (added.added == 'false') {
+																	var buttonAddFriend = $('<button>');
+																	buttonAddFriend.attr('class', 'btn btn-outline-primary mt-2');
+																	buttonAddFriend.attr('type', 'button');
+																	buttonAddFriend.text('加为好友');
+																	buttonAddFriend.click(加为好友);
+																	$actions.append(buttonAddFriend);
+																}
+															} else {
+																$('#set-remark-container').hide();
+															}
+														});
+														$('#back-button').removeClass('d-none');
+													});
+													$('#original').addClass('d-none');
+													$('#user-info').removeClass('d-none');
+												});
+												row.append(col);
+											});
+										}
+										$('#name, #title').text(data.group_name + ' (' + members.length + ')');
+										if (members[data.current_user_index].role === 'owner') {
+											$('#delete-friend').text('解散群聊');
+											$('#delete-friend').click(function() {
+												if (confirm('确定要解散群聊吗？')) {
+													fetch('groups.php', {
+														method: 'POST',
+														body: new URLSearchParams({
+															action: 'delete',
+															extra: idFromUrl
+														})
+													}).then(res => res.json()).then(data => {
+														if (data.code === 1) {
+															alert('群聊已解散');
+															location.href = '.';
+														} else {
+															$('#errors-body').text(data.msg);
+															$('#errors').show();
+															$('#errors-body').delay(3000).fadeOut(500);
+														}
+													});
+												}
+											});
+										} else {
+											$('#delete-friend').remove();
+										}
+										var $friendInfoDiv = $("#times");
+										var toastBody = $friendInfoDiv.parent();
+										var $buttons = $('#buttons');
+										$friendInfoDiv.empty();
+										var h6 = $('<h6>');
+										h6.attr('class', 'mt-1 mb-3');
+										h6.text('群聊名称');
+										$friendInfoDiv.append(h6);
+										if (members[data.current_user_index].role == 'owner' ||
+											members[data.current_user_index].role == 'admin' && data.group_name_permission == 2 ||
+											data.group_name_permission == 3) {
+											var div = $('<div>');
+											div.attr('class', 'input-group mb-3');
+											var input = $('<input>');
+											input.attr('type', 'text');
+											input.attr('class', 'form-control');
+											input.attr('value', data.group_name);
+											div.append(input);
+											var button = $('<button>');
+											button.attr('class', 'btn btn-outline-secondary');
+											button.attr('type', 'button');
+											button.text('修改');
+											button.click(function() {
+												var newName = input.val().trim();
+												if (newName.length > 0) {
+													fetch('groups.php', {
+														method: 'POST',
+														body: new URLSearchParams({
+															action: 'option',
+															extra: idFromUrl + ';n:' + newName
+														})
+													}).then(res => res.json()).then(data => {
+													    if (data.code === 1) {
+															$('#name, #title').text(newName + ' (' + members.length + ')');
+														} else {
+															$('#errors-body').text(data.msg);
+															$('#errors').show();
+															$('#errors').delay(3000).fadeOut(500);
+													    }
+													});
+												}
+											});
+											div.append(button);
+											$friendInfoDiv.append(div);
+										} else {
+											var span = $('<span>');
+											span.attr('class', 'form-control');
+											span.text(data.group_name);
+											$friendInfoDiv.append(span);
+										}
+										var avatarH6 = $('<h6>');
+										avatarH6.attr('class', 'mt-4 mb-3');
+										avatarH6.text('群头像');
+										$friendInfoDiv.append(avatarH6);
+										var avatarContainer = $('<div>');
+										avatarContainer.attr('class', 'd-flex flex-row align-items-center mb-3');
+										var avatarPreview = $('<img>');
+										avatarPreview.attr('id', 'group-avatar-preview');
+										avatarPreview.attr('class', 'rounded-circle object-fit-cover');
+										avatarPreview.attr('style', 'width:80px;height:80px;cursor:pointer');
+										avatarPreview.attr('src', data.group_avatar);
+										avatarContainer.append(avatarPreview);
+										if (members[data.current_user_index].role === 'owner' || 
+											(members[data.current_user_index].role === 'admin' && data.group_avatar_permission == 2) ||
+											data.group_avatar_permission == 3) {
+											var changeBtn = $('<button>');
+											changeBtn.attr('class', 'btn btn-outline-primary mt-3 me-3');
+											changeBtn.attr('type', 'button');
+											changeBtn.text('修改头像');
+											changeBtn.click(function() {
+												$('#group-avatar-input').click();
+											});
+											$('#group-avatar-input').change(function() {
+												var file = this.files[0];
+												var formData = new FormData();
+												formData.append('avatar', file);
+												if (file) {
+													fetch('avatar.php', {
+														method: 'POST',
+														headers: {'X-Group-ID': idFromUrl},
+														body: formData
+													}).then(res => res.json()).then(data => {
+													    if (data.code === 1) {
+															avatarPreview.attr('src', data.avatar);
+														} else {
+															$('#errors-body').text(data.msg);
+															$('#errors').show();
+															$('#errors').delay(3000).fadeOut(500);
+														}
+													})
+												}
+											});
+											$buttons.append(changeBtn);
+										}
+										$friendInfoDiv.append(avatarContainer);
+										var groupNickH6 = $('<h6>');
+										groupNickH6.attr('class', 'mt-4 mb-3');
+										groupNickH6.text('我的群昵称');
+										$friendInfoDiv.append(groupNickH6);
+										var groupNickDiv = $('<div>');
+										groupNickDiv.attr('class', 'input-group mb-3');
+										var groupNickInput = $('<input>');
+										groupNickInput.attr('type', 'text');
+										groupNickInput.attr('class', 'form-control');
+										groupNickInput.attr('value', members[data.current_user_index].group_nickname || '');
+										groupNickInput.attr('placeholder', '设置群昵称');
+										groupNickDiv.append(groupNickInput);
+										var groupNickBtn = $('<button>');
+										groupNickBtn.attr('class', 'btn btn-outline-secondary');
+										groupNickBtn.attr('type', 'button');
+										groupNickBtn.text('保存');
+										groupNickBtn.click(function() {
+											var newNick = groupNickInput.val().trim();
+											fetch('groups.php', {
+												method: 'POST',
+												body: new URLSearchParams({
+													action: 'setnick',
+													extra: idFromUrl + ';' + newNick
+												})
+											}).then(res => res.json()).then(data2 => {
+												if (data2.code === 1) {
+													members[data.current_user_index].group_nickname = newNick;
+													updateMembersList();
+												} else {
+													$('#errors-body').text(data2.msg);
+													$('#errors').show();
+													$('#errors').delay(3000).fadeOut(500);
+												}
+											});
+										});
+										groupNickDiv.append(groupNickBtn);
+										$friendInfoDiv.append(groupNickDiv);
+										var h7 = $('<h6>');
+										h7.attr('class', 'mt-4 mb-3');
+										h7.text('群成员');
+										$friendInfoDiv.append(h7);
+										var row = $('<div>');
+										row.attr('class', 'row row-cols-4 g-2');
+										row.attr('id', 'group-members-container');
+										$friendInfoDiv.append(row);
+										updateMembersList();
+										var joinedAt = $('<div>');
+										joinedAt.attr('class', 'mt-3');
+										joinedAt.text('加入时间：' + formatDateLong(data.joined_at));
+										$friendInfoDiv.append(joinedAt);
+										if (members[data.current_user_index].role == 'owner') {
+											var formGroup = $('<div>')
+											formGroup.addClass('form-group mt-3');
+											var label = $('<label>');
+											label.addClass('form-label');
+											label.text('群组名称、头像修改权限');
+											var select = $('<select>');
+											select.addClass('form-select');
+											for (var j in groupInfoPermissionTexts) {
+												var option = $('<option>');
+												option.attr('value', j);
+												option.text(groupInfoPermissionTexts[j]);
+												select.append(option);
+											};
+											select.val(data.group_info_permission);
+											select.change(function() {
+												fetch('groups.php', {
+												    method: 'POST',
+													body: new URLSearchParams({
+														action: 'option',
+														extra: idFromUrl + ';p:' + $(this).val()
+													})
+												})
+											});
+											formGroup.append(label);
+											formGroup.append(select);
+											$friendInfoDiv.append(formGroup);
+										} else {
+											var groupNamePermission = $('<div>');
+											groupNamePermission.addClass('mt-3');
+											groupNamePermission.text('群组名称、头像修改权限：' + groupInfoPermissionTexts[data.group_info_permission]);
+											$friendInfoDiv.append(groupNamePermission);
+										}
+										var buttonQuit = $('<button>');
+										buttonQuit.attr('class', 'btn btn-outline-danger mt-3 me-3');
+										buttonQuit.attr('type', 'button');
+										buttonQuit.text('退出群聊');
+										buttonQuit.click(function() {
+											if (confirm('确定要退出群聊吗？')) {
+												fetch('groups.php', {
+													method: 'POST',
+													body: new URLSearchParams({
+														action: 'quit',
+														extra: idFromUrl
+													})
+												}).then(res => res.json()).then(data => {
+													if (data.code === 1) {
+														location.href = '.';
+													}
+												});
+											}
+										});
+										$buttons.append(buttonQuit);
+										var buttonAddMember = $('<button>');
+										buttonAddMember.attr('class', 'btn btn-outline-primary mt-3 me-3');
+										buttonAddMember.attr('type', 'button');
+										buttonAddMember.text('添加成员');
+										buttonAddMember.click(function() {
+											$('#back-button2').removeClass('d-none');
+											$('#original').addClass('d-none');
+											$('#add-members-container').removeClass('d-none');
+											fetch('friend_list.php').then(res => res.json()).then(data => {
+												if (data.code === 1) {
+													$('#friends-list').empty();
+													data.data.forEach(friend => {
+														if (friend.type == 'friend') {
+															var friendItem = $('<div>').addClass('friend-item');
+															var formCheck = $('<div>').addClass('form-check');
+															var checkbox = $('<input>').attr({
+																type: 'checkbox',
+																class: 'form-check-input friend-checkbox',
+																'data-id': friend.friend_id
+															});
+															formCheck.append(checkbox);
+															var avatar = $('<img>').attr({
+																src: friend.avatar,
+																class: 'friend-avatar',
+																alt: '好友头像'
+															});
+															var friendInfo = $('<div>').addClass('friend-info');
+															var friendNick = $('<div>').addClass('friend-nick').text(friend.nick);
+															friendInfo.append(friendNick);
+															friendItem.append(formCheck, avatar, friendInfo);
+															$('#friends-list').append(friendItem);
+														}
+													});
+												} else {
+													$('#errors').text(data.msg).removeClass('d-none');
+												}
+											});
+										});
+										$buttons.append(buttonAddMember);
+										$('#back-button').click(function() {
+											$('#original').removeClass('d-none');
+											$('#user-info').addClass('d-none');
+											$('#back-button').addClass('d-none');
+										});
+										$('#back-button2').click(function() {
+											$('#original').removeClass('d-none');
+											$('#add-members-container').addClass('d-none');
+											$('#back-button2').addClass('d-none');
+										});
+									}
+									generate3({
+										target: $('#messages'),
+										data: data.data,
+										members,
+										fresh: isNew,
+										type
+									});
+									break;
+								default:
+									if (isNew) {
+										$('#errors-body').text('未知会话类型。');
+										$('#errors').show();
+										$('#errors').delay(3000).fadeOut();
+										break;
+									}
 							}
-							generate3({
-								target: document.getElementById('messages'),
-								data: chatData.data,
-								avatar: chatData.avatar,
-								opposite: chatData.opposite,
-								fresh: isNew
-							});
 							if (scrollToBottom) {
-								document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+								$('#messages').scrollTop($('#messages')[0].scrollHeight);
 							}
 						} else {
 							clearInterval(chatInterval);
+							if (isNew) {
+								$('.navbar, #messages, .row').addClass('d-none');
+								$('#invalid-session-container').removeClass('d-none');
+								$('#invalid-session-message').text(data.msg);
+							} else {
+								$('#errors-body').text(data.msg);
+								$('#errors').show();
+								$('#errors').delay(3000).fadeOut();
+							}
 						}
-					}
-				};
-				chatRequest.send(requestParams);
-			}
-			window.onload = function() {
-				loadLanguageFile(langCode);
-				fetchChatData(true, true);
-				chatInterval = setInterval(fetchChatData, 5000);
-			};
-			document.getElementById('send').addEventListener('click', function() {
-				var sendMessageRequest = new XMLHttpRequest();
-				var messageParams = new URLSearchParams({
-					target: idFromUrl,
-					msg: document.getElementById('ta').value
-				});
-				sendMessageRequest.open('POST', 'add_message.php?lang=' + langCode);
-				sendMessageRequest.onreadystatechange = function() {
-					if (sendMessageRequest.readyState === 4 && sendMessageRequest.status === 200) {
-						fetchChatData(false, true);
-						document.getElementById('ta').value = '';
-						document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
-					}
-				};
-				sendMessageRequest.send(messageParams);
-			});
-			document.getElementById('name').addEventListener('click', function() {
-				location.href = 'profile.html?lang=' + langCode + '&id=' + otherUserId;
-			});
-			document.getElementById('more').addEventListener('click', function() {
-				document.getElementById('dialog').showModal();
-			});
-			document.getElementById('close').addEventListener('click', function() {
-				document.getElementById('dialog').close();
-			});
-			document.getElementById('deleteFriend').addEventListener('click', function() {
-				if (confirm(languageData.deleteFriendConfirm)) {
-					var deleteFriendRequest = new XMLHttpRequest();
-					var deleteParams = new URLSearchParams({
-						target: idFromUrl,
-						action: 'delete'
 					});
-					deleteFriendRequest.open('POST', 'friends.php?lang=' + langCode);
-					deleteFriendRequest.onreadystatechange = function() {
-						if (deleteFriendRequest.readyState === 4 && deleteFriendRequest.status === 200) {
-							var responseData = JSON.parse(deleteFriendRequest.responseText);
-							if (responseData.code === 1) {
-								location.href = 'friends.html?lang=' + langCode;
+				}
+				fetchChatData(true, true);
+				$('#send').click(function() {
+					if (!$('#ta').val()) return;
+					fetch('add_message.php', {
+						method: 'POST',
+						body: new URLSearchParams({
+							target: idFromUrl,
+							msg: $('#ta').val()
+						})
+					}).then(response => response.json()).then(data => {
+						if (data.code === 1) {
+							fetchChatData(false, true);
+							$('#ta').val('');
+						} else {
+							$('#errors-body').text(data.msg);
+							$('#errors').show();
+							$('#errors').delay(3000).fadeOut();
+						}
+					})
+				});
+				$('#more').click(function() {
+					$('#more-menu').addClass('d-flex');
+				});
+				$('#more-menu-close').click(function() {
+					$('#more-menu').removeClass('d-flex');
+				});
+				$('#save-chat').click(function() {
+					fetch('save_chats.php?' + new URLSearchParams({target: idFromUrl})).then(res => res.json()).then(data => {
+						if (data.code === 1) {
+							var blobData = new Blob([data.data], {type:'text/plain'});
+							var blobUrl = URL.createObjectURL(blobData);
+							var downloadLink = $('<a>');
+							downloadLink.attr('href', blobUrl);
+							downloadLink.attr('download', 'chat.txt');
+							downloadLink.css('display', 'none');
+							downloadLink[0].click();
+							URL.revokeObjectURL(blobUrl);
+						} else {
+							$('#errors-body').text(data.msg);
+							$('#errors').show();
+							$('#errors').delay(3000).fadeOut();
+						}
+					});
+				});
+				$('#add-file').click(function() {
+					$('#file-input').click();
+				});
+				$('#file-input').change(function(event) {
+					var file = event.target.files[0];
+					if (!file) {
+						return;
+					}
+					var formData = new FormData();
+					formData.append('file', file);
+					var xhr = new XMLHttpRequest();
+					xhr.open('POST', 'add_file.php', true);
+					xhr.setRequestHeader('X-Chat-Room-ID', idFromUrl);
+					xhr.onreadystatechange = function() {
+						if (xhr.readyState === 4) {
+							var data = JSON.parse(xhr.responseText);
+							if (data.code === 1) {
+								$('#progress').hide();
+								fetchChatData(false, true);
+							} else {
+								$('#errors-body').text(data.msg);
+								$('#errors').show();
+								$('#errors').delay(3000).fadeOut();
 							}
 						}
 					};
-					deleteFriendRequest.send(deleteParams);
-				}
-			});
-			document.getElementById('save').addEventListener('click', function() {
-				var saveChatRequest = new XMLHttpRequest();
-				var saveParams = new URLSearchParams({target: idFromUrl});
-				saveChatRequest.open('POST', 'save_chats.php?lang=' + langCode);
-				saveChatRequest.onreadystatechange = function() {
-					if (saveChatRequest.readyState === 4 && saveChatRequest.status === 200) {
-						var responseData = JSON.parse(saveChatRequest.responseText);
-						if (responseData.code === 1) {
-							var blobData = new Blob([responseData.data], {type:'text/plain'});
-							var blobUrl = URL.createObjectURL(blobData);
-							var downloadLink = document.createElement('a');
-							downloadLink.href = blobUrl;
-							downloadLink.download = 'chat.txt';
-							downloadLink.style.display = 'none';
-							document.body.appendChild(downloadLink);
-							downloadLink.click();
-							URL.revokeObjectURL(blobUrl);
-							document.body.removeChild(downloadLink);
+					xhr.upload.onprogress = function(e) {
+						if (e.lengthComputable) {
+							var percent = Math.round((e.loaded / e.total) * 100);
+							$('#progress-text').text(percent + '%');
+							$('#progress-bar').css('width', percent + '%');
 						}
+					};
+					$('#progress').show();
+					xhr.send(formData);
+				});
+				$('#select-all-btn').click(function() {
+					$('.friend-checkbox').prop('checked', true);
+				});
+				$('#invert-select-btn').click(function() {
+					$('.friend-checkbox').each(function() {
+						$(this).prop('checked', !$(this).prop('checked'));
+					});
+				});
+				$('#invite-btn').click(function() {
+					var selectedFriends = [];
+					$('.friend-checkbox:checked').each(function() {
+						selectedFriends.push($(this).data('id'));
+					});
+					if (selectedFriends.length === 0) {
+						alert('请至少选择一位好友');
+						return;
 					}
-				};
-				saveChatRequest.send(saveParams);
-			});
-			document.getElementById('addFile').addEventListener('click', function() {
-				document.getElementById('fileInput').click();
-			});
-			document.getElementById('fileInput').addEventListener('change', function(event) {
-				var file = event.target.files[0];
-				if (!file) {
-					return;
-				}
-				var fileName = file.name;
-				console.log(fileName);
-				var formData = new FormData();
-				formData.append('file', file);
-				formData.append('target', idFromUrl);
-				var xhr = new XMLHttpRequest();
-				xhr.open('POST', 'add_file.php', true);
-				xhr.onreadystatechange = function() {
-					if (xhr.readyState === 4 && xhr.status === 200) {
-						var responseData = JSON.parse(xhr.responseText);
-						if (responseData.code === 1) {
-							console.log('File uploaded successfully');
+					fetch('groups.php', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/x-www-form-urlencoded'
+						},
+						body: new URLSearchParams({
+							action: 'add',
+							extra: `${idFromUrl};${selectedFriends.join(',')}`,
+						})
+					}).then(res => res.json()).then(data => {
+						if (data.code === 1) {
+							alert('邀请已发送！');
+							$('#back-button2').click();
 						} else {
-							console.log('Error uploading file: ' + responseData.message);
+							$('#errors-body').text(data.msg);
+							$('#errors').show();
+							$('#errors').delay(3000).fadeOut();
 						}
-					}
-				};
-				xhr.send(formData);
+					});
+				});
+				$('#go-home').click(function() {
+					location.href = '.';
+				});
+				chatInterval = setInterval(fetchChatData, 5000);
 			});
 		</script>
 	</body>

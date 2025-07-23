@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>Token管理</title>
+		<link href="libs/bootstrap-5.1.3-dist/css/bootstrap.min.css" rel="stylesheet">
+		<style>
+			body {
+				background-color: #f8f9fa;
+				padding-top: 20px;
+			}
+			.btn-action {
+				min-width: 100px;
+			}
+			.card {
+				margin-bottom: 20px;
+				border-radius: 10px;
+				box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+			}
+			.container {
+				max-width: 800px;
+			}
+			.invalid-input {
+				background-color: #ffdddd !important;
+			}
+			.status-badge {
+				font-size: 0.75rem;
+				padding: 4px 8px;
+				border-radius: 10px;
+			}
+			.token-card {
+				transition: all 0.3s ease;
+			}
+			.token-card:hover {
+				transform: translateY(-5px);
+				box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+			}
+			.token-expiry {
+				font-size: 0.9rem;
+			}
+			.token-id {
+				font-family: monospace;
+				background-color: #f8f9fa;
+				padding: 2px 5px;
+				border-radius: 3px;
+				font-size: 0.9rem;
+			}
+			#custom-time-container input {
+				text-align: center;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<div class="d-flex justify-content-between align-items-center mb-4">
+				<h1 class="h3 mb-0">Token管理</h1>
+			</div>
+			<div class="card mb-4">
+				<div class="card-header">
+					<h5 class="mb-0">Token信息</h5>
+				</div>
+				<div class="card-body">
+					<div class="row align-items-center mb-3">
+						<div class="col-md-6">
+							<div class="mb-2">
+								<span class="fw-bold">Token ID：</span>
+								<span id="current-token-id" class="token-id">加载中...</span>
+							</div>
+							<div class="mb-2">
+								<span class="fw-bold">状态：</span>
+								<span id="current-token-status" class="badge bg-success status-badge">有效</span>
+							</div>
+							<div>
+								<span class="fw-bold">创建时间：</span>
+								<span id="current-token-created" class="token-expiry">加载中...</span>
+							</div>
+							<div>
+								<span class="fw-bold">过期时间：</span>
+								<span id="current-token-expiry" class="token-expiry">加载中...</span>
+							</div>
+						</div>
+						<div class="col-md-6 d-flex justify-content-end">
+							<button id="btn-renew-token" class="btn btn-primary me-2 btn-action">
+								<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-clockwise me-1" viewBox="0 0 16 16">
+									<path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+									<path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+								</svg>
+								更改过期时间
+							</button>
+							<button id="btn-replace-token" class="btn btn-outline-danger btn-action">
+								<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-repeat me-1" viewBox="0 0 16 16">
+									<path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41zm-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9z"/>
+									<path fill-rule="evenodd" d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.9A5.002 5.002 0 0 0 8 3zM3.1 9a5.002 5.002 0 0 0 8.757 2.182.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9H3.1z"/>
+								</svg>
+								更换Token
+							</button>
+						</div>
+					</div>
+					<div class="alert alert-info d-flex align-items-center mt-3">
+						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-info-circle me-2" viewBox="0 0 16 16">
+							<path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+							<path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+						</svg>
+						<div>
+							<strong>安全提示：</strong> 您的Token相当于账户密码，请勿分享给他人。
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="card">
+				<div class="card-header">
+					<h2 class="h5 mb-0">所有Token</h2>
+				</div>
+				<div class="card-body">
+					<div class="d-flex justify-content-between align-items-center mb-3">
+						<button id="btn-revoke-all" class="btn btn-sm btn-outline-danger">
+							<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-circle me-1" viewBox="0 0 16 16">
+								<path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+								<path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+							</svg>
+							下线所有其他设备
+						</button>
+					</div>
+					<div id="tokens-container">
+						<div class="text-center py-5">
+							<div class="spinner-border text-primary" role="status">
+								<span class="visually-hidden">加载中...</span>
+							</div>
+							<p class="mt-3">正在加载Token数据...</p>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div id="renewModal" class="modal fade" tabindex="-1">
+				<div class="modal-dialog">
+					<div class="modal-content">
+						<div class="modal-header">
+							<h5 class="modal-title">更改Token过期时间</h5>
+							<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+						</div>
+						<div class="modal-body">
+							<div class="mb-3">
+								<label class="form-label">当前Token有效期至：<strong id="current-expiry-modal"></strong></label>
+							</div>
+							<div class="mb-3">
+								<label for="renew-type" class="form-label">设置类型</label>
+								<select class="form-select mb-2" id="renew-type">
+									<option value="preset">预设时间</option>
+									<option value="custom">自定义时间</option>
+								</select>
+								<div id="preset-time-container">
+									<select class="form-select" id="renew-preset">
+										<option value="600">10分钟</option>
+										<option value="3600">1小时</option>
+										<option value="86400">1天</option>
+										<option value="604800">7天</option>
+										<option value="1296000">15天</option>
+										<option value="2592000" selected>30天</option>
+										<option value="5184000">60天</option>
+										<option value="7776000">90天</option>
+									</select>
+								</div>
+								<div id="custom-time-container" class="d-none mt-3">
+									<div class="row g-2">
+										<div class="col-3">
+											<label class="form-label">天</label>
+											<input type="text" class="form-control custom-time-input" id="custom-days" value="30">
+										</div>
+										<div class="col-3">
+											<label class="form-label">小时</label>
+											<input type="text" class="form-control custom-time-input" id="custom-hours" value="0">
+										</div>
+										<div class="col-3">
+											<label class="form-label">分钟</label>
+											<input type="text" class="form-control custom-time-input" id="custom-minutes" value="0">
+										</div>
+										<div class="col-3">
+											<label class="form-label">秒</label>
+											<input type="text" class="form-control custom-time-input" id="custom-seconds" value="0">
+										</div>
+									</div>
+								</div>
+							</div>
+							<div id="renewed-expiry-container" class="mb-3"><label class="form-label">设置后的Token有效期至：<strong id="renewed-expiry"></strong></label></div>
+							<div id="renew-error" class="text-danger d-none"></div>
+						</div>
+						<div class="modal-footer">
+							<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+							<button type="button" class="btn btn-primary" id="btn-confirm-renew">确认更改</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<script src="libs/jquery-3.7.1.js"></script>
+		<script src="lib.js"></script>
+		<script src="libs/bootstrap-5.1.3-dist/js/bootstrap.bundle.min.js"></script>
+		<script>
+			$(function() {
+				function fetchAllTokens() {
+					fetch('tokens.php').then(response => response.json()).then(function(data) {
+						if (data.code === 1) {
+							$('#current-token-id').text(data.current.id);
+							if (data.current.creation) {
+								$('#current-token-created').text(formatDateLong(data.current.creation));
+							} else {
+								$('#current-token-created').parent().remove();
+							}
+							$('#current-token-expiry, #current-expiry-modal').text(formatDateLong(data.current.expire));
+							var container = $('#tokens-container');
+							container.empty();
+							if (data.tokens.length === 0) {
+								container.html('<div class="text-center py-4"><p>没有找到其他Token</p></div>');
+								return;
+							}
+							data.tokens.forEach(token => {
+								var expiryDate = new Date(token.expires * 1000);
+								var now = new Date();
+								var isExpired = expiryDate < now;
+								var expiresSoon = !isExpired && (expiryDate - now) < 604800000;
+								var card = $('<div>');
+								card.addClass('card token-card mb-3');
+								var body = $('<div>');
+								body.addClass('card-body');
+								var row = $('<div>');
+								row.addClass('row align-items-center');
+								var col1 = $('<div>');
+								col1.addClass('col-md-6');
+								var idDiv = $('<div>');
+								idDiv.addClass('mb-1');
+								var idSpan = $('<span>');
+								idSpan.addClass('fw-bold');
+								idSpan.text('ID:');
+								var idValue = $('<span>');
+								idValue.addClass('token-id');
+								idValue.text(token.id);
+								idDiv.append(idSpan);
+								idDiv.append(idValue);
+								var statusDiv = $('<div>');
+								statusDiv.addClass('d-flex align-items-center');
+								var statusSpan = $('<span>');
+								statusSpan.addClass('fw-bold me-2');
+								statusSpan.text('状态:');
+								var statusBadge = $('<span>');
+								statusBadge.addClass('badge status-badge');
+								if (isExpired) {
+									statusBadge.addClass('bg-secondary');
+									statusBadge.text('已过期');
+								} else if (expiresSoon) {
+									statusBadge.addClass('bg-warning text-dark');
+									statusBadge.text('即将过期');
+								} else {
+									statusBadge.addClass('bg-success');
+									statusBadge.text('有效');
+								}
+								statusDiv.append(statusSpan);
+								statusDiv.append(statusBadge);
+								col1.append(idDiv);
+								col1.append(statusDiv);
+								var col2 = $('<div>');
+								col2.addClass('col-md-4');
+								if (token.creation) {
+									var creationDiv = $('<div>');
+									creationDiv.addClass('token-expiry');
+									var creationLabel = $('<div>');
+									creationLabel.addClass('fw-bold');
+									creationLabel.text('创建时间:');
+									var creationValue = $('<div>');
+									creationValue.text(formatDateLong(token.creation));
+									creationDiv.append(creationLabel);
+									creationDiv.append(creationValue);
+									col2.append(creationDiv);
+								}
+								var expiryDiv = $('<div>');
+								expiryDiv.addClass('token-expiry mt-1');
+								var expiryLabel = $('<div>');
+								expiryLabel.addClass('fw-bold');
+								expiryLabel.text('过期时间:');
+								var expiryValue = $('<div>');
+								expiryValue.text(formatDateLong(token.expire));
+								expiryDiv.append(expiryLabel);
+								expiryDiv.append(expiryValue);
+								col2.append(expiryDiv);
+								var col3 = $('<div>');
+								col3.addClass('col-md-2 text-end');
+								if (!isExpired) {
+									var revokeBtn = $('<button>');
+									revokeBtn.addClass('btn btn-sm btn-outline-danger revoke-btn');
+									revokeBtn.text('下线');
+									revokeBtn.click(function() {
+										revokeToken(token.id);
+									});
+									col3.append(revokeBtn);
+								}
+								row.append(col1);
+								row.append(col2);
+								row.append(col3);
+								body.append(row);
+								card.append(body);
+								container.append(card);
+							});
+						} else {
+							showError(data.msg);
+						}
+					}).catch(function() {
+						showError('请求Token列表失败');
+					});
+				}
+				function revokeToken(tokenId) {
+					if (!confirm('确定要下线此Token吗？此操作不可撤销。')) return;
+					fetch('tokens.php', {
+						method: 'POST',
+						body: new URLSearchParams({
+							id: tokenId,
+						}
+					)}).then(response => response.json()).then(function(data) {
+						if (data.code === 1) {
+							fetchAllTokens();
+						} else {
+							showError(data.msg);
+						}
+					}).catch(function() {
+						showError('请求失败');
+					});
+				}
+				function showError(message) {
+					alert('错误: ' + message);
+				}
+				function showSuccess(message) {
+					alert('成功: ' + message);
+				}
+				function updateExpiryTime(seconds) {
+					$('#renewed-expiry').text(formatDateLong(Math.floor(new Date().getTime() / 1000) + seconds));
+				}
+				function handleCustomTimeInput() {
+					var hasInvalidInput = false;
+					var hasEmptyInput = false;
+					$('.custom-time-input').removeClass('invalid-input');
+					var inputs = [
+						$('#custom-days'),
+						$('#custom-hours'),
+						$('#custom-minutes'),
+						$('#custom-seconds')
+					];
+					inputs.forEach(input => {
+						var value = input.val();
+						if (value === '') {
+							hasEmptyInput = true;
+						} else if (/\D/.test(value)) {
+							input.addClass('invalid-input');
+							hasInvalidInput = true;
+						}
+					});
+					if (hasInvalidInput) {
+						$('#renewed-expiry-container').addClass('d-none');
+						$('#renew-error').text('请输入有效数字').removeClass('d-none');
+						return false;
+					}
+					var days = parseInt($('#custom-days').val()) || 0;
+					var hours = parseInt($('#custom-hours').val()) || 0;
+					var minutes = parseInt($('#custom-minutes').val()) || 0;
+					var seconds = parseInt($('#custom-seconds').val()) || 0;
+					var totalSeconds = days * 86400 + hours * 3600 + minutes * 60 + seconds;
+					if (totalSeconds < 600 || totalSeconds > 7776000) {
+						$('#renewed-expiry-container').addClass('d-none');
+						$('#renew-error').text('时间必须在10分钟（600秒）到90天（7776000秒）之间').removeClass('d-none');
+						return false;
+					}
+					
+					// 如果有效则显示过期时间行
+					$('#renewed-expiry-container').removeClass('d-none');
+					$('#renew-error').addClass('d-none');
+					updateExpiryTime(totalSeconds);
+					return true;
+				}
+				fetchAllTokens();
+				$('#btn-renew-token').click(function() {
+					$('#renewModal').modal('show');
+				});
+				$('#btn-confirm-renew').click(function() {
+					$('#renew-error').addClass('d-none');
+					var seconds;
+					if ($('#renew-type').val() === 'custom') {
+						if (!handleCustomTimeInput()) return;
+						var days = parseInt($('#custom-days').val()) || 0;
+						var hours = parseInt($('#custom-hours').val()) || 0;
+						var minutes = parseInt($('#custom-minutes').val()) || 0;
+						var secs = parseInt($('#custom-seconds').val()) || 0;
+						seconds = days * 86400 + hours * 3600 + minutes * 60 + secs;
+					} else {
+						seconds = parseInt($('#renew-preset').val());
+					}
+					fetch('update_token.php', {
+						method: 'POST',
+						body: new URLSearchParams({
+							action: 'expire',
+							seconds: seconds
+						})
+					}).then(response => response.json()).then(function(data) {
+						if (data.code === 1) {
+							$('#renewModal').modal('hide');
+							$('#current-token-expiry, #current-expiry-modal').text(formatDateLong(data.expires));
+							showSuccess(data.msg);
+						} else {
+							$('#renew-error').text('设置失败: ' + data.msg).removeClass('d-none');
+						}
+					}).catch(function() {
+						$('#renew-error').text('请求失败').removeClass('d-none');
+					});
+				});
+				$('#btn-replace-token').click(function() {
+					if (!confirm('确定要更换Token吗？')) return;
+					fetch('update_token.php', {
+						method: 'POST',
+						body: new URLSearchParams({action: 'value'})
+					}).then(response => response.json()).then(function(data) {
+						if (data.code === 1) {
+							setCookie('_', data.token, data.expires);
+							showSuccess(data.msg);
+						} else {
+							showError(data.msg);
+						}
+					}).catch(function() {
+						showError('请求失败');
+					});
+				});
+				$('#btn-revoke-all').click(function() {
+					if (!confirm('确定要下线所有其他设备的Token吗？此操作不可撤销。')) return;
+					fetch('tokens.php', {method: 'DELETE'}).then(response => response.json()).then(function(data) {
+						if (data.code === 1) {
+							fetchAllTokens();
+							showSuccess(data.msg);
+						} else {
+							showError(data.msg);
+						}
+					}).catch(function() {
+						showError('请求失败');
+					});
+				});
+				$('#renew-type').change(function() {
+					if ($(this).val() === 'custom') {
+						$('#preset-time-container').addClass('d-none');
+						$('#custom-time-container').removeClass('d-none');
+						$('#renewed-expiry-container').removeClass('d-none');
+						handleCustomTimeInput();
+					} else if ($(this).val() === 'preset') {
+						$('#preset-time-container').removeClass('d-none');
+						$('#custom-time-container').addClass('d-none');
+						$('#renewed-expiry-container').removeClass('d-none');
+						updateExpiryTime(parseInt($('#renew-preset').val()));
+						$('#renew-error').addClass('d-none');
+					}
+					$('#renew-error').addClass('d-none');
+				});
+				$('#renew-preset').change(function() {
+					updateExpiryTime(parseInt($(this).val()));
+				});
+				$('.custom-time-input').on('input', function(e) {
+					handleCustomTimeInput();
+					if (e.keyCode === 13) {
+						$('#btn-confirm-renew').click();
+					}
+				});
+				updateExpiryTime(2592000);
+			});
+		</script>
+	</body>
+</html>

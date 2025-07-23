@@ -1,79 +1,92 @@
 <?php
-	if (isset($_GET["lang"]) && file_exists("languages/" . $_GET["lang"] . ".json")) {
-		$language = json_decode(file_get_contents("languages/" . $_GET["lang"] . ".json"), true);
-	} else {
-		$language = json_decode(file_get_contents("languages/zh-CN.json"), true);
-	}
-	header('Content-Type: application/json');
-	
-	if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_COOKIE['_']) && isset($_POST['target'])) {
-		mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
-		$config = parse_ini_file('conf/settings.ini', true);
-		$host = $config['database']['host'];
-		$user = $config['database']['user'];
-		$pass = $config['database']['pass'];
-		$db = $config['database']['db'];
-		try {
-			$conn = new mysqli($host, $user, $pass, $db);
-			$stmt = $conn->prepare("SELECT id FROM users WHERE token = ?");
-			$stmt->bind_param('s', $_COOKIE['_']);
-			$stmt->execute();
-			$result = $stmt->get_result();
-			$data = $result->fetch_assoc();
-			if ($data) {
-				$chatPrepare = "SELECT id, content, sent_at, sender, multi FROM chats WHERE session = ? ORDER BY sent_at";
+	header("Content-Type: application/json");
+	if ($_SERVER["REQUEST_METHOD"] === "GET") {
+		if (isset($_COOKIE["_"]) && isset($_GET["target"])) {
+			mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+			$config = parse_ini_file("conf/settings.ini", true);
+			$host = $config["database"]["host"];
+			$user = $config["database"]["user"];
+			$pass = $config["database"]["pass"];
+			$db = $config["database"]["db"];
+			try {
+				$conn = new mysqli($host, $user, $pass, $db);
+				$sessionStmt = $conn->prepare("SELECT user FROM user_session WHERE token = ? AND expires >= NOW()");
+				$sessionStmt->bind_param("s", $_COOKIE["_"]);
+				$sessionStmt->execute();
+				$sessionResult = $sessionStmt->get_result();
+				$sessionData = $sessionResult->fetch_assoc();
+				if ($sessionData) {
+					$userId = $sessionData["user"];
+				} else {
+					http_response_code(404);
+					echo json_encode(["code" => -1, "msg" => "未找到有效的用户信息。"]);
+					$sessionStmt->close();
+					$conn->close();
+					exit;
+				}
+				$chatPrepare = "SELECT id, content, UNIX_TIMESTAMP(sent_at) AS sent_at, sender, multi FROM chats WHERE session = ? ORDER BY sent_at";
 				$chatStmt = $conn->prepare($chatPrepare);
-				$intTarget = (int)$_POST['target'];
-				$chatStmt->bind_param('i', $intTarget);
+				$intTarget = (int)$_GET["target"];
+				$chatStmt->bind_param("i", $intTarget);
 				$chatStmt->execute();
 				$chatResult = $chatStmt->get_result();
 				$chatData = $chatResult->fetch_all(MYSQLI_ASSOC);
-				$oppositeStmt = $conn->prepare("SELECT CASE WHEN source = ? THEN target ELSE source END AS other_user_id, request_time, allowed_time FROM friendships WHERE id = ?");
-				$oppositeStmt->bind_param('ii', $data["id"], $_POST['target']);
+				$oppositeStmt = $conn->prepare("SELECT request_time, allowed_time FROM friendships WHERE id = ?");
+				$oppositeStmt->bind_param("i", $_GET["target"]);
 				$oppositeStmt->execute();
-				$oppositeStmt->bind_result($otherUserId, $requestTime, $allowedTime);
+				$oppositeStmt->bind_result($requestTime, $allowedTime);
 				$oppositeStmt->fetch();
 				$oppositeStmt->close();
-				$validateStmt = $conn->prepare("SELECT COUNT(*) FROM friendships WHERE source = ? AND target = ? OR source = ? AND target = ?");
-				$validateStmt->bind_param('iiii', $data["id"], $otherUserId, $otherUserId, $data["id"]);
+				$validateStmt = $conn->prepare("SELECT (SELECT COUNT(*) FROM friendships WHERE id = ? AND (source = ? OR target = ?)) + (SELECT COUNT(*) FROM group_members WHERE `group` = ? AND user = ?)");
+				$validateStmt->bind_param("iiiii", $_GET["target"], $userId, $userId, $_GET["target"], $userId);
 				$validateStmt->execute();
 				$validateStmt->bind_result($validate);
 				$validateStmt->fetch();
 				$validateStmt->close();
 				if (!$validate) {
-					echo json_encode(["code" => -1, "msg" => $language["cannotViewOthersChat"]]);
+					http_response_code(403);
+					echo json_encode(["code" => -1, "msg" => "不能偷看别人的聊天记录。"]);
+					$sessionStmt->close();
+					if (isset($adminStmt)) {
+						$adminStmt->close();
+					}
+					$chatStmt->close();
+					$conn->close();
 					exit;
 				}
 				$chatContent = "";
-				$nickStmt = $conn->prepare("SELECT (SELECT nick FROM users WHERE id = ?) AS name_mine, (SELECT nick FROM users WHERE id = ?) AS name_opposite");
-				$nickStmt->bind_param('ii', $data["id"], $otherUserId);
-				$nickStmt->execute();
-				$nickStmt->bind_result($nameMine, $nameOpposite);
-				$nickStmt->fetch();
-				$nickStmt->close();
 				foreach ($chatData as $chatRow) {
-					$inputTime = $chatRow['sent_at'];
-					$dateTime = new DateTime($inputTime);
-					$dateTime->modify('-8 hours');
-					$dateTime->setTimezone(new DateTimeZone('UTC'));
+					$inputTime = $chatRow["sent_at"];
+					$dateTime = new DateTime('@' . $chatRow["sent_at"]);
 					$isoFormat = $dateTime->format(DateTime::ATOM);
-					$isoFormatWithZ = str_replace('+00:00', 'Z', $isoFormat);
-					if ($data["id"] == $chatRow['sender']) {
-						$chatContent .= $nameMine . $language["you"] . "(id: " . $data["id"] . ")" . "(" . $isoFormatWithZ . ")" . ($chatRow['multi'] ? " *" : "") . ": \n" . $chatRow["content"] . "\n\n";
-					} else {
-						$chatContent .= $nameOpposite . "(id: " . $otherUserId . ")" . "(" . $isoFormatWithZ . "): \n" . $chatRow["content"] . "\n\n";
-					}
+					$nickStmt = $conn->prepare("SELECT nick FROM users WHERE id = ?");
+					$nickStmt->bind_param("i", $chatRow["sender"]);
+					$nickStmt->execute();
+					$nickStmt->bind_result($name);
+					$nickStmt->fetch();
+					$nickStmt->close();
+					$isoFormatWithZ = str_replace("+00:00", "Z", $isoFormat);
+					$chatContent .= $name . "(id: " . $chatRow["sender"] . ")" . "(" . $isoFormatWithZ . "): \n" . $chatRow["content"] . "\n\n";
 				}
-				echo json_encode(["code" => 1, "msg" => $language["saveChatHistorySuccess"], "data" => $chatContent]);
-			} else {
-				echo json_encode(["code" => 0, "msg" => $language["invalidUserOrToken"]]);
+				echo json_encode(["code" => 1, "msg" => "聊天记录保存成功。", "data" => $chatContent]);
+				if (isset($sessionStmt)) {
+					$sessionStmt->close();
+				}
+				if (isset($adminStmt)) {
+					$adminStmt->close();
+				}
+				$chatStmt->close();
+				$conn->close();
+			} catch (mysqli_sql_exception $sqlException) {
+				http_response_code(500);
+				echo json_encode(["code" => -1, "msg" => "数据库错误。"]);
 			}
-			$stmt->close();
-			$conn->close();
-		} catch (mysqli_sql_exception $sqlException) {
-			echo json_encode(["code" => -1, "msg" => $language["databaseError"]]);
+		} else {
+			http_response_code(400);
+			echo json_encode(["code" => -1, "msg" => "请求方法不正确或缺少必要的参数。"]);
 		}
 	} else {
-		echo json_encode(["code" => -1, "msg" => $language["invalidRequest"]]);
+		http_response_code(405);
+		echo json_encode(["code" => -1, "msg" => "请求方法不正确或缺少必要的参数。"]);
 	}
 ?>
