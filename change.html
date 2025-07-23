@@ -3,245 +3,269 @@
 	<head>
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<title data-key="editInfo"></title>
-		<link rel="stylesheet" href="style.css" />
+		<title>信息修改</title>
+		<link href="libs/bootstrap-5.1.3-dist/css/bootstrap.min.css" rel="stylesheet">
+		<link href="style.css" rel="stylesheet">
 	</head>
-	<body class="flex">
-		<div id="bg" class="bg"></div>
-		<div class="form" style="position:relative">
-			<h2 data-key="editInfo"></h2>
-			<div class="pop2" id="pop2">
-				<table class="table0">
-					<tr>
-						<td><label for="pass" data-key="passwordLabel"></label></label></td>
-						<td><input type="password" id="pass" class="text"></td>
-					</tr>
-					<tr>
-						<td><label for="repass" data-key="confirmPasswordLabel"></label></td>
-						<td><input type="password" id="repass" class="text"></td>
-					</tr>
-				</table>
-				<div class="buttons">
-					<button class="b" id="no" data-key="close"></button>
-					<button class="main-button" id="ok" data-key="confirm"></button>
+	<body>
+		<div class="container mt-5">
+			<div class="card">
+				<div class="card-body">
+					<form>
+						<div class="form-group row mb-3">
+							<label for="avatar" class="col-sm-2 col-form-label">头像</label>
+							<div class="col-sm-3">
+								<img id="avatar" class="img-thumbnail" width="100">
+							</div>
+						</div>
+						<div class="form-group row mb-3">
+							<label for="background" class="col-sm-2 col-form-label">主页背景</label>
+							<div class="col-sm-10 d-flex align-items-center">
+								<div id="background-preview" style="width:100px;height:60px;border:1px solid #ddd;background-size:cover;background-position:center"></div>
+							</div>
+						</div>
+						<div class="form-group row mb-3">
+							<label class="col-sm-2 col-form-label">用户名</label>
+							<div id="username" class="col-sm-10"></div>
+						</div>
+						<div class="form-group row mb-3">
+							<label class="col-sm-2 col-form-label">ID</label>
+							<div id="id" class="col-sm-10"></div>
+						</div>
+						<div class="form-group row mb-3">
+							<label class="col-sm-2 col-form-label">账号创建于</label>
+							<div id="created_at" class="col-sm-10"></div>
+						</div>
+						<div class="form-group row mb-3">
+							<label for="nickname" class="col-sm-2 col-form-label">昵称</label>
+							<div class="col-sm-10">
+								<input type="text" class="form-control" id="nickname" placeholder="请输入昵称">
+							</div>
+						</div>
+						<div class="form-group row mb-3">
+							<label for="gender" class="col-sm-2 col-form-label">性别</label>
+							<div class="col-sm-10 d-flex align-items-center flex-row">
+								<div class="form-check form-check-inline">
+									<input class="form-check-input" type="radio" name="gender" id="male" value="M">
+									<label class="form-check-label" for="male">男</label>
+								</div>
+								<div class="form-check form-check-inline">
+									<input class="form-check-input" type="radio" name="gender" id="female" value="W">
+									<label class="form-check-label" for="female">女</label>
+								</div>
+								<div class="form-check form-check-inline">
+									<input class="form-check-input" type="radio" name="gender" id="not_set" value="N">
+									<label class="form-check-label" for="not_set">不设置</label>
+								</div>
+							</div>
+						</div>
+						<div class="form-group row mb-3">
+							<label for="birthday" class="col-sm-2 col-form-label">生日</label>
+							<div class="col-sm-10">
+								<input type="date" class="form-control" id="birthday">
+							</div>
+						</div>
+						<div class="form-group row mb-3">
+							<label for="signature" class="col-sm-2 col-form-label">个性签名</label>
+							<div class="col-sm-10">
+								<textarea class="form-control" id="signature" rows="3" placeholder="请输入个性签名"></textarea>
+							</div>
+						</div>
+						<div class="form-group row">
+							<div class="col-sm-10 offset-sm-2">
+								<button id="btn-logout" type="button" class="btn btn-danger">注销账户</button>
+								<button id="btn-change-password" type="button" class="btn btn-secondary">修改密码</button>
+								<button id="btn-avatar" type="button" class="btn btn-secondary">修改头像</button>
+								<button id="btn-background" type="button" class="btn btn-secondary">修改背景</button>
+								<button id="btn-homepage" type="button" class="btn btn-secondary">进入个人主页</button>
+								<button id="submit" type="button" class="btn btn-primary">保存</button>
+							</div>
+						</div>
+					</form>
 				</div>
 			</div>
-			<table>
-				<tr>
-					<td class="table"><img id="avatar" class="avatar2" src="default.jpg"><div class="gray" data-key="avatarChangePrompt" style="width:80px"></div></td>
-					<td class="table">
-						<span class="t"><span data-key="usernameLabel"></span><span id="user"></span></span><br />
-						<span class="t"><span>ID: </span><span id="id"></span>, <span data-key="userCreatedAt"></span><span id="time"></span></span><br />
-						<span class="t"><label for="nick" data-key="nicknameLabel"></label><input type="text" id="nick" class="text" /></span>
-					</td>
-				</tr>
-				<tr>
-					<td class="table">
-						<span class="t">
-							<label data-key="genderLabel"></label>
-							<select id="gender" class="selection">
-								<option value="M" data-key="male"></option>
-								<option value="W" data-key="female"></option>
-								<option value="N" data-key="notSet"></option>
-							</select>
-						</span>
-					</td>
-					<td class="table">
-						<span class="t">
-							<label for="user" data-key="birthdayLabel"></label>
-							<input type="date" id="birth" class="selection1" />
-						</span>
-					</td>
-				</tr>
-				<tr>
-					<td colspan="2" class="table">
-						<label for="bio" data-key="signatureLabel"></label><br><textarea id="bio" class="bio" wrap="hard" maxlength="250"></textarea>
-					</td>
-				</tr>
-			</table>
-			<div class="buttons">
-				<button class="b" id="changepass" data-key="changePassword"></button>
-				<button class="b" id="del" data-key="deleteAccount"></button>
-				<button class="b" id="viewProfile" data-key="viewProfile"></button>
-				<button class="main-button" id="save" data-key="save"></button>
+		</div>
+		<div id="errors" class="toast bottom-toast errors">
+			<div class="toast-body" id="errors-body"></div>
+		</div>
+		<div id="change-password" class="toast bottom-toast">
+			<div class="toast-body">
+				<div class="row justify-content-center">
+					<div id="errors-change" class="mt-2 d-none"></div>
+					<form>
+						<div class="mb-3">
+							<label for="password" class="form-label">密码：</label>
+							<input type="password" class="form-control" id="password">
+						</div>
+						<div class="mb-3">
+							<label for="confirmPassword" class="form-label">确认密码：</label>
+							<input type="password" class="form-control" id="confirm-password">
+						</div>
+						<button type="button" id="btn-close" class="btn btn-link">关闭</button>
+						<button type="button" id="btn-submit" class="btn btn-primary float-end">确定</button>
+					</form>
+				</div>
 			</div>
 		</div>
-		<input type="file" class="hidden" id="fileInput" accept="image/jpeg, image/png">
+		<div id="deletion-confirm" class="toast bottom-toast">
+			<div class="toast-body">
+				<p>你确定要注销账户吗？注销账户后，你就再也无法登录本账户。</p>
+				<button type="button" id="btn-close-deletion" class="btn btn-link">取消</button>
+				<button type="button" id="btn-submit-deletion" class="btn btn-danger float-end">确定</button>
+			</div>
+		</div>
+		<input type="file" class="d-none" id="file-avatar" accept="image/jpeg, image/png">
+		<input type="file" class="d-none" id="file-background" accept="image/jpeg, image/png">
+		<script src="libs/jquery-3.7.1.js"></script>
 		<script src="lib.js"></script>
 		<script>
-			var isPopupVisible = false, userData = {}, updatedData = {}, localizedStrings, languageCode = new URLSearchParams(location.search).get('lang') || 'zh-CN';
-			function loadLanguage(lang) {
-				var xhr = new XMLHttpRequest();
-				xhr.open('GET', 'languages/' + encodeURIComponent(lang) + '.json', true);
-				xhr.onreadystatechange = function() {
-					if (xhr.readyState === 4) {
-						if (xhr.status === 200) {
-							localizedStrings = JSON.parse(xhr.responseText);
-							document.querySelectorAll('[data-key]').forEach(function(element) {
-								element.innerText = localizedStrings[element.dataset.key];
-							});
-							document.getElementById('nick').setAttribute('placeholder', localizedStrings.enterNickname);
-							document.getElementById('bio').setAttribute('placeholder', localizedStrings.enterSignature);
-						} else if (xhr.status === 404) {
-							loadLanguage('zh-CN');
+			$(function() {
+				var userData = {}, updatedData = {};
+				fetch('user_data2.php').then(res => res.json()).then(data => {
+					if (data.code === 1) {
+						userData = data.data;
+						$('#username').text(userData.user);
+						$('#id').text(userData.id);
+						$('#created_at').text(formatDateLong(userData.created_at));
+						$('#nickname').val(userData.nick);
+						$('input[name="gender"][value="' + userData.gender + '"]').prop('checked', true);
+						$('#birthday').val(userData.birth);
+						$('#signature').val(userData.bio);
+						$('#avatar').attr('src', userData.avatar);
+						if (userData.background) {
+							$('#background-preview').css('background-image', 'url(' + userData.background + ')');
 						}
+					} else {
+						$('#errors-body').text(data.msg);
+						$('#errors').show();
+						$('#errors').delay(3000).fadeOut();
 					}
-				};
-				xhr.send();
-			}
-			window.onload = function() {
-				var sessionCookie = getCookie('_');
-				loadLanguage(languageCode);
-				if (!sessionCookie) {
-					location.href = 'login.html?lang=' + languageCode;
-				}
-				var xhrUserData = new XMLHttpRequest();
-				xhrUserData.open('POST', 'user_data2.php?lang=' + languageCode, true);
-				xhrUserData.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-				xhrUserData.onreadystatechange = function() {
-					if (xhrUserData.readyState === 4 && xhrUserData.status === 200) {
-						var responseData = JSON.parse(xhrUserData.responseText);
-						if (responseData.code === 1) {
-							userData = responseData.data;
-							document.getElementById('user').innerText = userData.user;
-							document.getElementById('id').innerText = userData.id;
-							document.getElementById('time').innerText = formatDateShort(userData.time, languageCode);
-							document.getElementById('nick').value = userData.nick;
-							if (userData.avatar) {
-								document.getElementById('avatar').src = 'avatar/' + userData.avatar + '.jpg';
-								document.getElementById('bg').style.backgroundImage = 'url(avatar/' + userData.avatar + '.jpg)';
-							} else {
-								document.getElementById('avatar').src = 'default.jpg';
-								document.getElementById('bg').style.backgroundImage = 'url(default.jpg)';
+				});
+				$('#submit').click(function () {
+					if (userData.nick !== $('#nickname').val().trim()) {
+						var nick = $('#nickname').val().trim();
+						if (!nick) {
+							$('#errors-body').text('昵称不能为空。');
+							$('#errors').show();
+							$('#errors').delay(3000).fadeOut();
+							return;
+						}
+						updatedData.nick = nick;
+					}
+					if (userData.gender !== $('input[name="gender"]:checked').val()) {
+					    updatedData.gender = $('input[name="gender"]:checked').val();
+					}
+					var birth = $('#birthday').val();
+					var birthDate = new Date(birth);
+					if (userData.birth !== birth) {
+						if (testFuture(birthDate) && birth) {
+							$('#errors-body').text('出生日期不能是未来的日期。');
+							$('#errors').show();
+							$('#errors').delay(3000).fadeOut();
+							return;
+						}
+						updatedData.birth = birth;
+					}
+					if (userData.bio !== $('#signature').val()) {
+						updatedData.bio = $('#signature').val();
+					}
+					if (Object.keys(updatedData).length > 0) {
+						fetch('save.php', {
+							method: 'POST',
+							body: new URLSearchParams({ p: JSON.stringify(updatedData) })
+						}).then(res => res.json()).then(data => {
+							if (data.code !== 1) {
+								$('#errors-body').text(data.msg);
+								$('#errors').show();
+								$('#errors').delay(3000).fadeOut();
 							}
-							document.getElementById('gender').value = userData.gender;
-							document.getElementById('birth').value = userData.birth;
-							document.getElementById('bio').value = userData.bio;
-						} else if (responseData.code === 0) {
-							showPop2(responseData.msg, [{text: localizedStrings.relogin, fn: function () {
-								location.href = 'login.html?lang=' + languageCode;
-							}}]);
+						});
+					}
+					location.href = '.';
+				});
+				$('#btn-avatar').click(function() {
+					$('#file-avatar').click();
+				});
+				$('#file-avatar').change(function(e) {
+					var file = e.target.files[0];
+					if (!file) return;
+					var formData = new FormData();
+					formData.append('avatar', file);
+					fetch('avatar.php', {
+						method: 'POST',
+						body: formData
+					}).then(res => res.json()).then(data => {
+						if (data.code === 1) {
+							$('#avatar').attr('src', data.avatar);
 						}
-					}
-				};
-				xhrUserData.send();
-			};
-			document.getElementById('changepass').addEventListener('click', togglePopupVisibility);
-			document.getElementById('no').addEventListener('click', togglePopupVisibility);
-			document.getElementById('save').addEventListener('click', function() {
-				if (userData.nick !== document.getElementById('nick').value.trim()) {
-					var newNickname = document.getElementById('nick').value.trim();
-					if (!newNickname) {
-						showPop(localizedStrings.nicknameRequired);
-						return;
-					}
-					updatedData.nick = newNickname;
-				}
-				if (userData.gender !== document.getElementById('gender').value) {
-					updatedData.gender = document.getElementById('gender').value;
-				}
-				if (userData.birth !== document.getElementById('birth').value) {
-					if (testFuture(new Date(document.getElementById('birth').value))) {
-						showPop(localizedStrings.birthdayFutureError);
-						return;
-					}
-					updatedData.birth = document.getElementById('birth').value;
-				}
-				if (userData.bio !== document.getElementById('bio').value) {
-					updatedData.bio = document.getElementById('bio').value.trim();
-				}
-				if (Object.keys(updatedData).length === 0) {
-					showPop2(localizedStrings.noChanges, [{text: localizedStrings.returnHome, fn: function() {
-						location.href = "index.html?lang=" + languageCode;
-					}}]);
-					return;
-				}
-				var params = new URLSearchParams({p:JSON.stringify(updatedData),id:userData.id});
-				var xhrSave = new XMLHttpRequest();
-				xhrSave.open('POST', 'save.php?lang=' + languageCode, true);
-				xhrSave.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-				xhrSave.onreadystatechange = function() {
-					if (xhrSave.readyState === 4 && xhrSave.status === 200) {
-						var response = JSON.parse(xhrSave.responseText);
-						if (response.code === 1) {
-							location.href = "index.html?lang=" + languageCode;
-						} else if (response.code === 0) {
-							showPop2(response.msg, [{text: localizedStrings.relogin, fn: function () {
-								location.href = "login.html?lang=" + languageCode;
-							}}]);
-						} else {
-							showPop(response.msg);
+						$('#errors-body').text(data.msg);
+						$('#errors').show();
+						$('#errors').delay(3000).fadeOut();
+					});
+				});
+				$('#btn-logout').click(function() {
+					$('#deletion-confirm').show();
+				});
+				$('#btn-close-deletion').click(function() {
+					$('#deletion-confirm').hide();
+				});
+				$('#btn-submit-deletion').click(function() {
+					fetch('del.php', { method: 'POST' }).then(res => res.json()).then(data => {
+					    if (data.code === 1) {
+					        location.href = 'login.html';
+					    } else {
+					        $('#errors-body').text(data.msg);
+					        $('#errors').show();
+					        $('#errors').delay(3000).fadeOut();
 						}
+					})
+				})
+				$('#btn-change-password').click(function() {
+					$('#errors-change').addClass('d-none');
+					$('#change-password').toggle();
+				});
+				$('#btn-close').click(function() {
+					$('#change-password').hide();
+				});
+				$('#btn-submit').click(function() {
+					if (checkPassword($('#password').val(), $('#confirm-password').val())) {
+						updatedData.pass = $('#password').val();
+						$('#errors-change').text('密码已保存。点击页面上的“保存”按钮可修改密码。').removeClass('d-none');
+					} else {
+						$('#errors-change').text('密码不符合要求，请重新输入。').removeClass('d-none');
 					}
-				};
-				xhrSave.send(params);
-			});
-			document.getElementById('ok').addEventListener('click', function() {
-				if (checkPassword(document.getElementById('pass').value, document.getElementById('repass').value)) {
-					updatedData.pass = document.getElementById('pass').value;
-					showPop(localizedStrings.passwordSavedMessage);
-				} else {
-					showPop(localizedStrings.invalidPassword);
-				}
-			});
-			document.getElementById('del').addEventListener('click', function() {
-				showPop2(localizedStrings.confirmAccountDeletion, [{text: localizedStrings.confirm, fn: function() {
-					var userId = userData.id;
-					var params = new URLSearchParams({id: userId});
-					var xhrDelete = new XMLHttpRequest();
-					xhrDelete.open('POST', 'del.php?lang=' + languageCode, true);
-					xhrDelete.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-					xhrDelete.onreadystatechange = function() {
-						if (xhrDelete.readyState === 4 && xhrDelete.status === 200) {
-							var response = JSON.parse(xhrDelete.responseText);
-							if (response.code === 0 || response.code === 1) {
-								showPop2(response.msg, [{text: localizedStrings.relogin, fn: function() {
-									location.href = "login.html?lang=" + languageCode;
-								}}]);
-							} else {
-								showPop(response.msg);
-							}
+				});
+				$('#btn-homepage').click(function() {
+					location.href = 'profile.html?id=' + userData.id;
+				});
+				$('#btn-background').click(function() {
+					$('#file-background').click();
+				});
+				$('#file-background').change(function(e) {
+					var file = e.target.files[0];
+					if (!file) return;
+					var formData = new FormData();
+					formData.append('background', file);
+					fetch('background.php', {
+						method: 'POST',
+						body: formData
+					}).then(res => res.json()).then(data => {
+						if (data.code === 1) {
+							$('#background-preview').css('background-image', 'url(' + data.background + ')');
 						}
-					};
-					xhrDelete.send(params.toString());
-				}}, {text: localizedStrings.cancel}]);
-			});
-			document.getElementById('avatar').addEventListener('click', function() {
-				document.getElementById('fileInput').click();
-			});
-			document.getElementById('fileInput').addEventListener('change', function(event) {
-				var file = event.target.files[0];
-				if (!file) return;
-				var fileExtension = file.name.split('.').pop().toLowerCase();
-				if (fileExtension !== 'jpg' && fileExtension !== 'png') {
-					alert(localizedStrings.imageFormatError);
-					return;
-				}
-				var formData = new FormData();
-				formData.append('avatar', document.getElementById('fileInput').files[0]);
-				formData.append('id', userData.id);
-				var xhrAvatar = new XMLHttpRequest();
-				xhrAvatar.open('POST', 'avatar.php?lang=' + languageCode, true);
-				xhrAvatar.onload = function () {
-					if (xhrAvatar.readyState === 4 && xhrAvatar.status === 200) {
-						var response = JSON.parse(xhrAvatar.responseText);
-						if (response.code === 1) {
-							document.getElementById('avatar').setAttribute('src', 'avatar/' + response.avatar + '.jpg');
-							document.getElementById('bg').style.backgroundImage = 'url(avatar/' + response.avatar + '.jpg)';
-							showPop(response.msg);
-						} else if (response.code === 0) {
-							showPop2(response.msg, [{text: localizedStrings.relogin, fn: function () {
-								location.href = "login.html?lang=" + languageCode;
-							}}]);
-						} else {
-							showPop(response.msg);
-						}
+						$('#errors-body').text(data.msg);
+						$('#errors').show();
+						$('#errors').delay(3000).fadeOut();
+					});
+				});
+				$('#password, #confirm-password').on('keydown', function(e) {
+					if (e.key === 'Enter') {
+						$('#btn-submit').click();
 					}
-				};
-				xhrAvatar.send(formData);
-			});
-			document.getElementById('viewProfile').addEventListener('click', function() {
-				location.href = 'profile.html?lang=' + languageCode + '&id=' + userData.id;
+					if (e.key === 'Escape') {
+						$('#btn-close').click();
+					}
+				});
 			});
 		</script>
 	</body>

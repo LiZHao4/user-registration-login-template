@@ -1,60 +1,53 @@
 <?php
-	if (isset($_GET["lang"]) && file_exists("languages/" . $_GET["lang"] . ".json")) {
-		$language = json_decode(file_get_contents("languages/" . $_GET["lang"] . ".json"), true);
-	} else {
-		$language = json_decode(file_get_contents("languages/zh-CN.json"), true);
-	}
-	header('Content-Type: application/json');
+	header("Content-Type: application/json");
 	error_reporting(E_ALL);
-	if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_COOKIE['_'])) {
-		mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
-		$config = parse_ini_file('conf/settings.ini', true);
-		$host = $config['database']['host'];
-		$user = $config['database']['user'];
-		$pass = $config['database']['pass'];
-		$db = $config['database']['db'];
-		try {
-			$mysqli = new mysqli($host, $user, $pass, $db);
-			$stmt = "SELECT id FROM users WHERE token = ?";
-			$token = $_COOKIE['_'];
-			$stmtPrepared = $mysqli->prepare($stmt);
-			$stmtPrepared->bind_param('s', $token);
-			$stmtPrepared->execute();
-			$result = $stmtPrepared->get_result();
-			$fetchedUser = $result->fetch_assoc();
-			if (!$fetchedUser) {
-				echo json_encode(["code" => 0, "msg" => $language["invalidUserOrToken"]]);
-			}
-			$userId = $fetchedUser['id'];
-			$friendRequestsStmt = "SELECT fr.id, fr.source, fr.target, fr.sent_at, u.nick FROM friend_requests fr JOIN users u ON fr.source = u.id WHERE fr.target = ? UNION SELECT fr.id, fr.source, fr.target, fr.sent_at, u.nick FROM friend_requests fr JOIN users u ON fr.target = u.id WHERE fr.source = ?;";
-			$friendRequestsPrepared = $mysqli->prepare($friendRequestsStmt);
-			$friendRequestsPrepared->bind_param('ii', $userId, $userId);
-			$friendRequestsPrepared->execute();
-			$friendRequestsResult = $friendRequestsPrepared->get_result();
-			$friendRequests = [];
-			$sendRequests = [];
-			while ($row = $friendRequestsResult->fetch_assoc()) {
-				if ($row['source'] == $userId) {
-					$sendRequests[] = $row;
+	if ($_SERVER["REQUEST_METHOD"] == "GET") {
+		if (isset($_COOKIE["_"])) {
+			mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+			$config = parse_ini_file("conf/settings.ini", true);
+			$host = $config["database"]["host"];
+			$user = $config["database"]["user"];
+			$pass = $config["database"]["pass"];
+			$db = $config["database"]["db"];
+			try {
+				$mysqli = new mysqli($host, $user, $pass, $db);
+				$token = $_COOKIE["_"];
+				$stmt = $mysqli->prepare("SELECT user FROM user_session WHERE token = ? AND expires >= NOW()");
+				$stmt->bind_param("s", $token);
+				$stmt->execute();
+				$result = $stmt->get_result();
+				if ($result->num_rows > 0) {
+					$fetchedUser = $result->fetch_assoc();
+					$userId = $fetchedUser["user"];
 				} else {
-					$friendRequests[] = $row;
+					http_response_code(401);
+					echo json_encode(["code" => 0, "msg" => "用户不存在或token无效，请重新登录。"]);
+					$stmt->close();
+					$mysqli->close();
+					return;
 				}
+				$stmt_recv = $mysqli->prepare("SELECT fr.id, fr.source, fr.target, UNIX_TIMESTAMP(fr.sent_at) AS time, u.nick, ur.remark FROM friend_requests fr JOIN users u ON fr.source = u.id LEFT JOIN user_remarks ur ON u.id = ur.target_user_id AND ur.user_id = ? WHERE fr.target = ?");
+				$stmt_recv->bind_param("ii", $userId, $userId);
+				$stmt_recv->execute();
+				$received = $stmt_recv->get_result()->fetch_all(MYSQLI_ASSOC);
+				$stmt_sent = $mysqli->prepare("SELECT fr.id, fr.source, fr.target, UNIX_TIMESTAMP(fr.sent_at) AS time, u.nick, ur.remark FROM friend_requests fr JOIN users u ON fr.target = u.id LEFT JOIN user_remarks ur ON u.id = ur.target_user_id AND ur.user_id = ? WHERE fr.source = ?");
+				$stmt_sent->bind_param("ii", $userId, $userId);
+				$stmt_sent->execute();
+				$sent = $stmt_sent->get_result()->fetch_all(MYSQLI_ASSOC);
+				echo json_encode(["code" => 1, "msg" => "好友请求列表获取成功。", "data" => $received, "fData" => $sent]);
+				$stmt_recv->close();
+				$stmt_sent->close();
+				$mysqli->close();
+			} catch (ErrorException $databaseException) {
+				http_response_code(500);
+				echo json_encode(["code" => -1, "msg" => "数据库错误。"]);
 			}
-			$friendRequestsPrepared->close();
-			$avatarStmt = "SELECT user_avatar AS avatar FROM users WHERE id = ?";
-			$avatarPrepared = $mysqli->prepare($avatarStmt);
-			$avatarPrepared->bind_param('i', $userId);
-			$avatarPrepared->execute();
-			$avatarResult = $avatarPrepared->get_result();
-			$avatarRow = $avatarResult->fetch_assoc();
-			$avatar = $avatarRow['avatar'];
-			$avatarPrepared->close();
-			echo json_encode(["code" => 1, "msg" => $language["userInfoFetched"], "your" => $userId, "data" => $friendRequests, "fData" => $sendRequests, "avatar" => $avatar]);
-			$mysqli->close();
-		} catch (ErrorException $databaseException) {
-			echo json_encode(["code" => -1, "msg" => $language["databaseError"]]);
+		} else {
+			http_response_code(400);
+			echo json_encode(["code" => 0, "msg" => "缺少必要的参数，请重新登录。"]);
 		}
 	} else {
-		echo json_encode(["code" => -1, "msg" => $language["invalidRequest"]]);
+		http_response_code(405);
+		echo json_encode(["code" => -1, "msg" => "请求方法不正确。"]);
 	}
 ?>
