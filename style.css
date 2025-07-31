@@ -8,77 +8,17 @@ textarea {
 	height: 100%;
 	padding: 24px 0;
 }
-.avatar {
-	width: 50px;
-	height: 50px;
-}
 .bottom-toast {
 	bottom: 20px;
 }
 .btn-link {
 	text-decoration: none;
 }
-.btn-small {
-	padding: 0.25rem 0.5rem;
-	font-size: 0.875rem;
-	line-height: 1.5;
-}
-.chat-avatar {
-	width: 30px;
-	height: 30px;
-	border-radius: 50%;
-}
-.chat-message-left {
-	background-color: #f0f0f0;
-	padding: 10px;
-	border-radius: 10px;
-	margin-bottom: 0;
-	display: inline-block;
-}
-.chat-message-right {
-	background-color: #f0f0f0;
-	padding: 10px;
-	border-radius: 10px;
-	margin-bottom: 0;
-	display: inline-block;
-	right: 0;
-}
-.cursor-default {
-	cursor: default;
-}
 .errors {
 	width: 350px;
 }
-.flex-item {
-	flex-grow: 1;
-	flex-shrink: 1;
-	min-width: 0;
-}
-.message {
-	margin: 10px 0;
-	display: flex;
-	align-items: center;
-	gap: 10px;
-}
-.message-container {
-	display: flex;
-	flex-direction: column;
-	align-items: flex-start;
-}
-.message-container.sent {
-	align-items: flex-end;
-}
-.message.sent {
-	flex-direction: row-reverse;
-}
-.min-height-300 {
-	min-height: 300px;
-	flex: 1;
-}
 .text-ellipsis {
-	display: -webkit-box;
-	-webkit-line-clamp: 1;
-	-webkit-box-orient: vertical;
+	display: block;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;

@@ -24,7 +24,7 @@
 						http_response_code(404);
 						echo json_encode(["code" => -1, "msg" => "用户不存在。"]);
 					}
-				} else if (preg_match("/^[a-zA-Z_$]/", $_GET["q"])) {
+				} else if (preg_match("/^[a-zA-Z_$][a-zA-Z0-9_$]{0,31}$/", $_GET["q"])) {
 					$statement = "SELECT id, user, nick, user_avatar AS avatar FROM users WHERE user = ?";
 					$strQ = $_GET["q"];
 					$stmt = $mysqli->prepare($statement);

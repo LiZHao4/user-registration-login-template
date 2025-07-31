@@ -304,7 +304,7 @@ function generate2(data) {
 		div.append(p1);
 		var p2 = $('<p>');
 		p2.addClass('text-muted mb-0 text-ellipsis');
-		if ([1, 2].includes(item.msg_type)) {
+		if ([1, 2, 6].includes(item.msg_type)) {
 			var contentString = '';
 			if (item.msg_type == 1) {
 				if (isTypeGroup && item.msg_sender != id) {
@@ -318,13 +318,24 @@ function generate2(data) {
 				}
 				contentString += '[文件] ' + item.content;
 				p2.text(contentString);
+			} else if (item.msg_type == 6) {
+				if (isTypeGroup && item.msg_sender != id) {
+					contentString += item.msg_nick + ': ';
+				}
+				contentString += '[聊天记录]';
+				p2.text(contentString);
 			}
-		} else if (item.msg_type == 3 || item.msg_type == 4) {
+		} else if (item.msg_type == 3 || item.msg_type == 4 || item.msg_type == 5) {
 			var jsonObj = JSON.parse(item.content);
 			if (item.msg_type == 3) {
 				var string = '[群聊邀请] ';
 				var c1 = item.msg_sender == id;
-				var c2 = jsonObj.finish;
+				var c2;
+				if (isTypeFriend) {
+					c2 = jsonObj.finish;
+				} else if (isTypeGroup) {
+					c2 = jsonObj.finish.includes(id);
+				}
 				if (c1 && c2) {
 					string += '对方已加入“' + jsonObj.name + '”群聊。';
 				} else if (c1 && !c2) {
@@ -348,7 +359,21 @@ function generate2(data) {
 					p2.text('[群主转让] “' + item.msg_nick + '”已将群主转让给“' + item.inner_nick + '”。');
 				} else if (jsonObj.type == 'join') {
 					p2.text('[群聊加入] “' + item.msg_nick + '”已加入群聊。');
+				} else if (jsonObj.type == 'kick') {
+					p2.text('[群聊踢出] “' + item.msg_nick + '”已将“' + item.inner_nick + '”踢出群聊。');
+				} else if (jsonObj.type == 'ban') {
+					p2.text('[群聊禁言] “' + item.msg_nick + '”已将“' + item.inner_nick + '”禁言。');
+				} else if (jsonObj.type == 'unban') {
+					p2.text('[群聊解禁] “' + item.msg_nick + '”已将“' + item.inner_nick + '”解禁。');
+				} else if (jsonObj.type == 'rename') {
+					p2.text('[群聊重命名] “' + item.msg_nick + '”已将群聊重命名为“' + jsonObj.name + '”。');
+				} else if (jsonObj.type == 'avatar') {
+					p2.text('[群聊头像] “' + item.msg_nick + '”已更新群头像。');
+				} else if (jsonObj.type == 'recall') {
+					p2.text('[消息撤回] “' + item.msg_nick + '”已撤回一条消息。');
 				}
+			} else if (item.msg_type == 5) {
+			    p2.text(jsonObj[jsonObj.length - 1].msg);
 			}
 		}
 		div.append(p2);
@@ -361,8 +386,15 @@ function generate2(data) {
 	});
 }
 function generate3(data) {
+	var originTarget = data.target;
 	if (data.fresh) data.target.empty();
+	if (data.prepend) {
+		data.target = $('<div>');
+	}
 	data.data.forEach(function(item) {
+		var currentTime = new Date().getTime();
+		var messageTime = new Date(item.sent_at * 1000).getTime();
+		var canRecall = (currentTime - messageTime) < 120000;
 		var condition = item.sender == userId;
 		var div = $('<div>');
 		if (condition) {
@@ -372,6 +404,7 @@ function generate3(data) {
 		}
 		div.css('gap', '5px');
 		div.attr('data-id', item.id);
+		div.attr('data-type', item.type);
 		data.target.append(div);
 		var img = $('<img>');
 		img.addClass('chat-avatar');
@@ -432,22 +465,171 @@ function generate3(data) {
 		}
 		p.css({
 			'word-break': 'break-word',
-			'cursor': 'default',
-			'white-space': 'pre-wrap'
+			'white-space': 'pre-wrap',
+			border: '2px solid white'
 		});
+		var actionBar = $('<div>');
+		actionBar.css({
+			display: 'flex',
+			'flex-direction': 'row',
+			gap: '5px'
+		});
+		var small = $('<small>');
+		small.addClass('text-muted');
+		small.text(formatDateLong(item.sent_at));
+		function edit() {
+			var originalMessage = p.text();
+			var editContainer = $('<div>').addClass('edit-container');
+			var textarea = $('<textarea>')
+				.addClass('form-control mb-2')
+				.val(originalMessage)
+				.attr('rows', 3);
+			var btnGroup = $('<div>').addClass('d-flex gap-2');
+			var saveBtn = $('<button>')
+				.addClass('btn btn-sm btn-success flex-fill')
+				.text('保存');
+			var cancelBtn = $('<button>')
+				.addClass('btn btn-sm btn-outline-secondary flex-fill')
+				.text('取消');
+			btnGroup.append(saveBtn, cancelBtn);
+			editContainer.append(textarea, btnGroup);
+			p.replaceWith(editContainer);
+			saveBtn.click(function() {
+				fetch('messages.php', {
+					method: 'POST',
+					body: new URLSearchParams({
+						action: 'edit',
+						target: item.id,
+						msg: textarea.val()
+					})
+				}).then(response => response.json()).then(data2 => {
+					if (data2.code == 1) {
+						fetch('chats.php?' + new URLSearchParams({
+							target: idFromUrl,
+							min: item.id,
+							max: item.id
+						})).then(response => response.json()).then(data3 => {
+							if (data3.code == 1) {
+								var tempDiv = $('<div>');
+								generate3({
+									target: tempDiv,
+									data: data3.data,
+									avatar: myAvatar,
+									fresh: false,
+									remark: null,
+									type,
+									prepend: false
+								});
+								div.replaceWith(tempDiv.children().first());
+							}
+						});
+					} else {
+						alert(data2.msg);
+					}
+				})
+			});
+			cancelBtn.click(function() {
+				editContainer.replaceWith(p);
+			});
+		}
+		function recallMessage() {
+			fetch('messages.php', {
+				method: 'POST',
+				body: new URLSearchParams({
+					action: 'recall',
+					target: item.id
+				})
+			}).then(response => response.json()).then(data2 => {
+				if (data2.code == 1) {
+					div.remove();
+					fetch('chats.php?' + new URLSearchParams({
+						target: idFromUrl,
+						min: item.id,
+						max: item.id
+					})).then(response => response.json()).then(data3 => {
+						if (data3.code == 1) {
+							generate3({
+								target: originTarget,
+								data: data3.data,
+								avatar: myAvatar,
+								fresh: false,
+								remark: null,
+								type,
+								prepend: false
+							});
+						}
+					});
+				} else {
+					alert(data2.msg);
+				}
+			});
+		}
+		function reply() {}
+		function createMessageMenu(button) {
+			if (currentMessageMenu) {
+				currentMessageMenu.remove();
+				currentMessageMenu = null;
+			}
+			var menu = $('<div>').addClass('message-menu').css({
+				position: 'absolute',
+				background: 'white',
+				boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
+				borderRadius: '4px',
+				zIndex: 1000,
+				padding: '5px 0',
+				minWidth: '100px'
+			});
+			var btnOffset = button.offset();
+			menu.css({
+				top: btnOffset.top - menu.outerHeight() - 5,
+				left: btnOffset.left
+			});
+			var menuItemsCount = 0;
+			function createMenuItem(text, action) {
+				var item = $('<div>').addClass('menu-item').text(text);
+				item.click(function() {
+					action();
+					menu.remove();
+					currentMessageMenu = null;
+				});
+				return item;
+			}
+			if (item.type == 1 || item.type == 5) {
+				if (condition) {
+					menu.append(createMenuItem('编辑', edit));
+					menuItemsCount++;
+				}
+			}
+			if (condition && item.type != 4 && canRecall) {
+				menu.append(createMenuItem('撤回', recallMessage));
+				menuItemsCount++;
+			}
+			menu.append(createMenuItem('回复', reply));
+			$('body').append(menu);
+			currentMessageMenu = menu;
+			setTimeout(() => {
+				$(document).one('click', function(e) {
+					if (!$(e.target).closest('.message-menu').length) {
+						if (currentMessageMenu) {
+							currentMessageMenu.remove();
+							currentMessageMenu = null;
+						}
+					}
+				});
+			}, 10);
+		}
 		if (item.type == 2) {
 			div.attr('data-attr', item.multi);
 			var $a = $('<a>', { html: p.html() });
 			$.each(p[0].attributes, function() {
-				if (this.name !== 'id') {
-					$a.attr(this.name, this.value);
-				}
+				$a.attr(this.name, this.value);
 			});
 			p.remove();
 			divMessageContent.append($a);
 			$a.css({
 				'text-decoration': 'none',
-				'color': '#000'
+				cursor: 'default',
+				color: '#000'
 			});
 			var fileExt = item.content.split('.').pop().toLowerCase();
 			var iconClass = 'fas fa-file';
@@ -498,10 +680,15 @@ function generate3(data) {
 			var button;
 			tl.addClass('text-muted d-block');
 			tl.text('群聊邀请');
-			var msgLabel;
-			if (condition && !item.content.finish) {
+			var msgLabel, inGroupCondition;
+			if (type == 'friend') {
+				inGroupCondition = item.content.finish;
+			} else {
+				inGroupCondition = item.content.finish.includes(userId);
+			}
+			if (condition && !inGroupCondition) {
 				msgLabel = '您已邀请对方加入“' + item.content.name + '”群聊。';
-			} else if (!condition && !item.content.finish) {
+			} else if (!condition && !inGroupCondition) {
 				msgLabel = '对方邀请您加入“' + item.content.name + '”群聊。';
 				button = $('<button>');
 				button.addClass('btn btn-primary');
@@ -519,9 +706,9 @@ function generate3(data) {
 						$('#errors').delay(3000).fadeOut();
 					})
 				});
-			} else if (condition && item.content.finish) {
+			} else if (condition && inGroupCondition) {
 				msgLabel = '对方已加入“' + item.content.name + '”群聊。';
-			} else if (!condition && item.content.finish) {
+			} else if (!condition && inGroupCondition) {
 				msgLabel = '您已加入“' + item.content.name + '”群聊。';
 			}
 			var textNode = document.createTextNode(msgLabel);
@@ -544,13 +731,149 @@ function generate3(data) {
 			} else if (item.content.type == 'transfer') {
 				tl.text('已转让群主：' + item.inner_nick);
 			} else if (item.content.type == 'join') {
-			    tl.text('已加入群聊');
+				tl.text('已加入群聊');
+			} else if (item.content.type == 'recall') {
+			    tl.text('撤回了一条消息');
+			} else if (item.content.type == 'kick') {
+				tl.text('已将“' + item.inner_nick + '”移出群聊');
+			} else if (item.content.type == 'ban') {
+				tl.text('已将“' + item.inner_nick + '”禁言');
+			} else if (item.content.type == 'unban') {
+				tl.text('已将“' + item.inner_nick + '”解除禁言');
+			} else if (item.content.type == 'rename') {
+				tl.text('已将群聊名称改为“' + item.content.name + '”');
+			} else if (item.content.type == 'avatar') {
+				tl.text('已更改群聊头像');
+			} else if (item.content.type == 'recall') {
+				tl.text('撤回了一条消息');
 			}
 			p.append(tl);
+		} else if (item.type == 5) {
+			p.text(item.content[item.content.length - 1].msg);
+			small.text(formatDateLong(item.content[item.content.length - 1].sent_at));
+			var pagination = $('<div>').addClass('pagination-container d-flex align-items-center');
+			pagination.css({
+				top: '-18px',
+				right: condition ? '0' : 'unset',
+				left: condition ? 'unset' : '0',
+				background: 'rgba(255, 255, 255, 0.9)',
+				padding: '0 3px',
+				'border-radius': '10px',
+				'z-index': '10'
+			});
+			var totalPages = item.content.length;
+			var currentPage = totalPages - 1;
+			var prevBtn = $('<button>').addClass('btn pagination-btn p-1')
+				.html('<i class="fas fa-chevron-left" style="font-size: 0.7em;"></i>')
+				.prop('disabled', currentPage === 0)
+				.css({
+					'line-height': '1',
+					'min-width': '20px'
+				});
+			var pageIndicator = $('<span>').addClass('page-indicator px-1')
+				.text(`${currentPage + 1} / ${totalPages}`)
+				.css('font-size', '0.75em');
+			var nextBtn = $('<button>').addClass('btn pagination-btn p-1')
+				.html('<i class="fas fa-chevron-right" style="font-size: 0.7em;"></i>')
+				.prop('disabled', currentPage === totalPages - 1)
+				.css({
+					'line-height': '1',
+					'min-width': '20px'
+				});
+			function updatePagination() {
+				prevBtn.prop('disabled', currentPage === 0);
+				nextBtn.prop('disabled', currentPage === totalPages - 1);
+				pageIndicator.text(`${currentPage + 1} / ${totalPages}`);
+			}
+			pagination.append(prevBtn, pageIndicator, nextBtn);
+			divMessageContent.append(pagination);
+			prevBtn.click(function() {
+				if (currentPage > 0) {
+					currentPage--;
+					p.text(item.content[currentPage].msg);
+					small.text(formatDateLong(item.content[currentPage].sent_at));
+					updatePagination();
+				}
+			});
+			nextBtn.click(function() {
+				if (currentPage < totalPages - 1) {
+					currentPage++;
+					p.text(item.content[currentPage].msg);
+					small.text(formatDateLong(item.content[currentPage].sent_at));
+					updatePagination();
+				}
+			});
+		} else if (item.type == 6) {
+			var records = item.content;
+			var forwardContainer = $('<div>').addClass('forwarded-container');
+			var header = $('<div>').addClass('forwarded-header').text('聊天记录 (' + records.length + '条消息)');
+			var contentContainer = $('<div>').addClass('forwarded-content').css('display', 'none');
+			p.remove();
+			header.click(function() {
+				contentContainer.toggle();
+			});
+			function renderRecordMessage(record) {
+				var recordDiv = $('<div>').addClass('forwarded-record');
+				var senderDiv = $('<div>').addClass('forwarded-sender');
+				var avatar = $('<img>').attr('src', record.sender_avatar || 'default.jpg').addClass('forwarded-avatar');
+				var nickname = $('<span>').addClass('forwarded-nick').text(record.sender_nick || '未知用户');
+				senderDiv.append(avatar, nickname);
+				var messageDiv = $('<div>').addClass('forwarded-message');
+				var timeDiv = $('<div>').addClass('forwarded-time').text(formatDateLong(record.sent_at));
+				if (record.type == 6) {
+					var nestedRecords = record.content;
+					var nestedContainer = $('<div>').addClass('forwarded-container');
+					var nestedHeader = $('<div>').addClass('forwarded-header').text('聊天记录 (' + nestedRecords.length + '条消息)');
+					var nestedContent = $('<div>').addClass('forwarded-content').css('display', 'none');
+					nestedHeader.click(function() {
+						nestedContent.toggle();
+					});
+					nestedRecords.forEach(function(nestedRecord) {
+						nestedContent.append(renderRecordMessage(nestedRecord));
+					});
+					nestedContainer.append(nestedHeader, nestedContent);
+					messageDiv.append(nestedContainer);
+				} else if (record.type == 5) {
+					var lastMsg = record.content[record.content.length - 1].msg;
+					messageDiv.text(lastMsg);
+				} else if (record.type == 1) {
+					messageDiv.text(record.content);
+				} else if (record.type == 2) {
+					messageDiv.text('[文件] ' + record.content);
+				}
+				recordDiv.append(senderDiv, messageDiv, timeDiv);
+				return recordDiv;
+			}
+			records.forEach(record => {
+				contentContainer.append(renderRecordMessage(record));
+			});
+			forwardContainer.append(header, contentContainer);
+			divMessageContent.append(forwardContainer);
 		}
-		var small = $('<small>');
-		small.addClass('text-muted');
-		small.text(formatDateLong(item.sent_at));
-		divMessageContent.append(small);
+		if (item.type !== 4) {
+			var moreBtn = $('<button>', {
+				class: 'btn btn-sm more-btn',
+				html: '<i class="fas fa-ellipsis-h"></i>'
+			}).css({
+				'border-radius': '3px',
+				padding: '2px 8px',
+				border: 'none',
+				'font-size': '0.8em'
+			}).hover(function() {
+				$(this).css('opacity', '0.8');
+			}, function() {
+				$(this).css('opacity', '1');
+			});
+			actionBar.append(moreBtn);
+			moreBtn.click(function(e) {
+				e.stopPropagation();
+				createMessageMenu($(this));
+			});
+		}
+		actionBar.append(small);
+		divMessageContent.append(actionBar);
 	});
+	if (data.prepend) {
+		originTarget.prepend(data.target.children());
+	}
 }

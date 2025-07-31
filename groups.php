@@ -195,33 +195,32 @@
 							$userList = trim($_POST["extra"]);
 							if (empty($userList)) {
 								http_response_code(400);
-								echo json_encode(["code" => -1, "msg" => "用户ID列表为空。"]);
+								echo json_encode(["code" => -1, "msg" => "会话ID列表为空。"]);
 								break;
 							}
 							$parts = explode(";", $userList, 2);
 							if (count($parts) < 2) {
 								http_response_code(400);
-								echo json_encode(["code" => -1, "msg" => "参数格式错误，应为'群组ID;用户ID列表'。"]);
+								echo json_encode(["code" => -1, "msg" => "参数格式错误，应为'群组ID;会话ID列表'。"]);
 								break;
 							}
 							$groupId = (int)$parts[0];
+							$sessionIds = array_map("intval", explode(",", $parts[1]));
+							if (empty($sessionIds)) {
+								http_response_code(400);
+								echo json_encode(["code" => -1, "msg" => "没有有效的会话ID。"]);
+								break;
+							}
 							$validateStmt = $conn->prepare("SELECT 1 FROM group_members WHERE `group` = ? AND user = ?");
 							$validateStmt->bind_param("ii", $groupId, $userId);
 							$validateStmt->execute();
-							$validateResult = $validateStmt->get_result();
-							if ($validateResult->num_rows == 0) {
+							if ($validateStmt->get_result()->num_rows == 0) {
 								http_response_code(403);
 								echo json_encode(["code" => -1, "msg" => "你不在该群组中。"]);
 								$validateStmt->close();
 								break;
 							}
 							$validateStmt->close();
-							$userIds = array_map("intval", explode(",", $parts[1]));
-							if (empty($userIds)) {
-								http_response_code(400);
-								echo json_encode(["code" => -1, "msg" => "没有有效的用户ID。"]);
-								break;
-							}
 							$stmtCheckGroup = $conn->prepare("SELECT group_name FROM `groups` WHERE id = ?");
 							$stmtCheckGroup->bind_param("i", $groupId);
 							$stmtCheckGroup->execute();
@@ -232,46 +231,65 @@
 								$stmtCheckGroup->close();
 								break;
 							}
-							$stmtCheckData = $stmtCheckResult->fetch_assoc();
-							$groupName = $stmtCheckData["group_name"];
+							$groupName = $stmtCheckResult->fetch_assoc()["group_name"];
 							$stmtCheckGroup->close();
 							$success = [];
 							$fail = [];
-							foreach ($userIds as $targetId) {
-								$stmtCheckMember = $conn->prepare("SELECT 1 FROM group_members WHERE `group` = ? AND user = ?");
-								$stmtCheckMember->bind_param("ii", $groupId, $targetId);
-								$stmtCheckMember->execute();
-								if ($stmtCheckMember->get_result()->num_rows > 0) {
-									$fail[$targetId] = "用户已在群组中。";
-									$stmtCheckMember->close();
+							foreach ($sessionIds as $sessionId) {
+								if ($sessionId === $groupId) {
+									$fail[$sessionId] = "不能向目标群组本身发送邀请。";
 									continue;
 								}
-								$stmtCheckMember->close();
-								$stmtCheckFriend = $conn->prepare("SELECT id FROM friendships WHERE (source = ? AND target = ?) OR (source = ? AND target = ?)");
-								$stmtCheckFriend->bind_param("iiii", $userId, $targetId, $targetId, $userId);
+								$isFriendChat = false;
+								$isGroupChat = false;
+								$stmtCheckFriend = $conn->prepare("SELECT id, source, target FROM friendships WHERE id = ? AND (source = ? OR target = ?)");
+								$stmtCheckFriend->bind_param("iii", $sessionId, $userId, $userId);
 								$stmtCheckFriend->execute();
 								$friendResult = $stmtCheckFriend->get_result();
-								if ($friendResult->num_rows === 0) {
-									$fail[$targetId] = "不是好友关系。";
-									$stmtCheckFriend->close();
-									continue;
+								if ($friendResult->num_rows > 0) {
+									$isFriendChat = true;
+									$friendData = $friendResult->fetch_assoc();
+									$targetId = ($friendData["source"] == $userId) ? $friendData["target"] : $friendData["source"];
+									$stmtCheckMember = $conn->prepare("SELECT 1 FROM group_members WHERE `group` = ? AND user = ?");
+									$stmtCheckMember->bind_param("ii", $groupId, $targetId);
+									$stmtCheckMember->execute();
+									if ($stmtCheckMember->get_result()->num_rows > 0) {
+										$fail[$sessionId] = "用户已在群组中。";
+										$stmtCheckMember->close();
+										$stmtCheckFriend->close();
+										continue;
+									}
+									$stmtCheckMember->close();
 								}
-								$friendData = $friendResult->fetch_assoc();
-								$friendshipId = $friendData["id"];
 								$stmtCheckFriend->close();
-								$stmtAddMember = $conn->prepare("INSERT INTO chats (session, content, sender, type) VALUES (?, ?, ?, 3)");
-								$jsonData = json_encode(["session" => $groupId, "name" => $groupName]);
-								$stmtAddMember->bind_param("isi", $friendshipId, $jsonData, $userId);
-								$stmtAddMember->execute();
-								$newMessageId = $stmtAddMember->insert_id;
-								$stmtAddMember->close();
-								$updateStmt = $conn->prepare("UPDATE message_read_status SET max_id = ? WHERE user_id = ? AND session_id = ?");
-								$updateStmt->bind_param("iii", $newMessageId, $userId, $friendshipId);
+								if (!$isFriendChat) {
+									$stmtCheckGroupChat = $conn->prepare("SELECT 1 FROM group_members WHERE `group` = ? AND user = ?");
+									$stmtCheckGroupChat->bind_param("ii", $sessionId, $userId);
+									$stmtCheckGroupChat->execute();
+									$isGroupChat = ($stmtCheckGroupChat->get_result()->num_rows > 0);
+									$stmtCheckGroupChat->close();
+									if (!$isGroupChat) {
+										$fail[$sessionId] = "无效的会话ID或你没有权限。";
+										continue;
+									}
+								}
+								if ($isFriendChat) {
+									$jsonData = json_encode(["session" => $groupId, "name" => $groupName, "finish" => false]);
+								} elseif($isGroupChat) {
+									$jsonData = json_encode(["session" => $groupId, "name" => $groupName, "finish" => []]);
+								}
+								$stmtAddMessage = $conn->prepare("INSERT INTO chats (session, content, sender, type) VALUES (?, ?, ?, 3)");
+								$stmtAddMessage->bind_param("isi", $sessionId, $jsonData, $userId);
+								$stmtAddMessage->execute();
+								$newMessageId = $stmtAddMessage->insert_id;
+								$stmtAddMessage->close();
+								$updateStmt = $conn->prepare("INSERT INTO message_read_status (user_id, session_id, max_id) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE max_id = ?");
+								$updateStmt->bind_param("iiii", $userId, $sessionId, $newMessageId, $newMessageId);
 								$updateStmt->execute();
 								$updateStmt->close();
-								$success[] = $targetId;
+								$success[] = $sessionId;
 							}
-							echo json_encode(["code" => 1, "msg" => "添加成员操作完成。", "success" => $success, "fail" => (object)$fail]);
+							echo json_encode(["code" => 1, "msg" => "邀请发送完成。", "success" => $success, "fail" => (object)$fail]);
 							break;
 						case "remove":
 							if (preg_match("/^(\d+);(\d+)$/", $_POST["extra"], $matches)) {
@@ -351,56 +369,70 @@
 								echo json_encode(["code" => -1, "msg" => "无效的请求格式。"]);
 							}
 							break;
-							case "invitation":
-								$messageId = (int)$_POST["extra"];
-								$stmt = $conn->prepare("SELECT session, type, content FROM chats WHERE id = ?");
-								$stmt->bind_param("i", $messageId);
-								$stmt->execute();
-								$result = $stmt->get_result();
-								if ($result->num_rows == 0) {
-									http_response_code(404);
-									echo json_encode(["code" => -1, "msg" => "消息不存在。"]);
-									$stmt->close();
-									break;
-								}
-								$row = $result->fetch_assoc();
-								$type = $row["type"];
-								$sessionId = $row["session"];
-								$content = $row["content"];
+						case "invitation":
+							$messageId = (int)$_POST["extra"];
+							$stmt = $conn->prepare("SELECT session, type, content FROM chats WHERE id = ?");
+							$stmt->bind_param("i", $messageId);
+							$stmt->execute();
+							$result = $stmt->get_result();
+							if ($result->num_rows == 0) {
+								http_response_code(404);
+								echo json_encode(["code" => -1, "msg" => "消息不存在。"]);
 								$stmt->close();
-								if ($type != 3) {
-									http_response_code(400);
-									echo json_encode(["code" => -1, "msg" => "该消息不是群组邀请消息。"]);
-									break;
-								}
-								$stmtCheckFriendship = $conn->prepare("SELECT 1 FROM friendships WHERE id = ? AND (source = ? OR target = ?)");
-								$stmtCheckFriendship->bind_param("iii", $sessionId, $userId, $userId);
-								$stmtCheckFriendship->execute();
-								$friendshipResult = $stmtCheckFriendship->get_result();
-								if ($friendshipResult->num_rows == 0) {
-									http_response_code(403);
-									echo json_encode(["code" => -1, "msg" => "您不是该会话的用户。"]);
-									$stmtCheckFriendship->close();
-									break;
-								}
+								break;
+							}
+							$row = $result->fetch_assoc();
+							$type = $row["type"];
+							$sessionId = $row["session"];
+							$content = $row["content"];
+							$stmt->close();
+							if ($type != 3) {
+								http_response_code(400);
+								echo json_encode(["code" => -1, "msg" => "该消息不是群组邀请消息。"]);
+								break;
+							}
+							$stmtCheckSession = $conn->prepare("SELECT 1 AS type FROM friendships WHERE id = ? UNION SELECT 2 AS type FROM `groups` WHERE id = ?");
+							$stmtCheckSession->bind_param("ii", $sessionId, $sessionId);
+							$stmtCheckSession->execute();
+							$sessionResult = $stmtCheckSession->get_result();
+							if ($sessionResult->num_rows == 0) {
+								http_response_code(404);
+								echo json_encode(["code" => -1, "msg" => "会话不存在。"]);
+								$stmtCheckSession->close();
+								break;
+							}
+							$sessionRow = $sessionResult->fetch_assoc();
+							$sessionType = $sessionRow["type"];
+							$stmtCheckSession->close();
+							$stmtCheckFriendship = $conn->prepare("SELECT 1 FROM friendships WHERE id = ? AND (source = ? OR target = ?) UNION SELECT 1 FROM group_members WHERE `group` = ? AND user = ?");
+							$stmtCheckFriendship->bind_param("iiiii", $sessionId, $userId, $userId, $sessionId, $userId);
+							$stmtCheckFriendship->execute();
+							$friendshipResult = $stmtCheckFriendship->get_result();
+							if ($friendshipResult->num_rows == 0) {
+								http_response_code(403);
+								echo json_encode(["code" => -1, "msg" => "您不是该会话的用户。"]);
 								$stmtCheckFriendship->close();
-								$contentData = json_decode($content, true);
-								if (json_last_error() !== JSON_ERROR_NONE || !isset($contentData['session'])) {
-									http_response_code(400);
-									echo json_encode(["code" => -1, "msg" => "邀请消息格式错误。"]);
-									break;
-								}
-								$groupId = $contentData['session'];
-								$validateStmt = $conn->prepare("SELECT 1 FROM group_members WHERE `group` = ? AND user = ?");
-								$validateStmt->bind_param("ii", $groupId, $userId);
-								$validateStmt->execute();
-								$validateResult = $validateStmt->get_result();
-								if ($validateResult->num_rows > 0) {
-									echo json_encode(["code" => -1, "msg" => "您已经是该群组成员。"]);
-									$validateStmt->close();
-									break;
-								}
+								break;
+							}
+							$stmtCheckFriendship->close();
+							$contentData = json_decode($content, true);
+							if (json_last_error() !== JSON_ERROR_NONE || !isset($contentData['session'])) {
+								http_response_code(400);
+								echo json_encode(["code" => -1, "msg" => "邀请消息格式错误。"]);
+								break;
+							}
+							$groupId = $contentData['session'];
+							$validateStmt = $conn->prepare("SELECT 1 FROM group_members WHERE `group` = ? AND user = ?");
+							$validateStmt->bind_param("ii", $groupId, $userId);
+							$validateStmt->execute();
+							$validateResult = $validateStmt->get_result();
+							if ($validateResult->num_rows > 0) {
+								echo json_encode(["code" => -1, "msg" => "您已经是该群组成员。"]);
 								$validateStmt->close();
+								break;
+							}
+							$validateStmt->close();
+							if ($sessionType == 1) {
 								$insertionStmt = $conn->prepare("INSERT INTO group_members (`group`, user, role) VALUES (?, ?, 'member')");
 								$insertionStmt->bind_param("ii", $groupId, $userId);
 								$insertionStmt->execute();
@@ -409,13 +441,23 @@
 								$updateStmt->bind_param("i", $messageId);
 								$updateStmt->execute();
 								$updateStmt->close();
-								$joinMessageContent = json_encode(["type" => "join"]);
-								$joinMessageStmt = $conn->prepare("INSERT INTO chats (session, content, sender, type) VALUES (?, ?, ?, 4)");
-								$joinMessageStmt->bind_param("isi", $groupId, $joinMessageContent, $userId);
-								$joinMessageStmt->execute();
-								$joinMessageStmt->close();
-								echo json_encode(["code" => 1, "msg" => "加入群组成功。"]);
-								break;
+							} elseif ($sessionType == 2) {
+								$insertionStmt = $conn->prepare("INSERT INTO group_members (`group`, user, role) VALUES (?, ?, 'member')");
+								$insertionStmt->bind_param("ii", $groupId, $userId);
+								$insertionStmt->execute();
+								$insertionStmt->close();
+								$updateStmt = $conn->prepare("UPDATE chats SET content = JSON_ARRAY_APPEND(content, '$.finish', ?) WHERE id = ?");
+								$updateStmt->bind_param("ii", $userId, $messageId);
+								$updateStmt->execute();
+								$updateStmt->close();
+							}
+							$joinMessageContent = json_encode(["type" => "join"]);
+							$joinMessageStmt = $conn->prepare("INSERT INTO chats (session, content, sender, type) VALUES (?, ?, ?, 4)");
+							$joinMessageStmt->bind_param("isi", $groupId, $joinMessageContent, $userId);
+							$joinMessageStmt->execute();
+							$joinMessageStmt->close();
+							echo json_encode(["code" => 1, "msg" => "加入群组成功。"]);
+							break;
 						case "adminadd":
 							if (preg_match("/^(\d+);(\d+)$/", $_POST["extra"], $matches)) {
 								$groupId = (int)$matches[1];

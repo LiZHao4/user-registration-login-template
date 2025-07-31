@@ -1,4 +1,17 @@
 <?php
+	function addUserInfoToMessages(&$messages, $userInfoMap) {
+		foreach ($messages as &$message) {
+			if (isset($message['sender']) && isset($userInfoMap[$message['sender']])) {
+				$userInfo = $userInfoMap[$message['sender']];
+				$message['sender_nick'] = $userInfo['nick'];
+				$message['sender_avatar'] = $userInfo['avatar'];
+			}
+			if (isset($message['type']) && $message['type'] == 6 && isset($message['content']) && is_array($message['content'])) {
+				addUserInfoToMessages($message['content'], $userInfoMap);
+			}
+		}
+		unset($message);
+	}
 	header("Content-Type: application/json");
 	if ($_SERVER["REQUEST_METHOD"] === "GET") {
 		if (isset($_COOKIE["_"]) && isset($_GET["target"])) {
@@ -8,7 +21,6 @@
 			$user = $config["database"]["user"];
 			$pass = $config["database"]["pass"];
 			$db = $config["database"]["db"];
-			$fresh = isset($_GET["max"]);
 			try {
 				$conn = new mysqli($host, $user, $pass, $db);
 				$stmt = $conn->prepare("SELECT user FROM user_session WHERE token = ? AND expires >= NOW()");
@@ -21,11 +33,11 @@
 					$userId = $data["user"];
 				}
 				if ($userId) {
-					if (!$fresh) {
-						$chatPrepare = "SELECT id, content, UNIX_TIMESTAMP(sent_at) AS sent_at, sender, multi, type FROM chats WHERE session = ? ORDER BY sent_at";
-					} else {
-						$chatPrepare = "SELECT id, content, UNIX_TIMESTAMP(sent_at) AS sent_at, sender, multi, type FROM chats WHERE session = ? AND id > ? ORDER BY sent_at";
-					}
+					$min = isset($_GET["min"]) ? (int)$_GET["min"] : null;
+					$max = isset($_GET["max"]) ? (int)$_GET["max"] : null;
+					$num = isset($_GET["num"]) ? (int)$_GET["num"] : null;
+					$isInitialLoad = ($min === null && $max === null && $num === null);
+					$getMeta = isset($_GET["getmeta"]);
 					$sessionId = $_GET["target"];
 					if (!is_numeric($sessionId)) {
 						http_response_code(400);
@@ -76,19 +88,47 @@
 						$conn->close();
 						exit;
 					}
-					$chatStmt = $conn->prepare($chatPrepare);
-					if (!$fresh) {
-						$chatStmt->bind_param("i", $intTarget);
+					$chatPrepare = "";
+					$bind_params = [];
+					$needReverse = false;
+					if ($min !== null && $max !== null) {
+						$chatPrepare = "SELECT id, content, UNIX_TIMESTAMP(sent_at) AS sent_at, sender, multi, type FROM chats WHERE session = ? AND id >= ? AND id <= ? ORDER BY id ASC";
+						array_push($bind_params, $intTarget, $min, $max);
+					} elseif ($max !== null) {
+						$chatPrepare = "SELECT id, content, UNIX_TIMESTAMP(sent_at) AS sent_at, sender, multi, type FROM chats WHERE session = ? AND id > ? ORDER BY id ASC";
+						array_push($bind_params, $intTarget, $max);
+						if ($num !== null) {
+							$chatPrepare .= " LIMIT ?";
+							$bind_params[] = $num;
+						}
+					} elseif ($min !== null) {
+						$chatPrepare = "SELECT id, content, UNIX_TIMESTAMP(sent_at) AS sent_at, sender, multi, type FROM chats WHERE session = ? AND id < ? ORDER BY id DESC";
+						array_push($bind_params, $intTarget, $min);
+						if ($num !== null) {
+							$chatPrepare .= " LIMIT ?";
+							$bind_params[] = $num;
+						}
+						$needReverse = true;
+					} elseif ($num !== null) {
+						$chatPrepare = "SELECT id, content, UNIX_TIMESTAMP(sent_at) AS sent_at, sender, multi, type FROM chats WHERE session = ? ORDER BY id DESC LIMIT ?";
+						array_push($bind_params, $intTarget, $num);
+						$needReverse = true;
 					} else {
-						$intMax = (int)$_GET["max"];
-						$chatStmt->bind_param("ii", $intTarget, $intMax);
+						$chatPrepare = "SELECT id, content, UNIX_TIMESTAMP(sent_at) AS sent_at, sender, multi, type FROM chats WHERE session = ? ORDER BY id";
+						array_push($bind_params, $intTarget);
 					}
+					$chatStmt = $conn->prepare($chatPrepare);
+					$types = str_repeat('i', count($bind_params));
+					$chatStmt->bind_param($types, ...$bind_params);
 					$chatStmt->execute();
 					$chatResult = $chatStmt->get_result();
 					$chatData = $chatResult->fetch_all(MYSQLI_ASSOC);
 					$chatStmt->close();
+					if ($needReverse) {
+						$chatData = array_reverse($chatData);
+					}
 					foreach ($chatData as &$chat) {
-						if ($chat["type"] == 3 || $chat["type"] == 4) {
+						if ($chat["type"] == 3 || $chat["type"] == 4 || $chat["type"] == 5 || $chat["type"] == 6) {
 							$chat["content"] = json_decode($chat["content"], true);
 							if ($chat["type"] == 4 && isset($chat["content"]["target"])) {
 								$innerUserId = $chat["content"]["target"];
@@ -100,98 +140,134 @@
 								$innerStmt->close();
 							    $chat["inner_nick"] = $innerData["nick"];
 							}
+							if ($chat["type"] == 6) {
+								$userIds = [];
+                            $iterator = new RecursiveIteratorIterator(
+                                new RecursiveArrayIterator($chat["content"]),
+                                RecursiveIteratorIterator::SELF_FIRST
+                            );
+                            
+                            foreach ($iterator as $message) {
+                                if (isset($message['sender'])) {
+                                    $userIds[$message['sender']] = true; // 使用关联数组去重
+                                }
+                            }
+                            $userIds = array_keys($userIds);
+                            
+                            // 2. 批量查询用户信息
+                            $userInfoMap = [];
+                            if (!empty($userIds)) {
+                                $placeholders = implode(',', array_fill(0, count($userIds), '?'));
+                                $types = str_repeat('i', count($userIds));
+                                $sql = "SELECT id, nick, user_avatar FROM users WHERE id IN ($placeholders)";
+                                $stmt = $conn->prepare($sql);
+                                $stmt->bind_param($types, ...$userIds);
+                                $stmt->execute();
+                                $result = $stmt->get_result();
+                                while ($row = $result->fetch_assoc()) {
+                                    $userInfoMap[$row['id']] = [
+                                        'nick' => $row['nick'],
+                                        'avatar' => $row['user_avatar']
+                                    ];
+                                }
+                                $stmt->close();
+                            }
+                            addUserInfoToMessages($chat["content"], $userInfoMap);
+							}
 						}
 					}
 					unset($chat);
-					switch ($type) {
-						case "friend":
-							$avatarStmt = $conn->prepare("SELECT user_avatar FROM users WHERE id = ?");
-							$avatarStmt->bind_param("i", $userId);
-							$avatarStmt->execute();
-							$avatarResult = $avatarStmt->get_result();
-							$avatarData = $avatarResult->fetch_assoc();
-							$avatarMine = $avatarData["user_avatar"];
-							$avatarStmt->close();
-							$oppositeStmt = $conn->prepare("SELECT CASE WHEN source = ? THEN target ELSE source END AS other_user_id, UNIX_TIMESTAMP(request_time) AS request_time, UNIX_TIMESTAMP(allowed_time) AS allowed_time FROM friendships WHERE id = ?");
-							$oppositeStmt->bind_param("ii", $userId, $_GET["target"]);
-							$oppositeStmt->execute();
-							$oppositeStmt->bind_result($otherUserId, $requestTime, $allowedTime);
-							$oppositeStmt->fetch();
-							$oppositeStmt->close();
-							$avatarUrl = "";
-							$oppositeName = "";
-							$remark = null;
-							if ($otherUserId) {
-								$avatarStmt2 = $conn->prepare("SELECT nick, user_avatar FROM users WHERE id = ?");
-								$avatarStmt2->bind_param("i", $otherUserId);
-								$avatarStmt2->execute();
-								$avatarResult2 = $avatarStmt2->get_result();
-								$avatarData2 = $avatarResult2->fetch_assoc();
-								$avatarStmt2->close();
-								$avatarUrl = $avatarData2["user_avatar"];
-								$oppositeName = $avatarData2["nick"];
-								$remarkStmt = $conn->prepare("SELECT remark FROM user_remarks WHERE user_id = ? AND target_user_id = ?");
-								$remarkStmt->bind_param("ii", $userId, $otherUserId);
-								$remarkStmt->execute();
-								$remarkResult = $remarkStmt->get_result();
-								if ($remarkResult->num_rows > 0) {
-									$remarkData = $remarkResult->fetch_assoc();
-									$remark = $remarkData["remark"];
-								}
-								$remarkStmt->close();
-							}
-							break;
-						case "group":
-							$groupStmt = $conn->prepare("SELECT user, role, group_nickname FROM group_members WHERE `group` = ? ORDER BY joined_at");
-							$groupStmt->bind_param("i", $sessionId);
-							$groupStmt->execute();
-							$groupResult = $groupStmt->get_result();
-							$groupStmt->close();
-							$groupMembers = [];
-							$currentIndex = 0;
-							while ($groupData = $groupResult->fetch_assoc()) {
-								$memberUserId = $groupData["user"];
-                            	$role = $groupData["role"];
-								$groupNickname = $groupData["group_nickname"];
-								$avatarStmt2 = $conn->prepare("SELECT nick, user_avatar FROM users WHERE id = ?");
-								$avatarStmt2->bind_param("i", $memberUserId);
-								$avatarStmt2->execute();
-								$avatarResult2 = $avatarStmt2->get_result();
-								$avatarData2 = $avatarResult2->fetch_assoc();
-								$avatarStmt2->close();
-								$remarkStmt = $conn->prepare("SELECT remark FROM user_remarks WHERE user_id = ? AND target_user_id = ?");
-								$remarkStmt->bind_param("ii", $userId, $memberUserId);
-								$remarkStmt->execute();
-								$remarkResult = $remarkStmt->get_result();
+					if ($isInitialLoad || $getMeta) {
+						switch ($type) {
+							case "friend":
+								$avatarStmt = $conn->prepare("SELECT user_avatar FROM users WHERE id = ?");
+								$avatarStmt->bind_param("i", $userId);
+								$avatarStmt->execute();
+								$avatarResult = $avatarStmt->get_result();
+								$avatarData = $avatarResult->fetch_assoc();
+								$avatarMine = $avatarData["user_avatar"];
+								$avatarStmt->close();
+								$oppositeStmt = $conn->prepare("SELECT CASE WHEN source = ? THEN target ELSE source END AS other_user_id, UNIX_TIMESTAMP(request_time) AS request_time, UNIX_TIMESTAMP(allowed_time) AS allowed_time FROM friendships WHERE id = ?");
+								$oppositeStmt->bind_param("ii", $userId, $_GET["target"]);
+								$oppositeStmt->execute();
+								$oppositeStmt->bind_result($otherUserId, $requestTime, $allowedTime);
+								$oppositeStmt->fetch();
+								$oppositeStmt->close();
+								$avatarUrl = "";
+								$oppositeName = "";
 								$remark = null;
-								if ($remarkResult->num_rows > 0) {
-									$remarkData = $remarkResult->fetch_assoc();
-									$remark = $remarkData["remark"];
+								if ($otherUserId) {
+									$avatarStmt2 = $conn->prepare("SELECT nick, user_avatar FROM users WHERE id = ?");
+									$avatarStmt2->bind_param("i", $otherUserId);
+									$avatarStmt2->execute();
+									$avatarResult2 = $avatarStmt2->get_result();
+									$avatarData2 = $avatarResult2->fetch_assoc();
+									$avatarStmt2->close();
+									$avatarUrl = $avatarData2["user_avatar"];
+									$oppositeName = $avatarData2["nick"];
+									$remarkStmt = $conn->prepare("SELECT remark FROM user_remarks WHERE user_id = ? AND target_user_id = ?");
+									$remarkStmt->bind_param("ii", $userId, $otherUserId);
+									$remarkStmt->execute();
+									$remarkResult = $remarkStmt->get_result();
+									if ($remarkResult->num_rows > 0) {
+										$remarkData = $remarkResult->fetch_assoc();
+										$remark = $remarkData["remark"];
+									}
+									$remarkStmt->close();
 								}
-								$remarkStmt->close();
-								if ($memberUserId == $userId) {
-									$currentIndex = count($groupMembers);
+								break;
+							case "group":
+								$groupStmt = $conn->prepare("SELECT user, role, group_nickname FROM group_members WHERE `group` = ? ORDER BY joined_at");
+								$groupStmt->bind_param("i", $sessionId);
+								$groupStmt->execute();
+								$groupResult = $groupStmt->get_result();
+								$groupStmt->close();
+								$groupMembers = [];
+								$currentIndex = 0;
+								while ($groupData = $groupResult->fetch_assoc()) {
+									$memberUserId = $groupData["user"];
+									$role = $groupData["role"];
+									$groupNickname = $groupData["group_nickname"];
+									$avatarStmt2 = $conn->prepare("SELECT nick, user_avatar FROM users WHERE id = ?");
+									$avatarStmt2->bind_param("i", $memberUserId);
+									$avatarStmt2->execute();
+									$avatarResult2 = $avatarStmt2->get_result();
+									$avatarData2 = $avatarResult2->fetch_assoc();
+									$avatarStmt2->close();
+									$remarkStmt = $conn->prepare("SELECT remark FROM user_remarks WHERE user_id = ? AND target_user_id = ?");
+									$remarkStmt->bind_param("ii", $userId, $memberUserId);
+									$remarkStmt->execute();
+									$remarkResult = $remarkStmt->get_result();
+									$remark = null;
+									if ($remarkResult->num_rows > 0) {
+										$remarkData = $remarkResult->fetch_assoc();
+										$remark = $remarkData["remark"];
+									}
+									$remarkStmt->close();
+									if ($memberUserId == $userId) {
+										$currentIndex = count($groupMembers);
+									}
+									$groupMembers[] = ["id" => $memberUserId, "nick" => $avatarData2["nick"], "remark" => $remark, "group_nickname" => $groupNickname, "avatar" => $avatarData2["user_avatar"], "role" => $role];
 								}
-								$groupMembers[] = ["id" => $memberUserId, "nick" => $avatarData2["nick"], "remark" => $remark, "group_nickname" => $groupNickname, "avatar" => $avatarData2["user_avatar"], "role" => $role];
-							}
-							$joinedAtStmt = $conn->prepare("SELECT UNIX_TIMESTAMP(joined_at) AS joined_at FROM group_members WHERE `group` = ? AND user = ?");
-							$joinedAtStmt->bind_param("ii", $sessionId, $userId);
-							$joinedAtStmt->execute();
-							$joinedAtStmt->bind_result($joinedAt);
-							$joinedAtStmt->fetch();
-							$joinedAtStmt->close();
-							$groupNameStmt = $conn->prepare("SELECT group_name, group_info_permission, group_avatar FROM `groups` WHERE id = ?");
-							$groupNameStmt->bind_param("i", $sessionId);
-							$groupNameStmt->execute();
-							$groupNameStmt->bind_result($groupName, $groupInfoPermission, $groupAvatar);
-							$groupNameStmt->fetch();
-							$groupNameStmt->close();
-							break;
-						default:
-							http_response_code(400);
-							echo json_encode(["code" => -1, "msg" => "未知的聊天类型。"]);
-							$conn->close();
-							exit;
+								$joinedAtStmt = $conn->prepare("SELECT UNIX_TIMESTAMP(joined_at) AS joined_at FROM group_members WHERE `group` = ? AND user = ?");
+								$joinedAtStmt->bind_param("ii", $sessionId, $userId);
+								$joinedAtStmt->execute();
+								$joinedAtStmt->bind_result($joinedAt);
+								$joinedAtStmt->fetch();
+								$joinedAtStmt->close();
+								$groupNameStmt = $conn->prepare("SELECT group_name, group_info_permission, group_avatar FROM `groups` WHERE id = ?");
+								$groupNameStmt->bind_param("i", $sessionId);
+								$groupNameStmt->execute();
+								$groupNameStmt->bind_result($groupName, $groupInfoPermission, $groupAvatar);
+								$groupNameStmt->fetch();
+								$groupNameStmt->close();
+								break;
+							default:
+								http_response_code(400);
+								echo json_encode(["code" => -1, "msg" => "未知的聊天类型。"]);
+								$conn->close();
+								exit;
+						}
 					}
 					$checkStmt = $conn->prepare("SELECT 1 FROM message_read_status WHERE session_id = ? AND user_id = ?");
 					$checkStmt->bind_param("ii", $_GET["target"], $userId);
@@ -215,9 +291,7 @@
 						$insertStmt->execute();
 						$insertStmt->close();
 					}
-					if ($fresh) {
-						echo json_encode(["code" => 1, "msg" => "聊天信息获取成功。", "data" => $chatData]);
-					} else {
+					if ($isInitialLoad || $getMeta) {
 						$base = ["code" => 1, "msg" => "聊天信息获取成功。", "data" => $chatData, "type" => $type, "sessionId" => $sessionId];
 						switch ($type) {
 							case "friend":
@@ -243,6 +317,8 @@
 								exit;
 						}
 						echo json_encode($base);
+					} else {
+						echo json_encode(["code" => 1, "msg" => "聊天信息获取成功。", "data" => $chatData]);
 					}
 				} else {
 					http_response_code(404);
@@ -251,14 +327,14 @@
 				$conn->close();
 			} catch (mysqli_sql_exception $sqlException) {
 				http_response_code(500);
-				echo json_encode(["code" => -1, "msg" => "数据库错误。" . $sqlException->getMessage() . "\n" . $sqlException->getLine()]);
+				echo json_encode(["code" => -1, "msg" => "数据库错误。"]);
 			}
 		} else {
 			http_response_code(400);
-			echo json_encode(["code" => -1, "msg" => "请求方法不正确或缺少必要的参数。"]);
+			echo json_encode(["code" => -1, "msg" => "缺少必要的参数。"]);
 		}
 	} else {
 		http_response_code(405);
-		echo json_encode(["code" => -1, "msg" => "请求方法不正确或缺少必要的参数。"]);
+		echo json_encode(["code" => -1, "msg" => "请求方法不正确。"]);
 	}
 ?>

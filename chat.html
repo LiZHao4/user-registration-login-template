@@ -4,9 +4,9 @@
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<title id="title"></title>
-		<link rel="stylesheet" href="style.css">
 		<link rel="stylesheet" href="libs/bootstrap-5.1.3-dist/css/bootstrap.min.css">
 		<link rel="stylesheet" href="libs/fontawesome-free-5.15.4-web/css/all.min.css">
+		<link rel="stylesheet" href="style.css">
 		<style>
 			.action-buttons {
 				display: flex;
@@ -21,6 +21,71 @@
 				background-color: #f8f9fa;
 				border-radius: 8px;
 				cursor: pointer;
+			}
+			.chat-avatar {
+				width: 30px;
+				height: 30px;
+				border-radius: 50%;
+			}
+			.chat-message-left {
+				background-color: #f0f0f0;
+				padding: 10px;
+				border-radius: 10px;
+				margin-bottom: 0;
+				display: inline-block;
+			}
+			.chat-message-right {
+				background-color: #f0f0f0;
+				padding: 10px;
+				border-radius: 10px;
+				margin-bottom: 0;
+				display: inline-block;
+				right: 0;
+			}
+			.forwarded-avatar {
+				width: 20px;
+				height: 20px;
+				border-radius: 50%;
+				margin-right: 8px;
+			}
+			.forwarded-container {
+				border: 1px solid #e0e0e0;
+				border-radius: 8px;
+				padding: 10px;
+				margin-bottom: 10px;
+			}
+			.forwarded-content {
+				margin-top: 10px;
+				border-top: 1px solid #f0f0f0;
+				padding-top: 10px;
+			}
+			.forwarded-header {
+				cursor: pointer;
+				font-weight: bold;
+				padding: 5px 0;
+			}
+			.forwarded-message {
+				margin-left: 28px;
+				word-break: break-word;
+			}
+			.forwarded-nick {
+				font-size: 0.8em;
+				color: #999;
+			}
+			.forwarded-record {
+				margin-bottom: 10px;
+				padding: 8px;
+				border-radius: 4px;
+			}
+			.forwarded-sender {
+				display: flex;
+				align-items: center;
+				margin-bottom: 5px;
+			}
+			.forwarded-time {
+				text-align: right;
+				font-size: 0.8em;
+				color: #999;
 			}
 			.friend-avatar {
 				width: 40px;
@@ -48,6 +113,31 @@
 				font-size: 12px;
 				color: #666;
 			}
+			.menu-item {
+				padding: 6px 12px;
+				cursor: pointer;
+				font-size: 0.9em;
+			}
+			.menu-item:hover {
+				background-color: #f5f5f5;
+			}
+			.message {
+				margin: 10px 0;
+				display: flex;
+				align-items: center;
+				gap: 10px;
+			}
+			.message-container {
+				display: flex;
+				flex-direction: column;
+				align-items: flex-start;
+			}
+			.message-container.sent {
+				align-items: flex-end;
+			}
+			.message.sent {
+				flex-direction: row-reverse;
+			}
 			.object-fit-cover {
 				object-fit: cover;
 			}
@@ -61,6 +151,13 @@
 				padding: 1px 4px;
 				border-radius: 4px;
 				z-index: 10;
+			}
+			.selectable-message {
+				cursor: default;
+			}
+			.selected-message .chat-message-left, .selected-message .chat-message-right, .selected-message .forwarded-container {
+				background-color: #0d6efd !important;
+				color: white !important;
 			}
 			.selection-btn {
 				background: none;
@@ -142,6 +239,19 @@
 				overflow-y: auto;
 				flex-grow: 1;
 			}
+			#select-chat-actions {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+			}
+			#select-chat-container {
+				padding: 10px;
+				max-height: 300px;
+				overflow-y: auto;
+				border: 1px solid #ddd;
+				border-radius: 5px;
+				margin-bottom: 15px;
+			}
 			#user-info .user-avatar {
 				width: 100px;
 				height: 100px;
@@ -159,7 +269,7 @@
 			<div class="row">
 				<div class="col-md-12">
 					<div class="input-group">
-						<textarea id="ta" class="form-control" placeholder="输入消息..." style="resize:none"></textarea>
+						<textarea id="ta" class="form-control" placeholder="输入消息..."></textarea>
 						<button id="send" class="btn btn-primary">发送</button>
 						<button id="add-file" class="btn btn-secondary">发送文件</button>
 						<button id="more" class="btn btn-secondary">…</button>
@@ -197,6 +307,7 @@
 						<div>接受时间：<span id="allowed-time"></span></div>
 					</div>
 					<div id="buttons">
+						<button id="select-chat" class="btn btn-primary mt-3 me-3">选择聊天记录</button>
 						<button id="delete-friend" class="btn btn-danger mt-3 me-3">删除好友</button><button id="save-chat" class="btn btn-secondary mt-3 me-3">保存聊天记录</button>
 					</div>
 				</div>
@@ -237,7 +348,7 @@
 					<div id="user-actions" class="d-grid gap-2 mt-3"></div>
 				</div>
 				<div class="d-none" id="add-members-container">
-					<h6 class="mt-1 mb-3">邀请好友加入群聊</h6>
+					<h6 class="mt-1 mb-3">邀请用户进入本群聊</h6>
 					<div id="friends-list"></div>
 					<div class="action-buttons">
 						<div class="selection-buttons">
@@ -249,23 +360,99 @@
 				</div>
 			</div>
 		</div>
+		<div id="select-chat-modal" class="toast bottom-toast" style="width:300px; display: none;">
+			<div class="toast-header">
+				<h6 class="me-auto">选择聊天记录</h6>
+				<button type="button" class="btn-close" id="close-select-chat-modal"></button>
+			</div>
+			<div class="toast-body">
+				<div id="select-chat-container"></div>
+				<div class="mt-3">
+					<div class="form-check">
+						<input class="form-check-input" type="checkbox" id="forward-as-record" checked>
+						<label class="form-check-label" for="forward-as-record">转发为聊天记录</label>
+					</div>
+					<div class="mt-2">
+						<label for="additional-text" class="form-label">附加文本（可选）</label>
+						<textarea class="form-control" id="additional-text" rows="2"></textarea>
+					</div>
+				</div>
+				<div class="mt-3">
+					<h6>选择转发目标</h6>
+					<div id="forward-friends-list" style="max-height: 200px; overflow-y: auto;"></div>
+					<div class="action-buttons mt-2">
+						<div class="selection-buttons">
+							<button id="forward-select-all-btn" class="selection-btn">全选</button>
+							<button id="forward-invert-select-btn" class="selection-btn">反选</button>
+						</div>
+					</div>
+				</div>
+				<div id="select-chat-actions" class="mt-3">
+					<span id="selected-count">已选择 <span id="selected-number">0</span> 条记录</span>
+					<div>
+						<button class="btn btn-sm btn-outline-secondary" id="cancel-select-chat">取消</button>
+						<button class="btn btn-sm btn-primary ms-2" id="forward-selected">转发</button>
+					</div>
+				</div>
+			</div>
+		</div>
 		<input type="file" id="file-input" style="display:none" accept="*">
 		<input type="file" id="group-avatar-input" style="display:none" accept="image/jpeg, image/png">
 		<script src="libs/jquery-3.7.1.js"></script>
 		<script src="lib.js"></script>
 		<script>
-			var userId, otherUserId, type, members;
+			var userId, otherUserId, type, members, idFromUrl = parseInt(new URLSearchParams(location.search).get('id')), myAvatar, currentMessageMenu = null;
 			$(function() {
-				var chatInterval, idFromUrl = new URLSearchParams(location.search).get('id'), myAvatar, oppositeAvatar;
-				function fetchChatData(isNew = false, scrollToBottom = false) {
-					var requestData = { target: idFromUrl };
-					if (!isNew) {
-						var lastMessage = $('#messages').children(':last');
-						if (lastMessage) {
-							requestData.max = lastMessage.attr('data-id');
+				var chatInterval,oppositeAvatar, remark, oppositeName, isLoadingEarlier = false, hasMoreMessages = true, scrollPositionBeforeLoad = 0, selectedMessages = [];
+				function fetchFriendList(target) {
+					fetch('friend_list.php?simplify=').then(res => res.json()).then(data => {
+						if (data.code === 1) {
+							target.empty();
+							data.data.forEach(friend => {
+								if (friend.id !== idFromUrl) {
+									var friendItem = $('<div>').addClass('friend-item');
+									var formCheck = $('<div>').addClass('form-check');
+									var checkbox = $('<input>').attr({
+										type: 'checkbox',
+										class: 'form-check-input friend-checkbox',
+										'data-id': friend.id
+									});
+									formCheck.append(checkbox);
+									var avatar = $('<img>').attr({
+										src: friend.avatar,
+										class: 'friend-avatar',
+										alt: '好友头像'
+									});
+									var friendInfo = $('<div>').addClass('friend-info');
+									var friendNick = $('<div>').addClass('friend-nick').text(friend.nick);
+									friendInfo.append(friendNick);
+									friendItem.append(formCheck, avatar, friendInfo);
+									target.append(friendItem);
+								}
+							});
 						} else {
-							requestData.max = 0;
+							$('#errors').text(data.msg).removeClass('d-none');
 						}
+					});
+				}
+				function fetchChatData(isNew = false, scrollToBottom = false, loadEarlier = false) {
+					var requestData = { target: idFromUrl, num: '30', getmeta: '' };
+					if (!isNew) {
+						if (loadEarlier) {
+							var firstMessage = $('#messages').children(':first');
+							if (firstMessage.length) {
+								requestData.min = firstMessage.attr('data-id');
+								requestData.num = 30;
+							}
+						} else {
+							var lastMessage = $('#messages').children(':last');
+							if (lastMessage.length) {
+								requestData.max = lastMessage.attr('data-id');
+							} else {
+								requestData.max = 0;
+							}
+						}
+						delete requestData.getmeta;
 					}
 					var requestParams = new URLSearchParams(requestData);
 					fetch('chats.php?' + requestParams.toString()).then(response => response.json()).then(data => {
@@ -276,8 +463,10 @@
 									if (isNew) {
 										userId = data.id;
 										otherUserId = data.oId;
+										oppositeName = data.oName;
 										myAvatar = data.avatar;
 										oppositeAvatar = data.opposite;
+										remark = data.remark;
 										$('#request-time').text(formatDateLong(data.requestTime));
 										$('#allowed-time').text(formatDateLong(data.allowedTime));
 										$('#name').click(function() {
@@ -303,16 +492,16 @@
 											}
 										});
 									}
-									$('#name, #title').text(data.remark || data.oName);
+									$('#name, #title').text(remark || oppositeName);
 									generate3({
 										target: $('#messages'),
 										data: data.data,
 										avatar: myAvatar,
 										opposite: oppositeAvatar,
-										oName: data.oName,
+										oName: oppositeName,
 										fresh: isNew,
-										remark: data.remark,
-										type
+										remark, type,
+										prepend: loadEarlier
 									});
 									break;
 								case 'group':
@@ -829,35 +1018,7 @@
 											$('#back-button2').removeClass('d-none');
 											$('#original').addClass('d-none');
 											$('#add-members-container').removeClass('d-none');
-											fetch('friend_list.php').then(res => res.json()).then(data => {
-												if (data.code === 1) {
-													$('#friends-list').empty();
-													data.data.forEach(friend => {
-														if (friend.type == 'friend') {
-															var friendItem = $('<div>').addClass('friend-item');
-															var formCheck = $('<div>').addClass('form-check');
-															var checkbox = $('<input>').attr({
-																type: 'checkbox',
-																class: 'form-check-input friend-checkbox',
-																'data-id': friend.friend_id
-															});
-															formCheck.append(checkbox);
-															var avatar = $('<img>').attr({
-																src: friend.avatar,
-																class: 'friend-avatar',
-																alt: '好友头像'
-															});
-															var friendInfo = $('<div>').addClass('friend-info');
-															var friendNick = $('<div>').addClass('friend-nick').text(friend.nick);
-															friendInfo.append(friendNick);
-															friendItem.append(formCheck, avatar, friendInfo);
-															$('#friends-list').append(friendItem);
-														}
-													});
-												} else {
-													$('#errors').text(data.msg).removeClass('d-none');
-												}
-											});
+											fetchFriendList($('#friends-list'));
 										});
 										$buttons.append(buttonAddMember);
 										$('#back-button').click(function() {
@@ -876,7 +1037,8 @@
 										data: data.data,
 										members,
 										fresh: isNew,
-										type
+										type,
+										prepend: loadEarlier
 									});
 									break;
 								default:
@@ -889,6 +1051,20 @@
 							}
 							if (scrollToBottom) {
 								$('#messages').scrollTop($('#messages')[0].scrollHeight);
+							}
+							if (loadEarlier) {
+								var loadingIndicator = $('<div>')
+									.addClass('text-center py-2 text-muted')
+									.text('加载中...')
+									.attr('id', 'loading-indicator');
+								$('#messages').prepend(loadingIndicator);
+								isLoadingEarlier = false;
+								loadingIndicator.remove();
+								var newScrollHeight = $('#messages')[0].scrollHeight;
+								$('#messages').scrollTop(newScrollHeight - scrollPositionBeforeLoad);
+								if (data.data.length === 0) {
+									hasMoreMessages = false;
+								}
 							}
 						} else {
 							clearInterval(chatInterval);
@@ -904,13 +1080,51 @@
 						}
 					});
 				}
-				fetchChatData(true, true);
+				function renderSelectableMessages() {
+					$('#select-chat-container').empty();
+					selectedMessages = [];
+					$('#selected-number').text('0');
+					$('#messages > div').each(function() {
+						var $msg = $(this);
+						var type = $msg.attr('data-type');
+						if (['1', '2', '5', '6'].includes(type)) {
+							var clone = $msg.clone();
+							clone.find('.pagination-container').remove();
+							clone.find('.chat-message-left, .chat-message-right, .forwarded-container').addClass('selectable-message');
+							clone.click(function(e) {
+								e.preventDefault();
+								toggleMessageSelection($(this));
+							});
+							$('#select-chat-container').append(clone);
+						}
+					});
+				}
+				function toggleMessageSelection($element) {
+					var dataId = $element.attr('data-id');
+					var index = selectedMessages.indexOf(dataId);
+					if (index === -1) {
+						selectedMessages.push(dataId);
+						$element.addClass('selected-message');
+					} else {
+						selectedMessages.splice(index, 1);
+						$element.removeClass('selected-message');
+					}
+					$('#selected-number').text(selectedMessages.length);
+				}
+				function resetForwardState() {
+					selectedMessages = [];
+					$('#forward-as-record').prop('checked', false);
+					$('#additional-text').val('');
+					$('#forward-friends-list .friend-checkbox').prop('checked', false);
+					$('#selected-number').text('0');
+				}
 				$('#send').click(function() {
 					if (!$('#ta').val()) return;
-					fetch('add_message.php', {
+					fetch('messages.php', {
 						method: 'POST',
 						body: new URLSearchParams({
 							target: idFromUrl,
+							action: 'add',
 							msg: $('#ta').val()
 						})
 					}).then(response => response.json()).then(data => {
@@ -995,7 +1209,7 @@
 				$('#invite-btn').click(function() {
 					var selectedFriends = [];
 					$('.friend-checkbox:checked').each(function() {
-						selectedFriends.push($(this).data('id'));
+						selectedFriends.push($(this).attr('data-id'));
 					});
 					if (selectedFriends.length === 0) {
 						alert('请至少选择一位好友');
@@ -1024,7 +1238,68 @@
 				$('#go-home').click(function() {
 					location.href = '.';
 				});
-				chatInterval = setInterval(fetchChatData, 5000);
+				$('#messages').scroll(function() {
+					if ($(this).scrollTop() === 0 && !isLoadingEarlier && hasMoreMessages) {
+						isLoadingEarlier = true;
+						scrollPositionBeforeLoad = $('#messages')[0].scrollHeight;
+						fetchChatData(false, false, true);
+					}
+				});
+				$('#select-chat').click(function() {
+					$('#more-menu').removeClass('d-flex');
+					$('#select-chat-modal').show();
+					renderSelectableMessages();
+					fetchFriendList($('#forward-friends-list'));
+				});
+				$('#forward-selected').click(function() {
+					if (selectedMessages.length === 0) {
+						alert('请至少选择一条消息');
+						return;
+					}
+					var selectedFriends = [];
+					$('#forward-friends-list .friend-checkbox:checked').each(function() {
+						selectedFriends.push($(this).data('id'));
+					});
+					if (selectedFriends.length === 0) {
+						alert('请至少选择一个好友');
+						return;
+					}
+					fetch('messages.php', {
+						method: 'POST',
+						body: new URLSearchParams({
+							action: 'forward',
+							session: idFromUrl,
+							target: selectedFriends.join(','),
+							['msg' + ($('#forward-as-record').prop('checked') ? 's' : '')]: selectedMessages.join(','),
+							extra: $('#additional-text').val()
+						})
+					}).then(res => res.json()).then(data => {
+						$('#errors-body').text(data.msg);
+						$('#errors').show();
+						$('#errors').delay(3000).fadeOut();
+						$('#select-chat-modal').hide();
+						resetForwardState();
+					})
+				});
+				$('#cancel-select-chat').click(function() {
+					$('#select-chat-modal').hide();
+					$('#more-menu').addClass('d-flex');
+				});
+				$('#close-select-chat-modal').click(function() {
+					$('#select-chat-modal').hide();
+				});
+				$('#forward-select-all-btn').click(function() {
+					$('#forward-friends-list .friend-checkbox').prop('checked', true);
+				});
+				$('#forward-invert-select-btn').click(function() {
+					$('#forward-friends-list .friend-checkbox').each(function() {
+						$(this).prop('checked', !$(this).prop('checked'));
+					});
+				});
+				chatInterval = setInterval(function() {
+					fetchChatData();
+				}, 5000);
+				fetchChatData(true, true);
 			});
 		</script>
 	</body>

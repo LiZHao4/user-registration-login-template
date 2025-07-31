@@ -52,11 +52,8 @@
 						exit();
 					}
 					$hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-					$nextUserIdStmt = $db->query("SELECT COALESCE((SELECT MIN(id) + 1 FROM users t1 WHERE NOT EXISTS (SELECT 1 FROM users t2 WHERE t2.id = t1.id + 1) AND id < (SELECT MAX(id) FROM users)), (SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM users WHERE id = 1)), (SELECT COALESCE(MAX(id), 0) + 1 FROM users)) AS next_user_id");
-					$nextUserIdRow = $nextUserIdStmt->fetch_assoc();
-					$nextUserId = $nextUserIdRow["next_user_id"];
-					$stmtInsertUser = $db->prepare("INSERT INTO users (id, user, password, nick) VALUES (?, ?, ?, ?)");
-					$stmtInsertUser->bind_param("isss", $nextUserId, $username, $hashedPassword, $username);
+					$stmtInsertUser = $db->prepare("INSERT INTO users (user, password, nick) VALUES (?, ?, ?, ?)");
+					$stmtInsertUser->bind_param("sss", $username, $hashedPassword, $username);
 					$stmtInsertUser->execute();
 					echo json_encode(["code" => 1, "msg" => "注册成功！"]);
 					$stmtCheckUsername->close();
@@ -111,7 +108,7 @@
 				$db->close();
 			} catch (mysqli_sql_exception $e) {
 				http_response_code(500);
-				echo json_encode(["code" => -1, "msg" => "数据库错误。" . $e->getMessage()]);	
+				echo json_encode(["code" => -1, "msg" => "数据库错误。"]);	
 			}
 		} else {
 			http_response_code(400);

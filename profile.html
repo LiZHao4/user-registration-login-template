@@ -57,7 +57,7 @@
 			}
 			.bio-section {
 				background-color: var(--light-bg);
-				padding: 20px;
+				padding: 25px;
 				border-radius: 12px;
 				margin-top: 15px;
 			}
@@ -65,7 +65,7 @@
 				font-size: 1.1rem;
 				font-weight: 600;
 				margin-bottom: 10px;
-				color: var(--dark-text);
+				color: var(--secondary-color);
 			}
 			.btn-add {
 				background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
@@ -93,7 +93,6 @@
 				display: flex;
 				align-items: center;
 				gap: 8px;
-				color: var(--dark-text);
 			}
 			.btn-friend:active {
 				transform: translateY(1px);
@@ -116,6 +115,7 @@
 			.detail-value {
 				font-size: 1.2rem;
 				font-weight: 600;
+				color: var(--secondary-color);
 			}
 			.edit-icon {
 				cursor: pointer;
@@ -197,7 +197,6 @@
 			.user-details {
 				display: flex;
 				justify-content: space-around;
-				margin: 25px 0;
 				padding: 15px;
 				background-color: var(--light-bg);
 				border-radius: 12px;
@@ -260,7 +259,7 @@
 						</div>
 					</div>
 				</div>
-				<div class="btn-container">
+				<div id="friendBtnContainer" class="btn-container">
 					<button id="friendBtn" class="btn-friend btn-add">
 						<span>添加好友</span>
 						<div id="actionLoader" class="action-loader"></div>
@@ -277,6 +276,47 @@
 		<script src="libs/jquery-3.7.1.js"></script>
 		<script>
 			$(function() {
+				var id = new URLSearchParams(window.location.search).get('id'), addFriend = debounce(function() {
+					var $btn = $(this);
+					var $text = $btn.find('span');
+					var $loader = $('#actionLoader');
+					var originalText = $text.text();
+					var originalClass = $btn.attr('class');
+					$btn.prop('disabled', true);
+					$text.text('处理中...');
+					$loader.show();
+					fetch('friends.php', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/x-www-form-urlencoded'
+						},
+						body: new URLSearchParams({
+							target: id,
+							action: 'add'
+						})
+					}).then(res => res.json()).then(data => {
+						if (data.code === 1) {
+							$text.text('已添加');
+							$loader.hide();
+							$btn.removeClass('btn-add').addClass('btn-added');
+							showToast('好友添加成功！');
+						} else {
+							throw new Error(data.msg);
+						}
+					}).catch(error => {
+						$loader.hide();
+						$btn.prop('disabled', false);
+						$text.text(originalText);
+						$btn.removeClass('btn-added btn-error').addClass(originalClass);
+						$btn.removeClass('btn-add').addClass('btn-error');
+						$text.text('添加失败');
+						setTimeout(() => {
+							$btn.removeClass('btn-error').addClass('btn-add');
+							$text.text(originalText);
+						}, 2000);
+						showToast(error.message, true);
+					});
+				}, 500);
 				function getColorBrightness(color) {
 					if (!color || color.length < 7) return 0.5;
 					try {
@@ -292,17 +332,15 @@
 				function applyTextContrast(color, elements) {
 					if (!color) return;
 					var brightness = getColorBrightness(color);
-					var style = {'color': brightness < 0.6 ? color : '#000'};
+					var style = {'color': brightness > 0.6 ? '#000' : color};
 					elements.forEach(selector => {
 						$(selector).css(style);
 					});
+					var binaryColorButtons = $('.user-name, .username, .btn-friend');
 					if (brightness > 0.5) {
-					    $('.user-name').css('color', '#000');
+					    binaryColorButtons.css('color', '#000');
 					} else {
-					    $('.user-name').css('color', '#fff');
-					}
-					if (brightness < 0.7 && brightness > 0.3) {
-						$('.username').css('color', '#fff');
+					    binaryColorButtons.css('color', '#fff');
 					}
 				}
 				function applyThemeColor(color) {
@@ -382,7 +420,6 @@
 					}
 					return age + '岁';
 				}
-				var id = new URLSearchParams(window.location.search).get('id');
 				if (!id) {
 					$('#profile').hide();
 					$('#errorContainer').show();
@@ -424,47 +461,6 @@
 						showToast('保存失败: ' + error.message, true);
 					});
 				});
-				var addFriend = debounce(function() {
-					var $btn = $(this);
-					var $text = $btn.find('span');
-					var $loader = $('#actionLoader');
-					var originalText = $text.text();
-					var originalClass = $btn.attr('class');
-					$btn.prop('disabled', true);
-					$text.text('处理中...');
-					$loader.show();
-					fetch('friends.php', {
-						method: 'POST',
-						headers: {
-							'Content-Type': 'application/x-www-form-urlencoded'
-						},
-						body: new URLSearchParams({
-							target: id,
-							action: 'add'
-						})
-					}).then(res => res.json()).then(data => {
-						if (data.code === 1) {
-							$text.text('已添加');
-							$loader.hide();
-							$btn.removeClass('btn-add').addClass('btn-added');
-							showToast('好友添加成功！');
-						} else {
-							throw new Error(data.msg);
-						}
-					}).catch(error => {
-						$loader.hide();
-						$btn.prop('disabled', false);
-						$text.text(originalText);
-						$btn.removeClass('btn-added btn-error').addClass(originalClass);
-						$btn.removeClass('btn-add').addClass('btn-error');
-						$text.text('添加失败');
-						setTimeout(() => {
-							$btn.removeClass('btn-error').addClass('btn-add');
-							$text.text(originalText);
-						}, 2000);
-						showToast(error.message, true);
-					});
-				}, 500);
 				$('#actionLoader').show();
 				fetch('other_user_data.php?id=' + encodeURIComponent(id)).then(res => res.json()).then(data => {
 					if (data.code == 1) {
@@ -475,15 +471,12 @@
 						$('#age').text(getAgeText(data.data.birth));
 						$('#bio').text(data.data.bio || '暂无简介');
 						$('#remarkContent').text(data.data.remark || '');
-						
-						// 应用背景图片和主题色
 						if (data.data.background) {
 							setBackgroundImage(data.data.background);
 						}
 						if (data.data.theme_color) {
 							applyThemeColor(data.data.theme_color);
 						}
-						
 						getFriendAdded(id).then(added => {
 							var $btn = $('#friendBtn');
 							var $text = $btn.find('span');
@@ -495,7 +488,7 @@
 								} else if (Added == 'pending_out') {
 									$text.text('等待对方同意');
 								} else if (Added == 'self') {
-									$btn.hide();
+									$('#friendBtnContainer').hide();
 									$('#remark').hide();
 								}
 								$btn.prop('disabled', true);
