@@ -10,21 +10,6 @@
 			$db = $config["database"]["db"];
 			try {
 				$databaseConnection = new mysqli($host, $user, $pass, $db);
-				$token = $_COOKIE["_"];
-				$stmt = $databaseConnection->prepare("SELECT user FROM user_session WHERE token = ? AND expires >= NOW()");
-				$stmt->bind_param("s", $token);
-				$stmt->execute();
-				$res = $stmt->get_result();
-				if ($res->num_rows > 0) {
-					$row = $res->fetch_assoc();
-					$userId = $row["user"];
-				} else {
-					http_response_code(401);
-					echo json_encode(["code" => 0, "msg" => "用户不存在或token无效，请重新登录。"]);
-					$stmt->close();
-					$databaseConnection->close();
-					return;
-				}
 				function getUserRemark($conn, $viewerId, $targetId) {
 					$stmt = $conn->prepare("SELECT remark FROM user_remarks WHERE user_id = ? AND target_user_id = ?");
 					$stmt->bind_param("ii", $viewerId, $targetId);
@@ -52,11 +37,35 @@
 					$res = $stmt->get_result();
 					return ($res->num_rows > 0) ? $res->fetch_assoc()["nick"] : "未知用户";
 				}
+				$token = $_COOKIE["_"];
+				$stmt = $databaseConnection->prepare("SELECT user FROM user_session WHERE token = ? AND expires >= NOW()");
+				$stmt->bind_param("s", $token);
+				$stmt->execute();
+				$res = $stmt->get_result();
+				if ($res->num_rows > 0) {
+					$row = $res->fetch_assoc();
+					$userId = $row["user"];
+				} else {
+					http_response_code(401);
+					echo json_encode(["code" => 0, "msg" => "用户不存在或token无效，请重新登录。"]);
+					$stmt->close();
+					$databaseConnection->close();
+					return;
+				}
+				$typeFilter = isset($_GET['type']) ? $_GET['type'] : 'all';
+				if (!in_array($typeFilter, ['all', 'friend', 'group'])) {
+					http_response_code(400);
+					echo json_encode(["code" => -1, "msg" => "无效的type参数"]);
+					$stmt->close();
+					$databaseConnection->close();
+					return;
+				}
+				$simplify = isset($_GET['simplify']);
 				$friendsStmt = $databaseConnection->prepare("SELECT id, CASE WHEN source = ? THEN target ELSE source END AS friend_id, UNIX_TIMESTAMP(allowed_time) AS allowed_time FROM friendships WHERE source = ? OR target = ?");
 				$friendsStmt->bind_param("iii", $userId, $userId, $userId);
 				$friendsStmt->execute();
 				$friendsResult = $friendsStmt->get_result();
-				$friends = [];
+				$friendList = [];
 				if ($friendsResult->num_rows > 0) {
 					while ($friendRow = $friendsResult->fetch_assoc()) {
 						$friendId = $friendRow["friend_id"];
@@ -76,7 +85,7 @@
 						$unreadStmt->execute();
 						$unreadResult = $unreadStmt->get_result();
 						$unreadRow = $unreadResult->fetch_assoc();
-						$friends[] = [
+						$friendList[] = [
 							"id" => $friendRow["id"],
 							"avatar" => $avatarRow["avatar"],
 							"nick" => $displayName,
@@ -84,6 +93,7 @@
 							"content" => $lastMsgRow ? $lastMsgRow["content"] : "",
 							"msg_type" => $lastMsgRow ? $lastMsgRow["type"] : null,
 							"msg_sender" => $lastMsgRow ? $lastMsgRow["sender"] : null,
+							"msg_nick" => $lastMsgRow ? getDisplayName($databaseConnection, $userId, $lastMsgRow["sender"]) : null,
 							"count" => $unreadRow["count"],
 							"type" => "friend",
 							"friend_id" => $friendId
@@ -98,6 +108,7 @@
 				$groupsStmt->bind_param("i", $userId);
 				$groupsStmt->execute();
 				$groupsResult = $groupsStmt->get_result();
+				$groupList = [];
 				if ($groupsResult->num_rows > 0) {
 					while ($groupRow = $groupsResult->fetch_assoc()) {
 						$joinedAtStmt = $databaseConnection->prepare("SELECT UNIX_TIMESTAMP(joined_at) AS joined_at FROM group_members WHERE user = ? AND `group` = ?");
@@ -156,14 +167,33 @@
 								}
 							}
 						}
-						$friends[] = $wouldAdd;
+						$groupList[] = $wouldAdd;
 					}
 				}
 				$groupsStmt->close();
-				usort($friends, function($a, $b) {
+				$resultData = [];
+				if ($typeFilter === 'friend' || $typeFilter === 'all') {
+					$resultData = array_merge($resultData, $friendList);
+				}
+				if ($typeFilter === 'group' || $typeFilter === 'all') {
+					$resultData = array_merge($resultData, $groupList);
+				}
+				if ($simplify) {
+					$simplifiedData = [];
+					foreach ($resultData as $item) {
+						$simplifiedData[] = [
+							'id' => $item['id'],
+							'nick' => $item['nick'],
+							'avatar' => $item['avatar'],
+							'time' => $item['time'],
+						];
+					}
+					$resultData = $simplifiedData;
+				}
+				usort($resultData, function($a, $b) {
 					return $b["time"] - $a["time"];
 				});
-				echo json_encode(["code" => 1, "msg" => "好友列表获取成功。", "data" => $friends]);
+				echo json_encode(["code" => 1, "msg" => "好友列表获取成功。", "data" => $resultData]);
 				$stmt->close();
 				$databaseConnection->close();
 			} catch (mysqli_sql_exception $sqlException) {

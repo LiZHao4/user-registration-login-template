@@ -6,6 +6,32 @@
 		<title>主页</title>
 		<link href="libs/bootstrap-5.1.3-dist/css/bootstrap.min.css" rel="stylesheet">
 		<link href="style.css" rel="stylesheet">
+		<style>
+			.avatar {
+				width: 50px;
+				height: 50px;
+			}
+			.flex-item {
+				flex-grow: 1;
+				flex-shrink: 1;
+				min-width: 0;
+				max-width: 100%;
+			}
+			.indicator-dot {
+				position: absolute;
+				top: 5px;
+				right: 5px;
+				width: 10px;
+				height: 10px;
+				border-radius: 50%;
+				background-color: #0d6efd;
+				display: none;
+			}
+			.min-height-300 {
+				min-height: 300px;
+				flex: 1;
+			}
+		</style>
 	</head>
 	<body class="a">
 		<div class="container d-flex flex-column h-100">
@@ -19,21 +45,44 @@
 						</div>
 					</div>
 				</div>
-				<div class="card-footer d-flex justify-content-end bg-white">
-					<button id="btn-edit" class="btn btn-link">修改信息</button>
-					<button id="btn-system-message" class="btn btn-link">系统消息 <span id="system-message-badge" class="badge rounded-pill bg-primary"></span></button>
-					<button id="btn-token-manage" class="btn btn-link">Token管理</button>
-					<button id="btn-logout" class="btn btn-link">退出登录</button>
+				<div class="card-footer d-flex justify-content-end bg-white flex-wrap">
+					<div class="btn-group" role="group">
+						<div class="d-none d-md-flex">
+							<button id="btn-edit" class="btn btn-link">修改信息</button>
+							<button id="btn-system-message" class="btn btn-link position-relative">系统消息 <span id="system-message-badge" class="badge rounded-pill bg-primary"></span></button>
+							<button id="btn-token-manage" class="btn btn-link">Token管理</button>
+							<button id="btn-logout" class="btn btn-link">退出登录</button>
+						</div>
+						<div class="dropdown d-md-none">
+							<button class="btn btn-link dropdown-toggle" type="button" data-bs-toggle="dropdown">用户操作<span id="user-operations-indicator" class="indicator-dot"></span></button>
+							<ul class="dropdown-menu dropdown-menu-end">
+								<li><a class="dropdown-item" id="btn-edit-mobile">修改信息</a></li>
+								<li><a class="dropdown-item position-relative" id="btn-system-message-mobile">系统消息 <span id="system-message-badge-mobile" class="badge bg-primary position-absolute top-50 end-0 translate-middle-y me-2"></span></a></li>
+								<li><a class="dropdown-item" id="btn-token-manage-mobile">Token管理</a></li>
+								<li><a class="dropdown-item" id="btn-logout-mobile">退出登录</a></li>
+							</ul>
+						</div>
+					</div>
 				</div>
 			</div>
 			<div class="card min-height-300" style="box-sizing:border-box">
 				<div class="card-body d-flex flex-column h-100">
 					<div class="d-flex justify-content-between align-items-center mb-2">
 						<div class="card-title mb-0">好友列表</div>
-						<div>
-							<button id="btn-new-group" class="btn btn-link">新建群组</button>
-							<button id="btn-add-friend" class="btn btn-link">添加好友</button>
-							<button id="btn-friend-apply" class="btn btn-link">好友申请列表 <span id="friend-apply-badge" class="badge rounded-pill bg-primary"></span></button>
+						<div class="btn-group mt-2 mt-md-0">
+							<div class="d-none d-md-flex">
+								<button id="btn-new-group" class="btn btn-link">新建群组</button>
+								<button id="btn-add-friend" class="btn btn-link">添加好友</button>
+								<button id="btn-friend-apply" class="btn btn-link position-relative">好友申请 <span id="friend-apply-badge" class="badge rounded-pill bg-primary"></span></button>
+							</div>
+							<div class="dropdown d-md-none">
+								<button class="btn btn-link dropdown-toggle" type="button" data-bs-toggle="dropdown">好友操作<span id="friend-operations-indicator" class="indicator-dot"></span></button>
+								<ul class="dropdown-menu dropdown-menu-end">
+									<li><a class="dropdown-item" id="btn-new-group-mobile">新建群组</a></li>
+									<li><a class="dropdown-item" id="btn-add-friend-mobile">添加好友</a></li>
+									<li><a class="dropdown-item position-relative" id="btn-friend-apply-mobile">好友申请 <span id="friend-apply-badge-mobile" class="badge bg-primary position-absolute top-50 end-0 translate-middle-y me-2"></span></a></li>
+								</ul>
+							</div>
 						</div>
 					</div>
 					<ul id="friends-list" class="list-group" style="overflow-y:auto;flex:1"></ul>
@@ -129,10 +178,11 @@
 							generate1({
 								target: $('#friend-request-list'),
 								target2: $('#my-friend-request-list'),
-								count: $('#friend-apply-badge'),
+								count: $('#friend-apply-badge, #friend-apply-badge-mobile'),
 								data: data.data,
 								fData: data.fData
 							});
+							$('#friend-operations-indicator').toggle(data.data.length > 0);
 						} else if (data.code === 0) {
 							location.href = 'login.html';
 						} else {
@@ -140,14 +190,14 @@
 						}
 					});
 				}
-				$('#btn-logout').click(logoutAccount);
-				$('#btn-edit').click(function() {
+				$('#btn-logout, #btn-logout-mobile').click(logoutAccount);
+				$('#btn-edit, #btn-edit-mobile').click(function() {
 					location.href = 'change.html';
 				});
-				$('#btn-add-friend').click(function() {
+				$('#btn-add-friend, #btn-add-friend-mobile').click(function() {
 					$('#add-friend').toggle();
 				});
-				$('#btn-friend-apply').click(function() {
+				$('#btn-friend-apply, #btn-friend-apply-mobile').click(function() {
 					$('#friend-requests').toggle();
 				});
 				$('#btn-close-friend-requests').click(function() {
@@ -215,7 +265,7 @@
 				$('#close-btn').click(function() {
 					$('#add-friend').hide();
 				});
-				$('#btn-new-group').click(function() {
+				$('#btn-new-group, #btn-new-group-mobile').click(function() {
 					$('#createGroupToast').toggle();
 				});
 				$('#btn-close-create-group').click(function() {
@@ -241,10 +291,10 @@
 						}
 					});
 				});
-				$('#btn-system-message').click(function() {
+				$('#btn-system-message, #btn-system-message-mobile').click(function() {
 					location.href = 'system.html';
 				});
-				$('#btn-token-manage').click(function() {
+				$('#btn-token-manage, #btn-token-manage-mobile').click(function() {
 					location.href = 'token.html';
 				});
 				$('#btn-custom-extend').click(function() {
@@ -275,13 +325,14 @@
 						$('#username').text(data.data.nick);
 						$('#user').text(data.data.user);
 						$('#avatar').attr('src', data.data.avatar);
-						if (data.data.systemMessageUnreadCount !== 0) {
-							$('#system-message-badge').text(data.data.systemMessageUnreadCount);
-						}
+						$('#user-operations-indicator, #system-message-badge, #system-message-badge-mobile').toggle(data.data.systemMessageUnreadCount > 0);
+						$('#system-message-badge, #system-message-badge-mobile').text(data.data.systemMessageUnreadCount);
 						if (data.data.isAdmin) {
 							var btnAdmin = $('<button class="btn btn-link">管理员界面</button>');
 							$('#btn-logout').before(btnAdmin);
-							btnAdmin.click(function() {
+							var adminItemMobile = $('<li><a class="dropdown-item">管理员界面</a></li>');
+							$('#btn-logout-mobile').before(adminItemMobile);
+							btnAdmin.add(adminItemMobile).click(function() {
 								location.href = 'admin';
 							});
 						}

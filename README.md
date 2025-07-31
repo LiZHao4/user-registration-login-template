@@ -60,34 +60,34 @@
 
 ```sql
 CREATE TABLE users (
-  id int PRIMARY KEY NOT NULL,
-  user varchar(32) NOT NULL,
-  password varchar(60) NOT NULL,
+  id int NOT NULL PRIMARY KEY AUTO_INCREMENT,
+  user varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs NOT NULL,
+  password char(60) NOT NULL,
   created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   nick varchar(100) NOT NULL,
   user_avatar varchar(72) NOT NULL DEFAULT '/default.png',
-  gender enum('M','W','N') NOT NULL DEFAULT 'N',
-  birth date DEFAULT NULL,
+  gender enum('M', 'W', 'N') NOT NULL DEFAULT 'N',
+  birth date,
   bio varchar(1024) NOT NULL DEFAULT '',
-  unbanned_at timestamp NULL DEFAULT NULL,
+  unbanned_at timestamp,
   is_admin tinyint(1) NOT NULL DEFAULT '0',
-  background varchar(69) DEFAULT NULL,
-  theme_color varbinary(3) DEFAULT NULL
+  background varchar(69),
+  theme_color binary(3),
 );
 CREATE TABLE user_session (
   id int PRIMARY KEY NOT NULL AUTO_INCREMENT,
-  user int DEFAULT NULL,
-  token varchar(32) NOT NULL,
+  user int NOT NULL,
+  token char(32) NOT NULL,
   expires timestamp NOT NULL,
-  creation timestamp NULL DEFAULT CURRENT_TIMESTAMP
+  creation timestamp DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE user_remarks (
   user_id int NOT NULL,
   target_user_id int NOT NULL,
   remark varchar(100) NOT NULL DEFAULT '',
-  created_at timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (user_id,target_user_id)
+  created_at timestamp DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (user_id, target_user_id)
 );
 CREATE TABLE friend_requests (
   id int PRIMARY KEY NOT NULL AUTO_INCREMENT,
@@ -107,31 +107,31 @@ CREATE TABLE `groups` (
   group_name varchar(100) NOT NULL,
   creator int NOT NULL,
   created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  group_info_permission enum('1','2','3') NOT NULL DEFAULT '1',
+  group_info_permission enum('1', '2', '3') NOT NULL DEFAULT '1',
   group_avatar varchar(72) NOT NULL DEFAULT '/group_default.png'
 );
 CREATE TABLE group_members (
   `group` int NOT NULL,
   user int NOT NULL,
   joined_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  role enum('owner','admin','member') NOT NULL DEFAULT 'member',
-  group_nickname varchar(100) DEFAULT NULL,
-  PRIMARY KEY (`group`,user)
+  role enum('owner', 'admin', 'member') NOT NULL DEFAULT 'member',
+  group_nickname varchar(100),
+  PRIMARY KEY (`group`, user)
 );
 CREATE TABLE chats (
   id int PRIMARY KEY NOT NULL AUTO_INCREMENT,
   session int NOT NULL,
   content text NOT NULL,
-  multi varchar(100) DEFAULT NULL,
+  multi varchar(100),
   sent_at timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   sender int NOT NULL,
-  type int NOT NULL DEFAULT '1'
+  type int NOT NULL DEFAULT 1
 );
 CREATE TABLE message_read_status (
   user_id int NOT NULL,
   session_id int NOT NULL,
   max_id int NOT NULL,
-  PRIMARY KEY (user_id,session_id)
+  PRIMARY KEY (user_id, session_id)
 );
 CREATE TABLE system_messages (
   id int PRIMARY KEY NOT NULL AUTO_INCREMENT,
@@ -219,10 +219,10 @@ CREATE TABLE system_messages (
 ### 版本2.1.1（2024年12月7日发布）
 - 修复聊天界面按钮间距不一致、无聊天记录时报错问题，并优化页面滚动体验。
 
-### 版本3.0.0（2024年12月15日发布）
+### 版本2.2.0（2024年12月15日发布）
 - 统一主页顶部字体大小，调整聊天记录显示逻辑，优化聊天界面，修复好友请求、搜索、聊天记录功能及界面布局问题，新增好友聊天文件传输功能。
 
-### 版本4.0.0（2025年7月23日发布）
+### 版本3.0.0（2025年7月23日发布）
 - 全新界面与功能整合：
   - 全面更新所有页面界面，采用现代化设计风格
   - 将好友列表、好友请求和用户搜索功能整合到主页
@@ -257,7 +257,15 @@ CREATE TABLE system_messages (
   - 优化移动设备显示效果
   - 修复若干已知问题，提升系统稳定性
 
-## 未来规划
+### 版本3.1.0（2025年7月31日发布）
+- 聊天记录优化
+  - 实现聊天记录分页加载机制，大幅提升大量历史消息的访问性能
+  - 新增动态加载滚动检测，按需拉取消息减少初始加载时间
+  - 支持将单条或多条聊天记录转发至其他聊天室
+  - 已发送的消息支持在限定时间内撤回以及重新编辑
+- 群组功能增强：用户可直接向目标群组发送成员邀请
+- 其他改进：修复已知问题，提升系统稳定性
 
+## 未来规划
 - 完善API文档
 - 增强群组管理功能（禁言/投票等）
