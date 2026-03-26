@@ -1,0 +1,9 @@
+node_modules/
+dist/
+logs/
+*.pid
+*.seed
+*.pid.lock
+.vscode/
+uploads/
+components.d.ts
