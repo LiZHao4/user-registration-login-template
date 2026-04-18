@@ -10,13 +10,13 @@
         <h1 class="page-title">{{ articleId ? '编辑文章' : '写文章' }}</h1>
       </div>
       <div class="nav-right">
-        <button class="nav-btn" @click="toggleSettings" :class="{ active: showSettings }" title="文章设置">
+        <button @click="toggleSettings" :class="['nav-btn', { active: showSettings }]" title="文章设置">
           <el-icon><Setting /></el-icon>
         </button>
       </div>
     </div>
     <div class="editor-main">
-      <div class="editor-section" :class="{ 'settings-open': showSettings }">
+      <div :class="['editor-section', { 'settings-open': showSettings }]">
         <div class="title-section">
           <input v-model="article.title" type="text" class="title-input" placeholder="请输入文章标题..." maxlength="100">
           <span class="char-count">{{ article.title.length }}/100</span>
@@ -34,7 +34,7 @@
           </div>
         </div>
       </div>
-      <div class="settings-panel" :class="{ 'visible': showSettings }">
+      <div :class="['settings-panel', { 'visible': showSettings }]">
         <div class="settings-header">
           <h3 class="settings-title">文章设置</h3>
           <button class="close-settings" @click="showSettings = false">

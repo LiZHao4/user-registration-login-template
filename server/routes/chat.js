@@ -1,6 +1,8 @@
 import express from 'express'
 import db from '../config.js'
+import { authMiddleware } from '../middlewares/auth.js'
 const router = express.Router()
+router.use(authMiddleware)
 function addUserInfoToMessages(messages, userInfoMap) {
   for (const message of messages) {
     if (message.sender && userInfoMap[message.sender]) {
@@ -15,22 +17,14 @@ function addUserInfoToMessages(messages, userInfoMap) {
 }
 router.get('/chat/:id', async (req, res) => {
   try {
-    const token = req.cookies.t
     const target = req.params.id
-    if (!token || !target) {
+    if (!target) {
       return res.status(400).json({
         code: -1,
         msg: '缺少必要的参数。'
       })
     }
-    const sessionResult = await db.getOne('SELECT user FROM user_session WHERE token = ? AND expires >= NOW()', [token])
-    if (!sessionResult) {
-      return res.status(401).json({
-        code: -1,
-        msg: '未找到有效的用户信息。'
-      })
-    }
-    const userId = sessionResult.user
+    const userId = req.userId
     if (!/^\d+$/.test(target)) {
       return res.status(400).json({
         code: -1,
@@ -38,12 +32,12 @@ router.get('/chat/:id', async (req, res) => {
       })
     }
     const sessionId = parseInt(target)
-    const { min, max, num, getmeta } = req.query
+    const { min, max, num } = req.query
     const parsedMin = min ? parseInt(min) : null
     const parsedMax = max ? parseInt(max) : null
     const parsedNum = num ? parseInt(num) : null
+    const getMeta = Object.hasOwn(req.query, 'getmeta')
     const isInitialLoad = (parsedMin === null && parsedMax === null && parsedNum === null)
-    const getMeta = getmeta !== null
     const validateResult = await db.getOne('SELECT (SELECT COUNT(*) FROM friendships WHERE id = ? AND (source = ? OR target = ?)) + (SELECT COUNT(*) FROM group_members WHERE `group` = ? AND user = ?) AS validate', [sessionId, userId, userId, sessionId, userId])
     if (!validateResult || validateResult.validate === 0) {
       return res.status(403).json({

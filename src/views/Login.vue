@@ -11,8 +11,8 @@
           <label>密码</label>
           <input type="password" v-model="form.password" required>
         </div>
-        <Button type="primary" @click="submitForm" :loading="loading">登录</Button>
-        <Button type="secondary" @click="goToRegister">注册</Button>
+        <Button class="full-width" type="primary" @click="submitForm" :loading="loading">登录</Button>
+        <Button class="full-width" type="secondary" @click="goToRegister">注册</Button>
       </div>
     </div>
   </div>
@@ -24,6 +24,7 @@ import axios from 'axios'
 import type { LoginAPIResponseData } from '@/types/api'
 import { ElMessage } from 'element-plus'
 import { formatDateLong } from '@/utils/dateFormatter'
+import { useUserStore } from '@/stores/user'
 interface LoginForm {
   username: string
   password: string
@@ -34,6 +35,7 @@ const form = reactive<LoginForm>({
   password: ''
 })
 const loading = ref<boolean>(false)
+const userStore = useUserStore()
 const submitForm = async () => {
   if (!form.username || !form.password) {
     ElMessage.error('请输入用户名和密码。')
@@ -49,6 +51,7 @@ const submitForm = async () => {
       const message = result.data.msg.replace('#t', formatDateLong(result.data.unbanned_at))
       ElMessage.error(message)
     } else {
+      userStore.login(result.data.id)
       router.push('/')
     }
   } catch (error) {
@@ -62,10 +65,6 @@ const goToRegister = () => {
 }
 </script>
 <style scoped>
-Button {
-  width: 100%;
-  margin-bottom: 0.5rem;
-}
 .form-group {
   margin-bottom: 1rem;
 }
@@ -87,6 +86,10 @@ Button {
   margin-bottom: 0.5rem;
   color: #555;
   font-weight: 500;
+}
+.full-width {
+  width: 100%;
+  margin-top: 0.5rem;
 }
 .login-container {
   background: white;

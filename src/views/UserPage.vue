@@ -1,14 +1,12 @@
 <template>
   <div ref="profileRoot" class="profile-wrapper" :style="rootStyle" element-loading-text="加载中...">
-    <button class="back-btn-fixed" @click="goBack">
-      <el-icon><ArrowLeft /></el-icon>返回
-    </button>
+    <button class="back-btn-fixed" @click="goBack"><el-icon><ArrowLeft /></el-icon>返回</button>
     <el-result v-if="pageError" icon="error" title="出错了" :sub-title="errorMessage">
       <template #extra>
         <el-button type="primary" @click="reload">重试</el-button>
       </template>
     </el-result>
-    <div v-else class="profile-container" :class="{ 'has-background': !!userData.background }">
+    <div v-else :class="['profile-container', { 'has-background': !!userData.background }]">
       <div class="user-card">
         <div class="profile-header" :style="headerGradientStyle">
           <div class="avatar-container">
@@ -102,7 +100,6 @@
 import { ref, computed, onMounted, onUnmounted, watch, reactive, type CSSProperties } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
-import { Edit, ArrowRight } from '@element-plus/icons-vue'
 import type { PublicUser, GenderType, PublicUserAPIResponseData } from '@/types/api'
 import { formatDateShort } from '@/utils/dateFormatter'
 const route = useRoute()
@@ -136,7 +133,7 @@ const currentPage = ref(1)
 const pageSize = 10
 const articlesTotal = ref(0)
 let originalBodyBg = ''
-let originalBodyClass = ''
+let articleRequestId = 0
 const getGenderText = (gender: GenderType): string => {
   if (gender === 'M') return '男'
   if (gender === 'W') return '女'
@@ -145,11 +142,11 @@ const getGenderText = (gender: GenderType): string => {
 const getAgeText = (birth: string): string => {
   if (!birth) return '-'
   try {
-    const birthDate = new Date(birth)
+    const [year, month, day] = birth.split('-').map(Number)
     const today = new Date()
-    let age = today.getFullYear() - birthDate.getFullYear()
-    const m = today.getMonth() - birthDate.getMonth()
-    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+    let age = today.getFullYear() - year
+    const m = today.getMonth() + 1 - month
+    if (m < 0 || (m === 0 && today.getDate() < day)) {
       age--
     }
     return age + '岁'
@@ -241,30 +238,9 @@ async function fetchUserData(id: string) {
     throw new Error(err.message)
   }
 }
-async function addFriend(targetId: string) {
-  const res = await axios.post(`/friends.php`, 
-    new URLSearchParams({ target: targetId, action: 'add' }),
-    { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
-  )
-  return res.data
-}
-async function agreeFriend(targetId: string) {
-  const res = await axios.post(`/friends.php`,
-    new URLSearchParams({ target: targetId, action: 'agree' }),
-    { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
-  )
-  return res.data
-}
 async function updateRemark(targetId: string, remark: string) {
   const res = await axios.post(`/set_remark.php`,
     new URLSearchParams({ target: targetId, remark }),
-    { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
-  )
-  return res.data
-}
-async function followUser(targetId: string, action: 'follow' | 'unfollow') {
-  const res = await axios.post(`/follow.php`,
-    new URLSearchParams({ target: targetId, action }),
     { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
   )
   return res.data
@@ -280,7 +256,7 @@ function applyBackground(url: string | null) {
     document.body.style.background = `url(${url}) center / cover no-repeat fixed`;
     document.body.classList.add('has-background');
   } else {
-    document.body.style.background = 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)';
+    document.body.style.background = originalBodyBg || 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)';
     document.body.classList.remove('has-background');
   }
 }
@@ -293,7 +269,6 @@ async function loadProfile(id: string) {
   pageError.value = false
   try {
     await fetchUserData(id)
-    applyBackground(userData.background)
     await loadArticles(id, currentPage.value)
     pageLoading.value = false
   } catch (err) {
@@ -303,9 +278,11 @@ async function loadProfile(id: string) {
   }
 }
 async function loadArticles(userId: string, page: number) {
+  const requestId = ++articleRequestId
   articlesLoading.value = true
   try {
     const data = await fetchArticles(userId, page, pageSize)
+    if (requestId !== articleRequestId) return
     if (data.code === 1) {
       articles.value = data.data.list
       articlesTotal.value = data.data.total
@@ -313,10 +290,14 @@ async function loadArticles(userId: string, page: number) {
       throw new Error(data.msg)
     }
   } catch (err) {
-    articles.value = []
-    articlesTotal.value = 0
+    if (requestId === articleRequestId) {
+      articles.value = []
+      articlesTotal.value = 0
+    }
   } finally {
-    articlesLoading.value = false
+    if (requestId === articleRequestId) {
+      articlesLoading.value = false
+    }
   }
 }
 const handleFriendAction = async () => {}
@@ -361,8 +342,7 @@ const goBack = () => {
   router.back()
 }
 onMounted(() => {
-  originalBodyBg = document.body.style.background
-  originalBodyClass = document.body.className
+  originalBodyBg = document.body.style.background || getComputedStyle(document.body).background
   const id = route.params.id as string
   if (!id) {
     pageError.value = true
@@ -375,6 +355,14 @@ onMounted(() => {
 onUnmounted(resetBackground)
 watch(() => userData.background, (newBg) => {
   applyBackground(newBg)
+}, { immediate: true })
+watch(() => route.params.id, (newId, oldId) => {
+  if (newId && newId !== oldId) {
+    currentPage.value = 1
+    articles.value = []
+    articlesTotal.value = 0
+    loadProfile(newId as string)
+  }
 })
 </script>
 <style scoped>

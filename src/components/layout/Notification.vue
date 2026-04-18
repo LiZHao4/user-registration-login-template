@@ -1,29 +1,28 @@
 <template>
-  <transition name="notification-fade">
-    <div
-      v-if="props.modelValue"
-      ref="notificationRef"
-      :class="['notification', { 'is-mobile': isMobile }]"
-      @touchstart="onTouchStart"
-      @touchmove="onTouchMove"
-      @touchend="onTouchEnd"
-    >
-      <div v-if="badge" class="notification__badge">{{ badge }}</div>
-      <div v-if="imageUrl" class="notification__image">
-        <img :src="imageUrl" alt="通知图片" />
-      </div>
-      <div class="notification__content">
-        <div class="notification__header">
-          <h3 class="notification__title">{{ title }}</h3>
-          <span class="notification__time">
-            {{ formatDateShort(time) }}
-            <el-button class="notification__close-btn" link :icon="Close" @click="close" />
-          </span>
-        </div>
-        <p class="notification__message">{{ content }}</p>
-      </div>
+  <div
+    v-if="props.modelValue"
+    ref="notificationRef"
+    :class="['notification', { 'is-mobile': isMobile }]"
+    @click="handleClick"
+    @touchstart="onTouchStart"
+    @touchmove="onTouchMove"
+    @touchend="onTouchEnd"
+  >
+    <div v-if="badge" class="notification__badge">{{ badge }}</div>
+    <div v-if="imageUrl" class="notification__image">
+      <img :src="imageUrl" alt="通知图片" />
     </div>
-  </transition>
+    <div class="notification__content">
+      <div class="notification__header">
+        <h3 class="notification__title">{{ title }}</h3>
+        <span class="notification__time">
+          {{ formatDateShort(time) }}
+          <el-button class="notification__close-btn" link :icon="Close" @click="close" />
+        </span>
+      </div>
+      <p class="notification__message">{{ content }}</p>
+    </div>
+  </div>
 </template>
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from 'vue'
@@ -37,6 +36,7 @@ const props = withDefaults(defineProps<{
   badge?: number
   duration: number
   modelValue: boolean
+  onClick?: () => void
 }>(), {
   time: Math.floor(new Date().getTime() / 1000),
   duration: 5000,
@@ -50,28 +50,53 @@ const isMobile = ref(window.innerWidth < 768)
 const updateLayout = () => {
   isMobile.value = window.innerWidth < 768
 }
-let startX = 0
+const notificationRef = ref<HTMLDivElement | null>(null)
 let startY = 0
-let isMoving = false
+let offsetY = 0
+let isSwiping = false
+let originalTransition = ''
 const onTouchStart = (e: TouchEvent) => {
-  const touch = e.touches[0]
-  startX = touch.clientX
-  startY = touch.clientY
-  isMoving = true
+  startY = e.touches[0].clientY
+  isSwiping = true
+  offsetY = 0
+  if (notificationRef.value) {
+    originalTransition = notificationRef.value.style.transition
+    notificationRef.value.style.transition = 'none'
+  }
 }
 const onTouchMove = (e: TouchEvent) => {
-  if (!isMoving) return
-  const touch = e.touches[0]
-  const deltaX = touch.clientX - startX
-  const deltaY = touch.clientY - startY
-  const SWIPE_THRESHOLD = 50
-  if (deltaY < -SWIPE_THRESHOLD || deltaX > SWIPE_THRESHOLD) {
-    close()
-    isMoving = false
+  if (!isSwiping) return
+  e.preventDefault()
+  const deltaY = e.touches[0].clientY - startY
+  offsetY = deltaY
+  if (notificationRef.value) {
+    notificationRef.value.style.transform = `translateX(-50%) translateY(${deltaY}px)`
   }
 }
 const onTouchEnd = () => {
-  isMoving = false
+  if (!isSwiping) return
+  isSwiping = false
+  const threshold = 50
+  if (Math.abs(offsetY) > threshold) {
+    close()
+  } else {
+    if (notificationRef.value) {
+      notificationRef.value.style.transform = ''
+      notificationRef.value.style.transition = 'transform 0.2s ease'
+      setTimeout(() => {
+        if (notificationRef.value) {
+          notificationRef.value.style.transition = originalTransition || ''
+        }
+      }, 200)
+    }
+  }
+  offsetY = 0
+}
+const handleClick = () => {
+  if (props.onClick) {
+    props.onClick()
+  }
+  close()
 }
 const close = () => {
   emit('update:modelValue', false)
@@ -119,15 +144,14 @@ onUnmounted(() => {
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   padding: 12px 16px;
-  transition: all 0.3s ease;
   cursor: pointer;
   pointer-events: auto;
   overflow: hidden;
 }
 .notification__badge {
   position: absolute;
-  top: -8px;
-  right: -8px;
+  bottom: 15px;
+  right: 15px;
   background-color: #f56c6c;
   color: white;
   font-size: 12px;
@@ -137,7 +161,6 @@ onUnmounted(() => {
   height: 20px;
   line-height: 20px;
   text-align: center;
-  padding: 0 6px;
   box-shadow: 0 0 0 2px #fff;
   z-index: 1;
 }
@@ -196,18 +219,6 @@ onUnmounted(() => {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.notification-fade-enter-active,
-.notification-fade-leave-active {
-  transition: opacity 0.3s ease, transform 0.3s ease;
-}
-.notification-fade-enter-from {
-  opacity: 0;
-  transform: translateX(30px);
-}
-.notification-fade-leave-to {
-  opacity: 0;
-  transform: translateX(30px);
-}
 .notification:not(.is-mobile) {
   top: 20px;
   right: 20px;
@@ -218,9 +229,5 @@ onUnmounted(() => {
   transform: translateX(-50%);
   width: calc(100% - 32px);
   max-width: 320px;
-}
-.notification.is-mobile.notification-fade-enter-from,
-.notification.is-mobile.notification-fade-leave-to {
-  transform: translateX(-50%) translateY(-20px);
 }
 </style>

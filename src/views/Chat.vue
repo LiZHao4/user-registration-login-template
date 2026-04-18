@@ -3,7 +3,7 @@
     <div class="chat-messages" ref="messagesContainer">
       <template v-if="chatData">
         <MessageBubble
-          v-for="message in chatData.data"
+          v-for="message in messages"
           :key="message.id"
           :message="message"
           :chat-type="chatData.type"
@@ -63,12 +63,14 @@
   </dialog>
 </template>
 <script setup lang="ts">
-import { ref, onMounted, nextTick, inject, computed } from 'vue'
+import { ref, onMounted, nextTick, inject, computed, onUnmounted, reactive, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
-import type { ChatAPIResponseData, ChatAPISimple, ChatRecordItem } from '@/types/api'
+import type { ChatAPIResponseData, ChatAPISimple, ChatRecordItem, MessageItem } from '@/types/api'
 import type { DialogConfigFunc, DialogButton } from '@/components/layout/BottomDialog.vue'
 import { formatDateLong } from '@/utils/dateFormatter'
+import { useChatStore } from '@/stores/chat'
+const chatStore = useChatStore()
 const showGlobalDialog = inject<DialogConfigFunc>('showGlobalDialog')
 const route = useRoute()
 const router = useRouter()
@@ -92,6 +94,15 @@ const messagesContainer = ref<HTMLDivElement | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
 const recordsDialog = ref<HTMLDialogElement | null>(null)
 const currentRecords = ref<ChatRecordItem[]>([])
+const isLoadingMore = ref<boolean>(false)
+const hasMore = ref<boolean>(true)
+const shouldAutoScroll = ref<boolean>(true)
+const earliestMessageId = computed<number | null>(() => {
+  if (chatData.value && chatData.value.data.length > 0) {
+    return chatData.value.data[0].id
+  }
+  return null
+})
 const currentUserId = computed<number>(() => {
   if (chatData.value.type === 'group') {
     const idx = chatData.value.current_user_index
@@ -105,6 +116,33 @@ const displayName = computed<string>(() => {
   }
   return getDisplayName(chatData.value.oName, chatData.value.remark)
 })
+const messages = computed<MessageItem[]>(() => chatStore.getMessages(chatIdNum))
+const fetchMessages = async (before?: number, num: number = 30) => {
+  try {
+    const response = await axios.get<ChatAPISimple>(`/api/chat/${chatIdNum}?num=${num}${before ? `&min=${before}` : ''}`)
+    return response.data.data 
+  } catch (error) {
+    return []
+  }
+}
+const loadMoreMessages = async () => {
+  if (isLoadingMore.value || !hasMore.value) return
+  isLoadingMore.value = true
+  const newMessages = await fetchMessages(earliestMessageId.value, 30)
+  if (newMessages.length === 0) {
+    hasMore.value = false
+    return
+  }
+  const container = messagesContainer.value
+  const oldScrollHeight = container.scrollHeight
+  const currentMessages = chatStore.getMessages(chatIdNum)
+  chatStore.setMessages(chatIdNum, [...newMessages, ...currentMessages])
+  await nextTick()
+  const newScrollHeight = container.scrollHeight
+  const delta = newScrollHeight - oldScrollHeight
+  container.scrollTop = delta
+  isLoadingMore.value = false
+}
 const isMyMessage = (senderId: number): boolean => {
   return senderId === currentUserId.value
 }
@@ -154,7 +192,7 @@ const sendMessage = async () => {
       const chatResponse = await axios.get<ChatAPISimple>(
         `/api/chat/${encodeURIComponent(chatIdNum)}?max=${response.data.data.id - 1}`
       )
-      chatData.value.data = chatData.value.data.concat(chatResponse.data.data)
+      chatStore.addMessage(chatIdNum, chatResponse.data.data[0])
       nextTick(() => {
         scrollToBottom()
       })
@@ -238,12 +276,59 @@ const closeRecordsDialog = () => {
   recordsDialog.value.close()
   currentRecords.value = null
 }
-onMounted(async () => {
-  const response = await axios.get<ChatAPIResponseData>(`/api/chat/${encodeURIComponent(chatIdNum)}?num=30&getmeta=`)
-  chatData.value = response.data
-  nextTick(() => {
-    scrollToBottom()
+const handleScroll = () => {
+  window.dispatchEvent(new CustomEvent('close-all-message-menus'))
+  const container = messagesContainer.value
+  if (!container) return
+  const distanceToBottom = container.scrollHeight - container.scrollTop - container.clientHeight
+  shouldAutoScroll.value = distanceToBottom < 50
+  if (container.scrollTop <= 50 && !isLoadingMore.value && hasMore.value) {
+    loadMoreMessages()
+  }
+}
+const initChat = async () => {
+  const response = await axios.get<ChatAPIResponseData>(`/api/chat/${chatIdNum}?num=30&getmeta=`)
+  const rawData = response.data
+  chatStore.setMessages(chatIdNum, rawData.data)
+  const reactiveData = reactive(rawData)
+  Object.defineProperty(reactiveData, 'data', {
+    get: () => chatStore.getMessages(chatIdNum),
+    enumerable: true,
+    configurable: true
   })
+  chatData.value = reactiveData
+}
+const scrollToBottomSmooth = () => {
+  const container = messagesContainer.value
+  if (container) {
+    container.scrollTo({
+      top: container.scrollHeight,
+      behavior: 'smooth'
+    })
+  }
+}
+watch(() => messages.value.length, (newLen, oldLen) => {
+  if (newLen > oldLen) {
+    const lastMsg = messages.value[messages.value.length - 1]
+    const isFromOther = lastMsg && lastMsg.sender !== currentUserId.value
+    if (shouldAutoScroll.value && isFromOther) {
+      nextTick(() => {
+        scrollToBottomSmooth()
+      })
+    }
+  }
+})
+onMounted(async () => {
+  await initChat()
+  await nextTick()
+  scrollToBottom()
+  messagesContainer.value.addEventListener('scroll', handleScroll, { passive: true })
+})
+
+onUnmounted(() => {
+  if (messagesContainer.value) {
+    messagesContainer.value.removeEventListener('scroll', handleScroll)
+  }
 })
 </script>
 <style scoped>

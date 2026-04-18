@@ -11,6 +11,7 @@
         :image-url="item.imageUrl"
         :badge="item.badge"
         :duration="item.duration"
+        :on-click="item.onClick"
         @close="removeNotification(item.id)"
       />
     </TransitionGroup>
@@ -18,13 +19,14 @@
 </template>
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-export interface NotificationOptions {
+interface NotificationOptions {
   title: string
   content: string
   time: number
   imageUrl?: string
   badge?: number
   duration: number
+  onClick?: () => void
 }
 interface NotificationInstance extends NotificationOptions {
   id: string
@@ -81,11 +83,9 @@ onUnmounted(() => {
   right: 0;
   align-items: center;
 }
-.notification-container.is-mobile .notification-list-enter-from {
-  transform: translateY(-30px);
-}
+.notification-container.is-mobile .notification-list-enter-from,
 .notification-container.is-mobile .notification-list-leave-to {
-  transform: translateY(-30px);
+  transform: translateX(-50%) translateY(-30px);
 }
 .notification-list-enter-active,
 .notification-list-leave-active {
