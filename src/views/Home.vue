@@ -200,7 +200,7 @@ onUnmounted(() => {
 })
 const handleLogout = async () => {
   try {
-    const response: { data: APIResponse } = await axios.post('/api/logout', null, {
+    const response = await axios.post<APIResponse>('/api/logout', null, {
       withCredentials: true
     })
     if (response.data.code === 1) {

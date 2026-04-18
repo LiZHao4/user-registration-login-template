@@ -51,6 +51,7 @@ router.post('/login', async (req, res) => {
     res.json({
       code: 1,
       msg: '登录成功。',
+      id: user.id,
       token, expires
     })
     await db.query('DELETE FROM user_session WHERE expires <= NOW()')

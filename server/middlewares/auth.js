@@ -37,7 +37,7 @@ export async function verifyToken(token) {
     if (sessionResult.length === 0) {
       return null
     }
-    return { id: sessionResult[0].user }
+    return sessionResult[0].user
   } catch (error) {
     return null
   }

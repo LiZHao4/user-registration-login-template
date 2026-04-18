@@ -51,9 +51,7 @@ if (!fs.existsSync(logsDir)) {
   fs.mkdirSync(logsDir, { recursive: true })
 }
 const accessLogStream = fs.createWriteStream(path.join(logsDir, 'access.log'), { flags: 'a' })
-app.use(express.json())
-app.use(express.urlencoded({ extended: true }))
-const uploadDirs = ['uploads', 'uploads/avatar', 'uploads/bg', 'uploads/files', 'uploads/images']
+const uploadDirs = ['../uploads', '../uploads/avatar', '../uploads/bg', '../uploads/files', '../uploads/images']
 uploadDirs.forEach(dir => {
   const fullPath = path.join(__dirname, dir)
   if (!fs.existsSync(fullPath)) {
@@ -61,6 +59,8 @@ uploadDirs.forEach(dir => {
     console.log(`创建目录: ${fullPath}`)
   }
 })
+app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
 app.use(cookieParser())
 app.use(morgan('combined', { stream: accessLogStream }))
 app.use('/api', authRoutes)
@@ -69,7 +69,7 @@ app.use('/api', friendRoutes)
 app.use('/api', chatRoutes)
 app.use('/api', articleRoutes)
 app.use('/api', messageRoutes)
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')))
 app.use(express.static(path.join(__dirname, '../dist')))
 app.use((req, res, next) => {
   if (!req.path.startsWith('/api') && !req.path.startsWith('/uploads')) {
@@ -89,7 +89,6 @@ app.use((err, req, res, next) => {
 app.use((req, res) => {
   res.status(404).send('未找到页面。')
 })
-app.set('trust proxy', 'loopback, 192.168.0.0/24, 10.0.0.0/8')
 const server = http.createServer(app)
 const io = new Server(server, {
   cors: {

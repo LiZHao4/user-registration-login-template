@@ -138,7 +138,7 @@ const submitForm = async () => {
   }
 }
 const goToLogin = () => {
-  router.push('/login')
+  router.back()
 }
 </script>
 <style scoped>

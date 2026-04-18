@@ -1,5 +1,5 @@
 <template>
-  <div class="message" @contextmenu.prevent="showMenu">
+  <div class="message">
     <div :class="['message-wrapper', isMyMessage ? 'sent' : 'received']">
       <el-avatar v-if="!isMyMessage" :src="avatar" :size="40" @click="goToProfile(message.sender)" />
       <div class="message-content">
@@ -10,7 +10,7 @@
             <template v-else>{{ formatDateLong(message.sent_at) }}</template>
           </span>
         </div>
-        <div class="message-bubble">
+        <div class="message-bubble" @contextmenu.prevent="showMenu">
           <div class="message-content-inner">
             <div v-if="message.type === 1">{{ message.content }}</div>
             <div v-else-if="message.type === 2">
@@ -35,7 +35,7 @@
               <small class="system-label">{{ getSystemMessageType() }}</small>
               <span class="system-content">{{ getSystemMessageContent() }}</span>
             </div>
-            <div v-else-if="message.type === 5" class="forward-message">{{ getMessageHistoryContent() }}</div>
+            <div v-else-if="message.type === 5" class="history-message">{{ getMessageHistoryContent() }}</div>
             <div v-else-if="message.type === 6" @click="goToChatRecords">
               <div class="records-header">
                 <span class="records-label">聊天记录</span>
@@ -45,27 +45,38 @@
                 </span>
               </div>
               <div v-for="(record, idx) in message.content.slice(0, 2)" :key="idx">
-                {{ record.sender_nick }}：{{ record.type === 1 ? record.content : '[文件]' }}
+                {{ record.sender_nick }}：
+                <template v-if="record.type === 1">{{ record.content }}</template>
+                <template v-else-if="record.type === 2">[文件]</template>
+                <template v-else-if="record.type === 5">{{ getForwardPreview(record) }}</template>
+                <template v-else-if="record.type === 6">[聊天记录] {{ record.content.length }}条</template>
+                <template v-else>[未知消息]</template>
               </div>
               <div v-if="message.content.length > 2">……</div>
             </div>
-            <div v-if="showMessageMenu" class="message-menu">
-              <div class="menu-item" @click="handleEdit" v-if="canEdit">编辑</div>
-              <div class="menu-item" @click="handleRecall" v-if="canRecall">撤回</div>
-              <div class="menu-item" @click="handleReply">回复</div>
-            </div>
           </div>
         </div>
-        <div v-if="message.type === 5">
-          <div class="pagination-container">
-            <button class="pagination-btn" :disabled="currentPage === 0" @click="prevPage">
-              <el-icon><ArrowLeft /></el-icon>
-            </button>
-            <span class="page-indicator">{{ currentPage + 1 }} / {{ message.content.length }}</span>
-            <button class="pagination-btn" :disabled="currentPage === message.content.length - 1" @click="nextPage">
-              <el-icon><ArrowRight /></el-icon>
-            </button>
-          </div>
+        <div v-if="message.type === 5" class="pagination-container">
+          <span class="pagination-btn" :disabled="currentPage === 0" @click="prevPage">
+            <el-icon><ArrowLeft /></el-icon>
+          </span>
+          <span class="page-indicator">{{ currentPage + 1 }} / {{ message.content.length }}</span>
+          <span class="pagination-btn" :disabled="currentPage === message.content.length - 1" @click="nextPage">
+            <el-icon><ArrowRight /></el-icon>
+          </span>
+        </div>
+        <div
+          v-if="showMessageMenu"
+          class="message-menu"
+          ref="messageMenu"
+          :style="{
+            top: menuPosition.y + 'px',
+            left: menuPosition.x + 'px'
+          }"
+        >
+          <div class="menu-item" @click="handleEdit" v-if="canEdit">编辑</div>
+          <div class="menu-item" @click="handleRecall" v-if="canRecall">撤回</div>
+          <div class="menu-item" @click="handleReply">回复</div>
         </div>
       </div>
       <el-avatar v-if="isMyMessage" :src="avatar" :size="40" @click="goToProfile(message.sender)" />
@@ -73,10 +84,10 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, computed, onMounted, type Component } from 'vue'
+import { ref, computed, onMounted, onUnmounted, type Component } from 'vue'
 import { useRouter } from 'vue-router'
 import { formatDateLong } from '@/utils/dateFormatter'
-import type { GroupInviteMessage, MessageChangeRecords, SystemMessage, MessageItem } from '@/types/api'
+import type { GroupInviteMessage, MessageChangeRecords, SystemMessage, MessageItem, ChangeAsRecord } from '@/types/api'
 import {
   Document, Picture, VideoCamera, Headset, DataLine, DocumentCopy, Tickets, FolderOpened, ArrowLeft, ArrowRight
 } from '@element-plus/icons-vue'
@@ -88,6 +99,40 @@ export interface MessageProp {
   displayName: string
   currentUserId: number
 }
+const fileTypeConfig: Record<string, { icon: Component, colorClass: string }> = {
+  doc: { icon: Document, colorClass: 'text-primary' },
+  docx: { icon: Document, colorClass: 'text-primary' },
+  xls: { icon: DataLine, colorClass: 'text-success' },
+  xlsx: { icon: DataLine, colorClass: 'text-success' },
+  csv: { icon: DataLine, colorClass: 'text-success' },
+  ppt: { icon: DocumentCopy, colorClass: 'text-danger' },
+  pptx: { icon: DocumentCopy, colorClass: 'text-danger' },
+  pdf: { icon: Document, colorClass: 'text-danger' },
+  zip: { icon: FolderOpened, colorClass: 'text-warning' },
+  rar: { icon: FolderOpened, colorClass: 'text-warning' },
+  '7z': { icon: FolderOpened, colorClass: 'text-warning' },
+  tar: { icon: FolderOpened, colorClass: 'text-warning' },
+  gz: { icon: FolderOpened, colorClass: 'text-warning' },
+  jpg: { icon: Picture, colorClass: 'text-info' },
+  jpeg: { icon: Picture, colorClass: 'text-info' },
+  png: { icon: Picture, colorClass: 'text-info' },
+  gif: { icon: Picture, colorClass: 'text-info' },
+  bmp: { icon: Picture, colorClass: 'text-info' },
+  svg: { icon: Picture, colorClass: 'text-info' },
+  mp3: { icon: Headset, colorClass: 'text-info' },
+  wav: { icon: Headset, colorClass: 'text-info' },
+  flac: { icon: Headset, colorClass: 'text-info' },
+  aac: { icon: Headset, colorClass: 'text-info' },
+  mp4: { icon: VideoCamera, colorClass: 'text-info' },
+  avi: { icon: VideoCamera, colorClass: 'text-info' },
+  mov: { icon: VideoCamera, colorClass: 'text-info' },
+  wmv: { icon: VideoCamera, colorClass: 'text-info' },
+  flv: { icon: VideoCamera, colorClass: 'text-info' },
+  txt: { icon: Tickets, colorClass: 'text-secondary' },
+  log: { icon: Tickets, colorClass: 'text-secondary' },
+  ini: { icon: Tickets, colorClass: 'text-secondary' },
+  conf: { icon: Tickets, colorClass: 'text-secondary' }
+}
 const router = useRouter()
 const props = defineProps<MessageProp>()
 const fileUrl = computed<string>(() => {
@@ -96,84 +141,29 @@ const fileUrl = computed<string>(() => {
 })
 const currentPage = ref<number>(0)
 const showMessageMenu = ref<boolean>(false)
+const menuPosition = ref({ x: 0, y: 0 })
+const closeMenu = () => {
+  showMessageMenu.value = false
+}
+const messageMenu = ref<HTMLDivElement | null>(null)
+const handleGlobalClick = (e: MouseEvent) => {
+  if (messageMenu.value && messageMenu.value.contains(e.target as Node)) return
+  closeMenu()
+}
 const emit = defineEmits(['edit', 'recall', 'reply', 'viewRecords'])
+const getFileExt = (fileName: string): string => {
+  return fileName.split('.').pop()?.toLowerCase() ?? ''
+}
 const fileIconComponent = computed<Component>(() => {
   if (!props.message.content) return Document
-  const fileExt = (props.message.content as string).split('.').pop().toLowerCase()
-  const iconMap: Record<string, Component> = {
-    doc: Document,
-    docx: Document,
-    xls: DataLine,
-    xlsx: DataLine,
-    csv: DataLine,
-    ppt: DocumentCopy,
-    pptx: DocumentCopy,
-    pdf: Document,
-    zip: FolderOpened,
-    rar: FolderOpened,
-    '7z': FolderOpened,
-    tar: FolderOpened,
-    gz: FolderOpened,
-    jpg: Picture,
-    jpeg: Picture,
-    png: Picture,
-    gif: Picture,
-    bmp: Picture,
-    svg: Picture,
-    mp3: Headset,
-    wav: Headset,
-    flac: Headset,
-    aac: Headset,
-    mp4: VideoCamera,
-    avi: VideoCamera,
-    mov: VideoCamera,
-    wmv: VideoCamera,
-    flv: VideoCamera,
-    txt: Tickets,
-    log: Tickets,
-    ini: Tickets,
-    conf: Tickets,
-  }
-  return iconMap[fileExt] || Document
+  const ext = getFileExt(props.message.content as string)
+  return fileTypeConfig[ext]?.icon ?? Document
 })
+
 const fileIconColorClass = computed<string>(() => {
   if (!props.message.content) return ''
-  const fileExt = (props.message.content as string).split('.').pop().toLowerCase()
-  const colorMap: Record<string, string> = {
-    doc: 'text-primary',
-    docx: 'text-primary',
-    xls: 'text-success',
-    xlsx: 'text-success',
-    csv: 'text-success',
-    ppt: 'text-danger',
-    pptx: 'text-danger',
-    pdf: 'text-danger',
-    zip: 'text-warning',
-    rar: 'text-warning',
-    '7z': 'text-warning',
-    tar: 'text-warning',
-    gz: 'text-warning',
-    jpg: 'text-info',
-    jpeg: 'text-info',
-    png: 'text-info',
-    gif: 'text-info',
-    bmp: 'text-info',
-    svg: 'text-info',
-    mp3: 'text-info',
-    wav: 'text-info',
-    flac: 'text-info',
-    aac: 'text-info',
-    mp4: 'text-info',
-    avi: 'text-info',
-    mov: 'text-info',
-    wmv: 'text-info',
-    flv: 'text-info',
-    txt: 'text-secondary',
-    log: 'text-secondary',
-    ini: 'text-secondary',
-    conf: 'text-secondary',
-  }
-  return colorMap[fileExt] || ''
+  const ext = getFileExt(props.message.content as string)
+  return fileTypeConfig[ext]?.colorClass ?? ''
 })
 const isUserInGroup = computed(() => {
   const content = (props.message as GroupInviteMessage).content
@@ -204,7 +194,9 @@ const goToChatRecords = () => {
   }
 }
 const showMenu = (event: MouseEvent) => {
-  console.log('显示菜单', event)
+  window.dispatchEvent(new CustomEvent('close-all-message-menus'))
+  menuPosition.value = { x: event.clientX, y: event.clientY }
+  showMessageMenu.value = true
 }
 const getInviteMessage = () => {
   const content = (props.message as GroupInviteMessage).content
@@ -281,17 +273,30 @@ const nextPage = () => {
 }
 const handleEdit = () => {
   emit('edit', props.message)
+  closeMenu()
 }
 const handleRecall = () => {
   emit('recall', props.message)
+  closeMenu()
 }
 const handleReply = () => {
   emit('reply', props.message)
+  closeMenu()
+}
+const getForwardPreview = (record: ChangeAsRecord): string => {
+  const lastMsg = record.content[record.content.length - 1].msg
+  return lastMsg.slice(0, 30) + (lastMsg.length > 30 ? '…' : '')
 }
 onMounted(() => {
   if (props.message.type === 5 && props.message.content) {
     currentPage.value = props.message.content.length - 1
   }
+  window.addEventListener('click', handleGlobalClick)
+  window.addEventListener('close-all-message-menus', closeMenu)
+})
+onUnmounted(() => {
+  window.removeEventListener('click', handleGlobalClick)
+  window.removeEventListener('close-all-message-menus', closeMenu)
 })
 </script>
 <style scoped>
@@ -313,7 +318,7 @@ onMounted(() => {
   display: block;
   margin-bottom: 4px;
 }
-.forward-message {
+.history-message {
   position: relative;
 }
 .invite-content {
@@ -369,14 +374,12 @@ onMounted(() => {
   width: 100%;
 }
 .message-menu {
-  position: absolute;
-  top: 100%;
-  right: 0;
+  position: fixed;
   background: white;
   border: 1px solid #e0e0e0;
   border-radius: 6px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
   min-width: 80px;
 }
 .message-time {
@@ -415,6 +418,12 @@ onMounted(() => {
 .message-wrapper.sent .message-header {
   justify-content: flex-end;
 }
+.message-wrapper.sent .system-content {
+  color: rgba(255, 255, 255, 0.9);
+}
+.message-wrapper.sent .system-label {
+  color: rgba(255, 255, 255, 0.7);
+}
 .page-indicator {
   font-size: 0.75em;
   color: #666;
@@ -431,8 +440,6 @@ onMounted(() => {
   cursor: not-allowed;
 }
 .pagination-container {
-  top: -20px;
-  right: 0;
   background: rgba(255, 255, 255, 0.9);
   padding: 2px 6px;
   border-radius: 12px;
@@ -440,6 +447,7 @@ onMounted(() => {
   align-items: center;
   gap: 4px;
   z-index: 10;
+  margin-top: 5px;
 }
 .records-count {
   margin-right: 8px;

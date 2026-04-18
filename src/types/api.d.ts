@@ -5,6 +5,7 @@ interface APIResponse {
 export interface LoginAPIResponseData extends APIResponse {
   token: string
   expires: number
+  id: number
   unbanned_at?: number
 }
 export type RegisterAPIResponseData = APIResponse
@@ -29,9 +30,10 @@ interface PrivateUser extends User {
   token_expires: number
   created_at: number
 }
+type FriendStatus = 'self' | 'true' | 'false' | 'pending' | 'requested'
 export interface PublicUser extends User {
   remark: string | null
-  friend_status: string
+  friend_status: FriendStatus
   follow_status: number
 }
 export interface PrivateUserAPIResponseData extends APIResponse { data: PrivateUser }
@@ -111,7 +113,7 @@ interface FileAsRecord extends ChatRecord {
   content: string
   multi: string
 }
-interface ChangeAsRecord extends ChatRecord {
+export interface ChangeAsRecord extends ChatRecord {
   type: 5
   content: MessageChangeRecord[]
 }
