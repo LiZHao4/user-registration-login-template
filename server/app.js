@@ -15,36 +15,12 @@ import { Server } from 'socket.io'
 import { initSocket } from './socket.js'
 import cookie from 'cookie'
 import { verifyToken } from './middlewares/auth.js'
-function parseIniFile(filePath) {
-  const content = fs.readFileSync(filePath, 'utf-8')
-  const config = {}
-  let currentSection = config
-  content.split('\n').forEach(line => {
-    line = line.split(';')[0].split('#')[0].trim()
-    if (!line) return
-    const sectionMatch = line.match(/^\[(.*)\]$/)
-    if (sectionMatch) {
-      const sectionName = sectionMatch[1].trim()
-      config[sectionName] = {}
-      currentSection = config[sectionName]
-      return
-    }
-    const keyValueMatch = line.match(/^(\w+)\s*=\s*(.*)$/)
-    if (keyValueMatch) {
-      const key = keyValueMatch[1].trim()
-      let value = keyValueMatch[2].trim()
-      if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
-        value = value.slice(1, -1)
-      }
-      currentSection[key] = value
-    }
-  })
-  return config
-}
+import { parseIniFile } from '../parse.ts'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const config = parseIniFile(path.join(__dirname, '../settings.ini'))
 const app = express()
+const HOST = config.server.backend_host
 const PORT = config.server.backend_port
 const logsDir = path.join(__dirname, 'logs')
 if (!fs.existsSync(logsDir)) {
@@ -92,7 +68,7 @@ app.use((req, res) => {
 const server = http.createServer(app)
 const io = new Server(server, {
   cors: {
-    origin: `http://${config.server.frontend_host}:${config.server.frontend_port}`,
+    origin: `http://${HOST}:${PORT}`,
     credentials: true
   }
 })
@@ -114,6 +90,6 @@ io.use(async (socket, next) => {
   }
 })
 initSocket(io)
-server.listen(PORT, config.server.backend_host, () => {
-  console.log(`后端服务器运行在 http://${config.server.backend_host}:${PORT}`)
+server.listen(PORT, HOST, () => {
+  console.log(`后端服务器运行在 http://${HOST}:${PORT}`)
 })

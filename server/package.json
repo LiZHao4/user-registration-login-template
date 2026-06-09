@@ -12,8 +12,10 @@
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "express": "^5.1.0",
+    "file-type": "^22.0.1",
     "morgan": "^1.10.1",
     "mysql2": "^3.15.1",
+    "sharp": "^0.34.5",
     "socket.io": "^4.8.1"
   }
 }

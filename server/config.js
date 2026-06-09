@@ -1,35 +1,9 @@
 import mysql from 'mysql2/promise'
-import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { parseIniFile } from '../parse.ts'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
-function parseIniFile(filePath) {
-  const content = fs.readFileSync(filePath, 'utf-8')
-  const config = {}
-  let currentSection = config
-  content.split('\n').forEach(line => {
-    line = line.split(';')[0].split('#')[0].trim()
-    if (!line) return
-    const sectionMatch = line.match(/^\[(.*)\]$/)
-    if (sectionMatch) {
-      const sectionName = sectionMatch[1].trim()
-      config[sectionName] = {}
-      currentSection = config[sectionName]
-      return
-    }
-    const keyValueMatch = line.match(/^(\w+)\s*=\s*(.*)$/)
-    if (keyValueMatch) {
-      const key = keyValueMatch[1].trim()
-      let value = keyValueMatch[2].trim()
-      if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
-        value = value.slice(1, -1)
-      }
-      currentSection[key] = value
-    }
-  })
-  return config
-}
 const config = parseIniFile(path.join(__dirname, '../settings.ini'))
 const dbConfig = {
   host: config.database.host,

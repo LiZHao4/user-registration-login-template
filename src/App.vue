@@ -18,20 +18,45 @@ import { getDisplayContent } from './utils/messageUtils'
 import { useRouter } from 'vue-router'
 import { useUserStore } from './stores/user'
 import { useChatStore } from './stores/chat'
+import axios from 'axios'
 const notificationContainer = ref<InstanceType<typeof NotificationContainer> | null>(null)
 const userStore = useUserStore()
-let socket: ReturnType<typeof io> | null = null
 const router = useRouter()
+let socket: ReturnType<typeof io> | null = null
+let hasShownDialog = false
+const initAuth = async () => {
+  const res = await axios.get('/api/checkLogin')
+  if (res.data.isLogin) {
+    userStore.login(res.data.userId)
+  }
+}
 const connectWebSocket = () => {
-  if (socket) return
+  if (!userStore.isLogin || socket) return
   socket = io('/', {
     withCredentials: true,
     path: '/socket.io'
   })
+  socket.on('connect_error', async err => {
+    if (hasShownDialog) return
+    hasShownDialog = true
+    showGlobalDialog({
+      title: 'Socket连接失败',
+      content: err.message,
+      buttons: [
+        {
+          label: '确定',
+          type: 'primary',
+          click: () => {
+            doLogout()
+            hasShownDialog = false
+          }
+        }
+      ]
+    })
+  })
   socket.on('error', err => {
     if (err.code === 0) {
-      userStore.logout()
-      router.push('/login')
+      doLogout()
     }
   })
   socket.on('new_message', message => {
@@ -67,6 +92,18 @@ const connectWebSocket = () => {
     }
   })
 }
+const disconnectWebSocket = () => {
+  if (socket) {
+    socket.disconnect()
+    socket = null
+  }
+}
+const doLogout = () => {
+  userStore.logout()
+  disconnectWebSocket()
+  hasShownDialog = false
+  router.push('/login')
+}
 const globalDialogVisible = ref<boolean>(false)
 const globalDialogConfig = reactive<DialogConfig>({})
 const showGlobalDialog: DialogConfigFunc = config => {
@@ -85,12 +122,16 @@ const hideGlobalDialog = () => {
 }
 provide('showGlobalDialog', showGlobalDialog)
 provide('hideGlobalDialog', hideGlobalDialog)
-onMounted(connectWebSocket)
-onUnmounted(() => {
-  if (socket) {
-    socket.disconnect()
-    socket = null
+onMounted(async () => {
+  await initAuth()
+  if (userStore.isLogin) {
+    connectWebSocket()
   }
+  window.addEventListener('user-logged-in', connectWebSocket)
+})
+onUnmounted(() => {
+  window.removeEventListener('user-logged-in', connectWebSocket)
+  disconnectWebSocket()
 })
 </script>
 <style>

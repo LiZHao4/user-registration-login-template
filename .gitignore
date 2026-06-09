@@ -7,3 +7,4 @@ logs/
 .vscode/
 uploads/
 components.d.ts
+auto-imports.d.ts

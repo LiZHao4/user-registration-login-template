@@ -1,4 +1,4 @@
-function generateRandomString(length) {
+export function generateRandomString(length) {
   const characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
   let token = ''
   for (let i = 0; i < length; i++) {

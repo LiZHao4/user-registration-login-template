@@ -15,7 +15,8 @@
     </div>
     <div class="article-stats">
       <span class="stat-item"><el-icon><ChatDotRound /></el-icon>{{ commentCount }}</span>
-      <span class="stat-item"><el-icon><Star /></el-icon>{{ likeCount }}</span>
+      <span class="stat-item"><span class="heart-icon">♡</span>{{ likeCount }}</span>
+      <!-- 实心爱心：❤️，以后有用 -->
     </div>
   </div>
 </template>
@@ -72,7 +73,7 @@ const goToArticle = () => {
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  white-space: normal;
+  white-space: pre-wrap;
 }
 .article-header {
   display: flex;
@@ -111,6 +112,11 @@ const goToArticle = () => {
   overflow: hidden;
   text-overflow: ellipsis;
   line-height: 1.3;
+}
+.heart-icon {
+  font-size: 14px;
+  line-height: 1;
+  margin-right: 2px;
 }
 .image-wrapper {
   position: relative;

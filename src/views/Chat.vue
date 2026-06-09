@@ -193,9 +193,8 @@ const sendMessage = async () => {
         `/api/chat/${encodeURIComponent(chatIdNum)}?max=${response.data.data.id - 1}`
       )
       chatStore.addMessage(chatIdNum, chatResponse.data.data[0])
-      nextTick(() => {
-        scrollToBottom()
-      })
+      await nextTick()
+      scrollToBottomSmooth()
     }
   } catch (error) {
     console.error('Error sending message:', error)
@@ -207,39 +206,19 @@ const scrollToBottom = () => {
 }
 const handleMoreOptions = () => {
   let contentString: string = ''
-  let buttons: DialogButton[] = [
-    {
-      label: '聊天记录转发',
-      click: () => {}
-    },
-    {
-      label: '保存聊天记录',
-      click: () => {}
-    }
-  ]
+  let buttons: DialogButton[] = []
   const chat = chatData.value
   if (chat.type === 'group') {
     contentString = `加入时间：${formatDateLong(chat.joined_at)}`
   } else {
     contentString = `请求时间：${formatDateLong(chat.requestTime)}
 接受时间：${formatDateLong(chat.allowedTime)}`
-    buttons.push(
-      {
-        label: '设置备注',
-        click: () => {}
-      },
-      {
-        label: '查看对方个人主页',
-        click: () => {
-          router.push(`/user/${chat.oId}`)
-        }
-      },
-      {
-        label: '删除好友',
-        type: 'danger',
-        click: () => {}
+    buttons.push({
+      label: '查看对方个人主页',
+      click: () => {
+        router.push(`/user/${chat.oId}`)
       }
-    )
+    })
   }
   showGlobalDialog({
     title: displayName.value,
@@ -324,7 +303,6 @@ onMounted(async () => {
   scrollToBottom()
   messagesContainer.value.addEventListener('scroll', handleScroll, { passive: true })
 })
-
 onUnmounted(() => {
   if (messagesContainer.value) {
     messagesContainer.value.removeEventListener('scroll', handleScroll)

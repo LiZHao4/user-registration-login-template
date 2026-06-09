@@ -2,54 +2,21 @@ import { fileURLToPath, URL } from 'node:url'
 import { defineConfig, type UserConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
-import fs from 'fs'
 import Components from 'unplugin-vue-components/vite'
+import AutoImport from 'unplugin-auto-import/vite'
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
-interface ServerConfig {
-  backend_host: string
-  backend_port: string
-  frontend_port: string
-  frontend_host: string
-  [key: string]: string
-}
-interface IniConfig {
-  server: ServerConfig
-}
-function parseIniFile(filePath: string): IniConfig {
-  const content = fs.readFileSync(filePath, 'utf-8')
-  const config: Partial<IniConfig> = {}
-  let currentSection: Record<string, string> = {}
-  content.split('\n').forEach(line => {
-    line = line.split(';')[0].split('#')[0].trim()
-    if (!line) return
-    const sectionMatch = line.match(/^\[(.*)\]$/)
-    if (sectionMatch) {
-      const sectionName = sectionMatch[1].trim()
-      if (sectionName === 'server') {
-        config.server = {} as ServerConfig
-        currentSection = config.server as Record<string, string>
-      }
-      return
-    }
-    const keyValueMatch = line.match(/^(\w+)\s*=\s*(.*)$/)
-    if (keyValueMatch) {
-      const key = keyValueMatch[1].trim()
-      let value = keyValueMatch[2].trim()
-      if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
-        value = value.slice(1, -1)
-      }
-      currentSection[key] = value
-    }
-  })
-  return config as IniConfig
-}
+import { parseIniFile } from './parse'
+
 const config = parseIniFile('./settings.ini')
 const targetUrl = `http://${config.server.backend_host}:${config.server.backend_port}`
 export default defineConfig({
   plugins: [
     vue(),
-    Components({
+    AutoImport({
       resolvers: [ElementPlusResolver()],
+    }),
+    Components({
+      resolvers: [ElementPlusResolver({ importStyle: true })],
     }),
     vueDevTools()
   ],
@@ -62,15 +29,15 @@ export default defineConfig({
     proxy: {
       '/api': {
         target: targetUrl,
-        changeOrigin: false
+        changeOrigin: true
       },
       '/uploads': {
         target: targetUrl,
-        changeOrigin: false
+        changeOrigin: true
       },
       '/socket.io': {
         target: targetUrl,
-        changeOrigin: false,
+        changeOrigin: true,
         ws: true
       }
     },
