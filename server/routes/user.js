@@ -33,7 +33,7 @@ router.get('/self', authMiddleware, async (req, res) => {
       ) AS session_unreads`,
       [userId, userId, userId, userId, userId]
     )
-    const sessionResult = await db.getOne('SELECT UNIX_TIMESTAMP(expires) AS expires FROM user_session WHERE user = ?', [userId])
+    const sessionResult = await db.getOne('SELECT UNIX_TIMESTAMP(expires) AS expires FROM user_session WHERE token = ?', [req.cookies.t])
     const unreadCount = unreadResult ? Number(unreadResult.unread_count) : 0
     const friendRequestCount = friendRequestResult ? Number(friendRequestResult.request_count) : 0
     const friendUnreadCount = friendUnreadResult ? Number(friendUnreadResult.total_unread_count) : 0

@@ -13,11 +13,11 @@ router.get('/articles', async (req, res) => {
         p.title,
         p.content,
         UNIX_TIMESTAMP(p.created_at) as publishTime,
-        u.avatar,
-        u.nickname,
+        u.user_avatar,
+        u.nick,
         COUNT(DISTINCT pl.id) as likeCount,
         COUNT(DISTINCT c.id) as commentCount,
-        GROUP_CONCAT(pi.image_url) as imageUrls,
+        GROUP_CONCAT(pi.image_name) as imageNames,
         -- 热度分数 = 点赞数 * 0.6 + 评论数 * 0.4 + 时间衰减因子
         (COUNT(DISTINCT pl.id) * 0.6 + 
           COUNT(DISTINCT c.id) * 0.4 +
@@ -27,17 +27,18 @@ router.get('/articles', async (req, res) => {
       LEFT JOIN post_likes pl ON p.id = pl.post_id
       LEFT JOIN comments c ON p.id = c.post_id
       LEFT JOIN post_images pi ON p.id = pi.post_id
-      GROUP BY p.id, p.title, p.content, p.created_at, u.avatar, u.nickname
+      GROUP BY p.id, p.title, p.content, p.created_at, u.user_avatar, u.nick
       ORDER BY hotScore DESC, p.created_at DESC
-      LIMIT ? OFFSET ?
+      LIMIT ${offset}, ${limit}
     `
-    const results = await db.query(query, [limit, offset])
+    // Don't use parameterized query for this SQL statement, or it will cause an error
+    const results = await db.query(query)
     const articles = results.map(article => {
-      const images = article.imageUrls ? article.imageUrls.split(',') : []
+      const images = article.imageNames ? article.imageNames.split(',') : []
       return {
         id: article.id,
-        avatar: article.avatar,
-        nickname: article.nickname,
+        avatar: article.user_avatar,
+        nick: article.nick,
         publishTime: article.publishTime,
         title: article.title,
         content: article.content, images,
@@ -58,11 +59,11 @@ router.get('/articles', async (req, res) => {
     })
   }
 })
-router.post('/api/articles', authMiddleware, async (req, res) => {
+router.post('/articles', authMiddleware, async (req, res) => {
   const userId = req.userId
   const { title, content, images, tags, visibility } = req.body
-  if (!title || typeof title !== 'string' || title.length > 255) {
-    return res.status(400).json({ code: -1, msg: '标题必须为字符串且不超过255个字符。' })
+  if (!title || typeof title !== 'string' || title.length > 100) {
+    return res.status(400).json({ code: -1, msg: '标题必须为字符串且不超过100个字符。' })
   }
   if (!content || typeof content !== 'string') {
     return res.status(400).json({ code: -1, msg: '内容不能为空。' })
@@ -85,7 +86,7 @@ router.post('/api/articles', authMiddleware, async (req, res) => {
     const postId = postResult.insertId
     if (images && images.length > 0) {
       for (const imageId of images) {
-        const [rows] = await connection.execute('SELECT id FROM images WHERE id = ? AND creator = ?', [imageId, userId])
+        const [rows] = await connection.execute('SELECT name FROM images WHERE name = ? AND creator = ?', [imageId, userId])
         if (rows.length === 0) {
           throw new Error('INVALID_IMAGE')
         }

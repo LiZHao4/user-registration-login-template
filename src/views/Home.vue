@@ -54,6 +54,10 @@
           </div>
         </div>
       </div>
+      <div class="nav-center">
+        <el-input v-model="searchKeyword" placeholder="搜索..." size="small" clearable @keyup.enter="handleSearch" class="search-input" />
+        <el-button :icon="Search" circle size="small" @click="handleSearch" class="search-button" />
+      </div>
       <div class="nav-right">
         <div class="nav-icons">
           <div class="nav-icon" @click="goToMessages" title="我的消息">
@@ -88,11 +92,13 @@ import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { getContrastColor } from '@/utils/color'
 import type { APIResponse, PrivateUserAPIResponseData } from '@/types/api'
+import { Search } from '@element-plus/icons-vue'
 const router = useRouter()
 const userData = ref<PrivateUserAPIResponseData>({} as PrivateUserAPIResponseData)
 const userInfoRef = ref<HTMLDivElement | null>(null)
 const userCardRef = ref<HTMLDivElement | null>(null)
 const showUserCard = ref<boolean>(false)
+const searchKeyword = ref<string>('')
 const avatar = computed<string>(() => userData.value.data?.avatar || 'default.png')
 const nickname = computed<string>(() => userData.value.data?.nick || '默认昵称')
 const userId = computed<number>(() => userData.value.data?.id || 0)
@@ -148,6 +154,11 @@ const toggleUserCard = (event: MouseEvent) => {
   event.stopPropagation()
   showUserCard.value = !showUserCard.value
 }
+const handleSearch = () => {
+  if (searchKeyword.value && searchKeyword.value.trim()) {
+    router.push({ path: '/search', query: { keyword: searchKeyword.value.trim() } })
+  }
+}
 const goToMessages = () => {
   router.push('/system')
 }
@@ -182,8 +193,8 @@ const goToHomePage = () => {
 }
 onMounted(async () => {
   try {
-    const response = await axios.get('/api/self')
-    const data: PrivateUserAPIResponseData = response.data
+    const response = await axios.get<PrivateUserAPIResponseData>('/api/self')
+    const data = response.data
     if (data.code === 1) {
       userData.value = data
     }
@@ -343,6 +354,13 @@ const handleLogout = async () => {
 .menu-item span {
   flex: 1;
 }
+.nav-center {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  justify-content: center;
+}
 .nav-icon {
   height: 20px;
   display: flex;
@@ -382,6 +400,37 @@ const handleLogout = async () => {
   overflow: hidden;
   text-overflow: ellipsis;
   cursor: default;
+}
+.search-button {
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.6);
+  border: none;
+  backdrop-filter: blur(4px);
+  transition: all 0.2s;
+}
+.search-button:hover {
+  background: rgba(255, 255, 255, 0.9);
+  transform: scale(1.05);
+}
+.search-input {
+  min-width: 60px;
+  max-width: 150px;
+  flex: 1;
+}
+.search-input :deep(.el-input__wrapper) {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(4px);
+  border-radius: 20px;
+  box-shadow: none;
+  transition: all 0.2s;
+}
+.search-input :deep(.el-input__wrapper:hover) {
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 0 1px rgba(37, 117, 252, 0.3);
+}
+.search-input :deep(.el-input__wrapper.is-focus) {
+  background: white;
+  box-shadow: 0 0 0 1px #2575fc;
 }
 .top-navbar {
   position: fixed;
@@ -436,11 +485,6 @@ const handleLogout = async () => {
     transform: translateY(0);
   }
 }
-@media (max-width: 250px) {
-  .nickname {
-    display: none;
-  }
-}
 @media (max-width: 480px) {
   .floating-write-btn {
     bottom: 15px;
@@ -456,11 +500,19 @@ const handleLogout = async () => {
   .nav-icons {
     gap: 10px;
   }
-  .text {
+  .nickname {
     display: none;
+  }
+  .search-input {
+    max-width: 160px;
   }
   .user-card {
     width: 260px;
+  }
+}
+@media (max-width: 520px) {
+  .text {
+    display: none;
   }
 }
 @media (max-width: 768px) {

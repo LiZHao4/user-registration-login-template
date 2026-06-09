@@ -5,11 +5,11 @@
       <div class="login-form">
         <div class="form-group">
           <label>用户名</label>
-          <input type="text" v-model="form.username" required>
+          <input type="text" v-model="form.username" @keyup.enter="submitForm" required>
         </div>
         <div class="form-group">
           <label>密码</label>
-          <input type="password" v-model="form.password" required>
+          <input type="password" v-model="form.password" @keyup.enter="submitForm" required>
         </div>
         <Button class="full-width" type="primary" @click="submitForm" :loading="loading">登录</Button>
         <Button class="full-width" type="secondary" @click="goToRegister">注册</Button>
@@ -47,15 +47,17 @@ const submitForm = async () => {
       user: form.username,
       pass: form.password
     })
-    if (result.data.code !== 1) {
-      const message = result.data.msg.replace('#t', formatDateLong(result.data.unbanned_at))
+    userStore.login(result.data.id)
+    window.dispatchEvent(new CustomEvent('user-logged-in'))
+    router.push('/')
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      const serverData = error.response.data
+      const message = serverData.msg.replace('#t', formatDateLong(serverData.unbanned_at))
       ElMessage.error(message)
     } else {
-      userStore.login(result.data.id)
-      router.push('/')
+      ElMessage.error('网络错误，请检查连接后重试。')
     }
-  } catch (error) {
-    ElMessage.error('登录失败，请稍后重试。')
   } finally {
     loading.value = false
   }

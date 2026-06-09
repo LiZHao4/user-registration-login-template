@@ -2,7 +2,7 @@ import express from 'express'
 import bcrypt from 'bcrypt'
 import { validateCredentials, getUniqueToken } from '../utils.js'
 import db from '../config.js'
-import { authMiddleware } from '../middlewares/auth.js'
+import { authMiddleware, verifyToken } from '../middlewares/auth.js'
 const router = express.Router()
 router.post('/login', async (req, res) => {
   try {
@@ -110,5 +110,10 @@ router.post('/logout', authMiddleware, async (req, res) => {
       msg: '服务器错误，请稍后重试。'
     })
   }
+})
+router.get('/checkLogin', async (req, res) => {
+  const token = req.cookies.t
+  const userId = await verifyToken(token)
+  return res.json({ isLogin: userId !== null, userId })
 })
 export default router

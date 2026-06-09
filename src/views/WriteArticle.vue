@@ -159,7 +159,7 @@ const handlePublish = async () => {
       images: article.value.images,
       visibility: article.value.visibility
     }
-    const endpoint = articleId.value ? `/api/articles/${articleId.value}` : '/api/articles'
+    const endpoint = `/api/articles${articleId.value ? `/${articleId.value}` : ''}`
     const method = articleId.value ? 'put' : 'post'
     const response = await axios.request({
       method,
@@ -169,7 +169,7 @@ const handlePublish = async () => {
     })
     if (response.data.code === 1) {
       showNotification('文章发布成功！', 'success')
-      router.push(`/article/${response.data.data.id}`)
+      router.back()
     }
   } catch (error) {
     console.error('发布失败:', error)
