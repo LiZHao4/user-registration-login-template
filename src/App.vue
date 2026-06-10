@@ -37,7 +37,7 @@ const connectWebSocket = () => {
     path: '/socket.io'
   })
   socket.on('connect_error', async err => {
-    if (hasShownDialog) return
+    if (hasShownDialog && !userStore.isLogin) return
     hasShownDialog = true
     showGlobalDialog({
       title: 'Socket连接失败',

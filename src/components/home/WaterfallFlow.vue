@@ -21,9 +21,10 @@
     </div>
   </div>
 </template>
-<script setup>
-import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+<script setup lang="ts">
+import { ref, computed, watch, onMounted, onUnmounted, nextTick, type CSSProperties } from 'vue'
 import axios from 'axios'
+import type { HomeArticleListAPIResponseData } from '@/types/api'
 const props = defineProps({
   gap: {
     type: Number,
@@ -38,7 +39,7 @@ const itemRefs = ref([])
 const containerHeight = ref(0)
 const windowWidth = ref(window.innerWidth)
 const articles = ref([])
-const containerStyle = computed(() => {
+const containerStyle = computed<CSSProperties>(() => {
   return {
     height: `${containerHeight.value}px`,
     position: 'relative'
@@ -79,7 +80,7 @@ const getItemWidth = () => {
   const containerWidth = container.value.offsetWidth
   return (containerWidth - (columnCount.value - 1) * props.gap) / columnCount.value
 }
-const getItemStyle = index => {
+const getItemStyle = (index: number): CSSProperties => {
   const position = itemPositions.value[index]
   if (!position) return { visibility: 'hidden' }
   return {
@@ -99,7 +100,7 @@ watch(articles, () => {
   })
 }, { deep: true, immediate: true })
 onMounted(async () => {
-  const response = await axios.get('/api/articles')
+  const response = await axios.get<HomeArticleListAPIResponseData>('/api/articles')
   articles.value = response.data.data
   updateColumnCount()
   window.addEventListener('resize', handleResize)

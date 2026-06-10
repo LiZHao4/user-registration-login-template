@@ -177,3 +177,23 @@ interface GroupChatAPIResponseData extends ChatAPI {
   group_avatar: string
 }
 export type ChatAPIResponseData = PrivateChatAPIResponseData | GroupChatAPIResponseData
+interface UserArticle {
+  id: number
+  publishTime: number
+  title: string
+  content: string
+  images: string[]
+  likeCount: number
+  commentCount: number
+  isLike: boolean
+}
+interface HomeArticle extends UserArticle {
+  avatar: string
+  nick: string
+}
+export interface HomeArticleListAPIResponseData extends APIResponse {
+  data: HomeArticle[]
+}
+export interface ImageUploadAPIResponseData extends APIResponse {
+  imageNames?: string[]
+}

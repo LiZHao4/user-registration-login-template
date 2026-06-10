@@ -2,34 +2,83 @@
   <div class="write-article-container">
     <div class="editor-navbar">
       <div class="nav-left">
-        <button class="nav-btn" @click="goBack" title="返回">
-          <el-icon><ArrowLeft /></el-icon>
-        </button>
+        <button class="nav-btn" @click="goBack" title="返回"><el-icon>
+            <ArrowLeft />
+          </el-icon></button>
       </div>
       <div class="nav-center">
         <h1 class="page-title">{{ articleId ? '编辑文章' : '写文章' }}</h1>
       </div>
       <div class="nav-right">
         <button @click="toggleSettings" :class="['nav-btn', { active: showSettings }]" title="文章设置">
-          <el-icon><Setting /></el-icon>
+          <el-icon>
+            <Setting />
+          </el-icon>
         </button>
       </div>
     </div>
     <div class="editor-main">
-      <div :class="['editor-section', { 'settings-open': showSettings }]">
+      <div class="editor-section">
         <div class="title-section">
           <input v-model="article.title" type="text" class="title-input" placeholder="请输入文章标题..." maxlength="100">
           <span class="char-count">{{ article.title.length }}/100</span>
         </div>
         <div class="content-editor">
           <textarea v-model="article.content" class="editor-textarea" placeholder="开始写作吧..."></textarea>
+          <div class="image-manager-wrapper">
+            <div class="image-manager-header" @click="toggleImagePanel">
+              <div class="header-left">
+                <el-icon>
+                  <Picture />
+                </el-icon>
+                <span class="image-manager-title">文章图片</span>
+                <span class="image-count-badge" v-if="imageCount > 0">{{ imageCount }}</span>
+              </div>
+              <div class="header-right">
+                <span class="image-manager-tip">支持多种图片格式，单张不超过10MB</span>
+                <el-icon class="collapse-icon">
+                  <ArrowDown v-if="!imagePanelCollapsed" />
+                  <ArrowRight v-else />
+                </el-icon>
+              </div>
+            </div>
+            <div class="image-manager-content" v-show="!imagePanelCollapsed">
+              <div class="image-list" v-if="article.images && article.images.length > 0">
+                <div v-for="(image, index) in article.images" :key="index" class="image-item">
+                  <img :src="image" class="image-preview" alt="预览" />
+                  <button class="image-remove" @click="removeImage(index)" title="删除图片">
+                    <el-icon>
+                      <Close />
+                    </el-icon>
+                  </button>
+                </div>
+              </div>
+              <div v-else class="image-empty"><el-icon>
+                  <Picture />
+                </el-icon><span>暂无图片，点击下方按钮上传</span></div>
+              <div class="upload-area">
+                <button class="upload-btn" @click="triggerFileSelect" :disabled="isUploading">
+                  <el-icon>
+                    <Plus />
+                  </el-icon>{{ isUploading ? '上传中...' : '上传图片' }}
+                </button>
+                <input ref="fileInputRef" type="file" accept="image/*" multiple style="display:none"
+                  @change="handleFileChange" />
+              </div>
+            </div>
+          </div>
           <div class="editor-footer">
-            <div class="word-count">
-              <span>字数: {{ wordCount }}</span>
+            <div class="info-stats">
+              <span class="word-count">字数: {{ wordCount }}</span>
+              <span class="image-count"><el-icon>
+                  <Picture />
+                </el-icon>{{ imageCount }}张图片</span>
             </div>
             <button class="publish-btn" @click="handlePublish" :disabled="isPublishing">
-              <el-icon><Promotion /></el-icon>
-              {{ isPublishing ? '发布中...' : articleId ? '更新文章' : '发布文章' }}
+              <el-icon>
+                <Promotion />
+              </el-icon>
+              <span>{{ isPublishing ? '发布中...' : articleId ? '更新文章' : '发布文章' }}</span>
             </button>
           </div>
         </div>
@@ -37,9 +86,9 @@
       <div :class="['settings-panel', { 'visible': showSettings }]">
         <div class="settings-header">
           <h3 class="settings-title">文章设置</h3>
-          <button class="close-settings" @click="showSettings = false">
-            <el-icon><Close /></el-icon>
-          </button>
+          <button class="close-settings" @click="showSettings = false"><el-icon>
+              <Close />
+            </el-icon></button>
         </div>
         <div class="settings-content">
           <div class="setting-item">
@@ -47,42 +96,25 @@
             <div class="tags-input">
               <div class="selected-tags" v-if="article.tags && article.tags.length > 0">
                 <span v-for="(tag, index) in article.tags" :key="index" class="tag">
-                  {{ tag }}
-                  <el-icon class="tag-close" @click="removeTag(index)"><Close /></el-icon>
+                  {{ tag }}<el-icon class="tag-close" @click="removeTag(index)">
+                    <Close />
+                  </el-icon>
                 </span>
               </div>
               <input v-model="newTag" type="text" placeholder="输入标签，按回车添加" @keyup.enter="addTag" />
             </div>
           </div>
           <div class="setting-item">
-            <label>图片</label>
-            <button class="upload-btn">
-              <el-icon><Plus /></el-icon>
-              上传图片
-            </button>
-            <div class="image-list" v-if="article.images && article.images.length > 0">
-              <div v-for="(image, index) in article.images" :key="index" class="image-item">
-                <img :src="image" class="image-preview" alt="预览" />
-                <button class="image-remove">
-                  <el-icon><Close /></el-icon>
-                </button>
-              </div>
-            </div>
-          </div>
-          <div class="setting-item">
             <label>可见性</label>
             <div class="visibility-options">
               <label class="radio-option">
-                <input type="radio" v-model="article.visibility" value="public" />
-                <span>公开</span>
+                <input type="radio" v-model="article.visibility" value="public" /><span>公开</span>
               </label>
               <label class="radio-option">
-                <input type="radio" v-model="article.visibility" value="private" />
-                <span>私密</span>
+                <input type="radio" v-model="article.visibility" value="private" /><span>私密</span>
               </label>
               <label class="radio-option">
-                <input type="radio" v-model="article.visibility" value="friends" />
-                <span>互相关注</span>
+                <input type="radio" v-model="article.visibility" value="friends" /><span>互相关注</span>
               </label>
             </div>
           </div>
@@ -100,14 +132,15 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
 import { formatDateLong } from '@/utils/dateFormatter'
-import { ArrowLeft, Close, Promotion, Setting } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
+import type { ImageUploadAPIResponseData } from '@/types/api'
 interface ArticleData {
   id: number | null
   title: string
   content: string
-  tags: string[],
-  images: string[],
-  visibility: 'public' | 'private' | 'friends',
+  tags: string[]
+  images: string[]
+  visibility: 'public' | 'private' | 'friends'
   published_at: number | null
 }
 const router = useRouter()
@@ -123,7 +156,10 @@ const article = ref<ArticleData>({
 })
 const showSettings = ref<boolean>(false)
 const isPublishing = ref<boolean>(false)
+const isUploading = ref<boolean>(false)
 const newTag = ref<string>('')
+const fileInputRef = ref<HTMLInputElement | null>(null)
+const imagePanelCollapsed = ref<boolean>(false)
 const articleId = computed<number | null>(() => {
   const id = route.params.id
   if (!id) return null
@@ -138,9 +174,86 @@ const articleId = computed<number | null>(() => {
 const wordCount = computed<number>(() => {
   return article.value.content.trim().length
 })
+const imageCount = computed<number>(() => {
+  return article.value.images?.length || 0
+})
 const hasChanges = computed<boolean>(() => {
   return !!(article.value.title.trim() || article.value.content.trim())
 })
+const triggerFileSelect = () => {
+  if (isUploading.value) return
+  fileInputRef.value?.click()
+}
+const handleFileChange = async (event: Event) => {
+  const input = event.target as HTMLInputElement
+  const files = input.files
+  if (!files || files.length === 0) return
+  const currentCount = article.value.images.length
+  const remainingSlots = 100 - currentCount
+  if (files.length > remainingSlots) {
+    ElMessage.warning(`最多只能上传100张图片，当前已上传${currentCount}张`)
+    input.value = ''
+    return
+  }
+  const validFiles: File[] = []
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i]
+    if (!file.type.startsWith('image/')) {
+      ElMessage.error(`文件“${file.name}”不是图片格式`)
+      continue
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      ElMessage.error(`图片“${file.name}”超过10MB限制`)
+      continue
+    }
+    validFiles.push(file)
+  }
+  if (validFiles.length === 0) {
+    input.value = ''
+    return
+  }
+  await uploadImages(validFiles)
+  input.value = ''
+}
+const uploadImages = async (files: File[]) => {
+  isUploading.value = true
+  try {
+    const formData = new FormData()
+    files.forEach(file => {
+      formData.append('image', file)
+    })
+    const response = await axios.post<ImageUploadAPIResponseData>('/api/upload/images', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 300000
+    })
+    if (response.data.code === 1) {
+      let urls: string[] = response.data.imageNames
+      if (urls.length) {
+        article.value.images.push(...urls)
+        ElMessage.success(`成功上传${urls.length}张图片`)
+      } else {
+        throw new Error('未返回图片地址')
+      }
+    }
+  } catch (error: any) {
+    if (error.response) {
+      const data = error.response.data
+      const message = data.msg
+      ElMessage.error(message)
+    } 
+    else if (error.request) {
+      ElMessage.error('网络异常，请检查网络连接后重试')
+    } 
+    else {
+      ElMessage.error(error.message || '批量上传失败，请重试')
+    }
+  } finally {
+    isUploading.value = false
+  }
+}
+const removeImage = (index: number) => {
+  article.value.images.splice(index, 1)
+}
 const handlePublish = async () => {
   if (!article.value.title.trim()) {
     showNotification('请输入文章标题', 'warning')
@@ -200,8 +313,8 @@ const goBack = () => {
     router.back()
   }
 }
-const showNotification = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') => {
-  alert(`${type}: ${message}`)
+const showNotification = (message: string, type: 'primary' | 'success' | 'error' | 'warning' | 'info' = 'info') => {
+  ElMessage[type](message)
 }
 const loadArticle = async () => {
   if (!articleId.value) return
@@ -219,8 +332,7 @@ const loadArticle = async () => {
         published_at: data.published_at || null
       }
     }
-  } catch (error) {
-    console.error('加载文章失败:', error)
+  } catch {
     showNotification('加载文章失败', 'error')
   }
 }
@@ -229,6 +341,9 @@ const handleBeforeUnload = (event: BeforeUnloadEvent) => {
     event.preventDefault()
     event.returnValue = ''
   }
+}
+const toggleImagePanel = () => {
+  imagePanelCollapsed.value = !imagePanelCollapsed.value
 }
 onMounted(() => {
   loadArticle()
@@ -265,6 +380,10 @@ onBeforeUnmount(() => {
 .publish-btn .el-icon {
   width: 1em;
   height: 1em;
+  font-size: 16px;
+}
+.collapse-icon {
+  transition: transform 0.2s;
   font-size: 16px;
 }
 .content-editor {
@@ -325,20 +444,92 @@ onBeforeUnmount(() => {
 .editor-textarea::placeholder {
   color: #999;
 }
+.header-left,
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.image-count,
+.word-count {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  color: #666;
+}
+.image-count-badge {
+  background: #2575fc;
+  color: white;
+  font-size: 12px;
+  border-radius: 12px;
+  padding: 0 6px;
+  min-width: 20px;
+  height: 20px;
+  line-height: 20px;
+  text-align: center;
+}
+.image-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 30px;
+  color: #999;
+  font-size: 14px;
+  background: #fafafa;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
 .image-item {
   position: relative;
-  width: 80px;
-  height: 80px;
+  width: 100px;
+  height: 100px;
   border-radius: 8px;
   overflow: hidden;
   border: 1px solid #eaeaea;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s;
+}
+.image-item:hover {
+  transform: scale(1.02);
 }
 .image-list {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  margin-top: 12px;
+  margin-bottom: 12px;
+}
+.image-manager-content {
+  padding: 0 24px 16px 24px;
+}
+.image-manager-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 24px;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s;
+}
+.image-manager-header:hover {
+  background: #f5f5f5;
+}
+.image-manager-tip {
+  font-size: 12px;
+  color: #999;
+}
+.image-manager-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.image-manager-wrapper {
+  border-top: 1px solid #eaeaea;
+  background: #fefefe;
 }
 .image-preview {
   width: 100%;
@@ -348,12 +539,12 @@ onBeforeUnmount(() => {
 }
 .image-remove {
   position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 22px;
-  height: 22px;
+  top: 6px;
+  right: 6px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.6);
   border: none;
   color: white;
   display: flex;
@@ -364,10 +555,15 @@ onBeforeUnmount(() => {
   padding: 0;
 }
 .image-remove:hover {
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(0, 0, 0, 0.9);
 }
 .image-remove .el-icon {
   font-size: 14px;
+}
+.info-stats {
+  display: flex;
+  gap: 20px;
+  align-items: center;
 }
 .nav-btn {
   background: none;
@@ -396,7 +592,8 @@ onBeforeUnmount(() => {
   flex: 1;
   text-align: center;
 }
-.nav-left, .nav-right {
+.nav-left,
+.nav-right {
   display: flex;
   align-items: center;
   gap: 15px;
@@ -560,37 +757,37 @@ onBeforeUnmount(() => {
   padding: 20px 24px;
   border-bottom: 1px solid #eaeaea;
 }
+.upload-area {
+  display: flex;
+  justify-content: flex-start;
+}
 .upload-btn {
-  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 10px 16px;
+  padding: 8px 20px;
   background: #ffffff;
-  border: 1px dashed #dcdfe6;
+  border: 1px solid #dcdfe6;
   border-radius: 6px;
   color: #606266;
   font-size: 14px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
-.upload-btn:hover {
+.upload-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.upload-btn:hover:not(:disabled) {
   border-color: #2575fc;
   color: #2575fc;
   background-color: #f0f7ff;
-}
-.upload-btn .el-icon {
-  font-size: 16px;
 }
 .visibility-options {
   display: flex;
   flex-direction: column;
   gap: 12px;
-}
-.word-count {
-  font-size: 14px;
-  color: #666;
 }
 .write-article-container {
   display: flex;
