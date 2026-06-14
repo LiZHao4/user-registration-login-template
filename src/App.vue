@@ -37,7 +37,7 @@ const connectWebSocket = () => {
     path: '/socket.io'
   })
   socket.on('connect_error', async err => {
-    if (hasShownDialog && !userStore.isLogin) return
+    if (hasShownDialog) return
     hasShownDialog = true
     showGlobalDialog({
       title: 'Socket连接失败',
@@ -47,7 +47,6 @@ const connectWebSocket = () => {
           label: '确定',
           type: 'primary',
           click: () => {
-            doLogout()
             hasShownDialog = false
           }
         }

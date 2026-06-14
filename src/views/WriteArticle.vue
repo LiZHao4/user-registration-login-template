@@ -44,7 +44,7 @@
             </div>
             <div class="image-manager-content" v-show="!imagePanelCollapsed">
               <div class="image-list" v-if="article.images && article.images.length > 0">
-                <div v-for="(image, index) in article.images" :key="index" class="image-item">
+                <div v-for="(image, index) in displayImages" :key="index" class="image-item">
                   <img :src="image" class="image-preview" alt="预览" />
                   <button class="image-remove" @click="removeImage(index)" title="删除图片">
                     <el-icon>
@@ -62,8 +62,14 @@
                     <Plus />
                   </el-icon>{{ isUploading ? '上传中...' : '上传图片' }}
                 </button>
-                <input ref="fileInputRef" type="file" accept="image/*" multiple style="display:none"
-                  @change="handleFileChange" />
+                <input
+                  ref="fileInputRef"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  style="display:none"
+                  @change="handleFileChange"
+                />
               </div>
             </div>
           </div>
@@ -160,6 +166,7 @@ const isUploading = ref<boolean>(false)
 const newTag = ref<string>('')
 const fileInputRef = ref<HTMLInputElement | null>(null)
 const imagePanelCollapsed = ref<boolean>(false)
+const originalArticle = ref<ArticleData | null>(null)
 const articleId = computed<number | null>(() => {
   const id = route.params.id
   if (!id) return null
@@ -178,7 +185,17 @@ const imageCount = computed<number>(() => {
   return article.value.images?.length || 0
 })
 const hasChanges = computed<boolean>(() => {
-  return !!(article.value.title.trim() || article.value.content.trim())
+  if (!originalArticle.value) return false
+  return (
+    article.value.title !== originalArticle.value.title ||
+    article.value.content !== originalArticle.value.content ||
+    JSON.stringify(article.value.tags) !== JSON.stringify(originalArticle.value.tags) ||
+    JSON.stringify(article.value.images) !== JSON.stringify(originalArticle.value.images) ||
+    article.value.visibility !== originalArticle.value.visibility
+  )
+})
+const displayImages = computed<string[]>(() => {
+  return article.value.images.map(url => `/uploads/images/${url}.png`)
 })
 const triggerFileSelect = () => {
   if (isUploading.value) return
@@ -227,7 +244,7 @@ const uploadImages = async (files: File[]) => {
       timeout: 300000
     })
     if (response.data.code === 1) {
-      let urls: string[] = response.data.imageNames
+      const urls = response.data.imageNames
       if (urls.length) {
         article.value.images.push(...urls)
         ElMessage.success(`成功上传${urls.length}张图片`)
@@ -282,6 +299,7 @@ const handlePublish = async () => {
     })
     if (response.data.code === 1) {
       showNotification('文章发布成功！', 'success')
+      removeBeforeUnload()
       router.back()
     }
   } catch (error) {
@@ -307,9 +325,11 @@ const toggleSettings = () => {
 const goBack = () => {
   if (hasChanges.value) {
     if (confirm('您有未保存的更改，确定要离开吗？')) {
+      removeBeforeUnload()
       router.back()
     }
   } else {
+    removeBeforeUnload()
     router.back()
   }
 }
@@ -326,11 +346,12 @@ const loadArticle = async () => {
         id: data.id,
         title: data.title,
         content: data.content,
-        images: data.images || [],
+        images: data.images.map(image => image.match(/^\/uploads\/images\/(.+)\.png$/)[1]) || [],
         tags: data.tags || [],
         visibility: data.visibility || 'public',
         published_at: data.published_at || null
       }
+      originalArticle.value = JSON.parse(JSON.stringify(article.value))
     }
   } catch {
     showNotification('加载文章失败', 'error')
@@ -345,12 +366,15 @@ const handleBeforeUnload = (event: BeforeUnloadEvent) => {
 const toggleImagePanel = () => {
   imagePanelCollapsed.value = !imagePanelCollapsed.value
 }
+const removeBeforeUnload = () => {
+  window.removeEventListener('beforeunload', handleBeforeUnload)
+}
 onMounted(() => {
   loadArticle()
   window.addEventListener('beforeunload', handleBeforeUnload)
 })
 onBeforeUnmount(() => {
-  window.removeEventListener('beforeunload', handleBeforeUnload)
+  removeBeforeUnload()
 })
 </script>
 <style scoped>

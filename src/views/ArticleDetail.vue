@@ -41,14 +41,10 @@
           </span>
           <span>{{ article.likeCount }} 点赞</span>
         </div>
-        <div class="stat-item">
-          <el-icon><ChatDotRound /></el-icon>
-          <span>{{ article.commentCount }} 评论</span>
-        </div>
       </div>
 
       <!-- 文章内容 -->
-      <div class="article-body" v-html="formattedContent"></div>
+      <div class="article-body">{{ article.content }}</div>
 
       <!-- 图片画廊 -->
       <div v-if="article.images && article.images.length" class="article-images">
@@ -56,11 +52,11 @@
           v-for="(image, index) in article.images"
           :key="index"
           class="image-item"
-          @click="previewImage(index)"
         >
           <el-image
             :src="image"
             :preview-src-list="article.images"
+            :preview-teleported="true"
             :initial-index="index"
             fit="cover"
             lazy
@@ -133,11 +129,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
-import { ArrowLeft, ChatDotRound } from '@element-plus/icons-vue'
 import { formatDateShort } from '@/utils/dateFormatter'
 
 // 路由实例
@@ -180,20 +175,6 @@ interface CommentItem {
   likeCount: number
   parentId?: number
 }
-
-// 格式化文章内容（支持换行和简单HTML转义）
-const formattedContent = computed(() => {
-  if (!article.value?.content) return ''
-  // 将换行符转换为 <br> 标签，同时转义HTML标签防止XSS
-  let content = article.value.content
-  content = content.replace(/[&<>]/g, function(m) {
-    if (m === '&') return '&amp;'
-    if (m === '<') return '&lt;'
-    if (m === '>') return '&gt;'
-    return m
-  })
-  return content.replace(/\n/g, '<br>')
-})
 
 // 返回上一页
 const goBack = () => {
@@ -318,17 +299,6 @@ const replyToComment = (comment: CommentItem) => {
   inputArea?.scrollIntoView({ behavior: 'smooth', block: 'center' })
 }
 
-// 预览图片（使用el-image自带预览功能）
-const previewImage = (index: number) => {
-  // el-image的preview功能会自动处理
-  const images = document.querySelectorAll('.image-item .el-image')
-  if (images[index]) {
-    // 触发对应图片的预览
-    const imageComponent = (images[index] as any).__vueParentComponent?.ctx
-    // 简单实现：通过创建新的事件来触发
-  }
-}
-
 // 监听路由参数变化
 onMounted(() => {
   fetchArticle()
@@ -433,10 +403,6 @@ onMounted(() => {
   transition: color 0.2s;
 }
 
-.stat-item:hover {
-  color: #409eff;
-}
-
 .stat-item .liked {
   color: #ff6b6b;
 }
@@ -446,18 +412,8 @@ onMounted(() => {
   line-height: 1.8;
   color: #333;
   margin-bottom: 32px;
-  white-space: normal;
+  white-space: pre;
   word-wrap: break-word;
-}
-
-.article-body :deep(p) {
-  margin-bottom: 16px;
-}
-
-.article-body :deep(img) {
-  max-width: 100%;
-  border-radius: 8px;
-  margin: 16px 0;
 }
 
 .article-images {
