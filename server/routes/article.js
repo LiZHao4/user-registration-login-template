@@ -34,7 +34,7 @@ router.get('/articles', async (req, res) => {
     // Don't use parameterized query for this SQL statement, or it will cause an error
     const results = await db.query(query)
     const articles = results.map(article => {
-      const images = article.imageNames ? article.imageNames.split(',') : []
+      const images = article.imageNames ? article.imageNames.split(',').map(image => `/uploads/images/${image}.png`) : []
       return {
         id: article.id,
         avatar: article.user_avatar,
@@ -110,7 +110,7 @@ router.get('/articles/:id', async (req, res) => {
       WHERE pi.post_id = ?
     `
     const imageRows = await db.query(imageQuery, [articleId])
-    const images = imageRows.map(row => row.name)
+    const images = imageRows.map(row => `/uploads/images/${row.name}.png`)
     const tagQuery = `
       SELECT pt.tag
       FROM post_tag_relations ptr
@@ -244,7 +244,7 @@ router.put('/articles/:id', authMiddleware, async (req, res) => {
   }
   let connection
   try {
-    const [postRows] = await db.query('SELECT user_id FROM posts WHERE id = ?', [articleId])
+    const postRows = await db.query('SELECT user_id FROM posts WHERE id = ?', [articleId])
     if (postRows.length === 0) {
       return res.status(404).json({ code: -1, msg: '文章不存在。' })
     }
@@ -259,8 +259,8 @@ router.put('/articles/:id', authMiddleware, async (req, res) => {
     await connection.execute('DELETE FROM post_images WHERE post_id = ?', [articleId])
     if (images && images.length > 0) {
       for (const imageName of images) {
-        const [imgRows] = await connection.execute(
-          'SELECT name FROM user_images WHERE image_name = ? AND user = ?',
+        const imgRows = await connection.execute(
+          'SELECT image_name FROM user_images WHERE image_name = ? AND user = ?',
           [imageName, userId]
         )
         if (imgRows.length === 0) {
@@ -276,14 +276,14 @@ router.put('/articles/:id', authMiddleware, async (req, res) => {
     if (tags && tags.length > 0) {
       for (const tagName of tags) {
         let tagId
-        const [existingTag] = await connection.execute(
+        const existingTag = await connection.execute(
           'SELECT id FROM post_tags WHERE tag = ?',
           [tagName]
         )
         if (existingTag.length > 0) {
           tagId = existingTag[0].id
         } else {
-          const [tagResult] = await connection.execute(
+          const tagResult = await connection.execute(
             'INSERT INTO post_tags (tag, creator) VALUES (?, ?)',
             [tagName, userId]
           )

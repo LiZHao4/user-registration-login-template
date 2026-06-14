@@ -1,10 +1,7 @@
 <template>
   <div class="register-page">
     <div class="register-container">
-      <div class="register-header">
-        <Button class="back-btn" @click="goToLogin">← 返回</Button>
-        <h1>注册</h1>
-      </div>
+      <div class="register-header"><Button class="back-btn" @click="goToLogin">← 返回</Button><h1>注册</h1></div>
       <div class="register-form">
         <div class="form-group">
           <label>用户名</label>
@@ -14,7 +11,7 @@
             @blur="validateUsername"
             :class="{ 'is-invalid': errors.username }"
             required
-          >
+          />
           <span v-if="errors.username" class="error-message">{{ errors.username }}</span>
         </div>
         <div class="form-group">

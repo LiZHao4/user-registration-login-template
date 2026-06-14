@@ -3,43 +3,33 @@
     <div class="list-header">
       <div class="header-top">
         <div class="header-left">
-          <el-button class="back-button" @click="goBack" text circle>
-            <el-icon><ArrowLeft /></el-icon>
-          </el-button>
+          <el-button class="back-button" @click="goBack" text circle><el-icon><ArrowLeft /></el-icon></el-button>
           <h3 class="header-title">好友列表</h3>
         </div>
         <div class="header-buttons">
-          <el-button type="primary">
-            <el-icon><User /></el-icon>
-            <span class="header-button-text">添加好友</span>
-          </el-button>
+          <el-button type="primary"><el-icon><User /></el-icon><span class="header-button-text">添加好友</span></el-button>
           <el-button type="primary">
             <el-icon><Bell /></el-icon>
             <span class="header-button-text">好友请求</span>
             <el-badge v-if="newFriendsCount > 0" :value="newFriendsCount" :max="99" />
           </el-button>
-          <el-button type="primary">
-            <el-icon><Plus /></el-icon>
-            <span class="header-button-text">创建群组</span>
-          </el-button>
+          <el-button type="primary"><el-icon><Plus /></el-icon><span class="header-button-text">创建群组</span></el-button>
         </div>
       </div>
     </div>
     <div class="friends-container">
-      <div v-if="loading" class="loading-state">
-        <el-skeleton :rows="5" animated />
-      </div>
+      <div v-if="loading" class="loading-state"><el-skeleton :rows="5" animated /></div>
       <el-empty v-else-if="friends.length === 0" description="您还没有好友，快去添加吧！" :image-size="100" />
       <div v-else class="friends-scrollable">
         <FriendItem 
-          v-for="friend in friends" 
+          v-for="friend in friends"
           :key="friend.id"
-          :avatar="friend.avatar" 
+          :avatar="friend.avatar"
           :name="getDisplayNick(friend)"
-          :time="friend.time" 
+          :time="friend.time"
           :count="friend.unread_count"
           :message="getDisplayContent(friend, currentUserId)"
-          @click="selectFriend(friend)" 
+          @click="selectFriend(friend)"
         />
       </div>
     </div>

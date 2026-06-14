@@ -4,12 +4,10 @@
       <h1>登录</h1>
       <div class="login-form">
         <div class="form-group">
-          <label>用户名</label>
-          <input type="text" v-model="form.username" @keyup.enter="submitForm" required>
+          <label>用户名</label><input type="text" v-model="form.username" @keyup.enter="submitForm" required>
         </div>
         <div class="form-group">
-          <label>密码</label>
-          <input type="password" v-model="form.password" @keyup.enter="submitForm" required>
+          <label>密码</label><input type="password" v-model="form.password" @keyup.enter="submitForm" required>
         </div>
         <Button class="full-width" type="primary" @click="submitForm" :loading="loading">登录</Button>
         <Button class="full-width" type="secondary" @click="goToRegister">注册</Button>

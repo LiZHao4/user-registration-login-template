@@ -1,5 +1,13 @@
-export function generateRandomString(length) {
+function generateRandomStringToken(length) {
   const characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+  let token = ''
+  for (let i = 0; i < length; i++) {
+    token += characters[Math.floor(Math.random() * characters.length)]
+  }
+  return token
+}
+export function generateRandomString(length) {
+  const characters = '0123456789abcdefghijklmnopqrstuvwxyz'
   let token = ''
   for (let i = 0; i < length; i++) {
     token += characters[Math.floor(Math.random() * characters.length)]
@@ -8,7 +16,7 @@ export function generateRandomString(length) {
 }
 export async function getUniqueToken(db) {
   while (true) {
-    const token = generateRandomString(32)
+    const token = generateRandomStringToken(32)
     const result = await db.query('SELECT COUNT(*) as count FROM user_session WHERE token = ?', [token])
     if (result[0].count === 0) {
       return token

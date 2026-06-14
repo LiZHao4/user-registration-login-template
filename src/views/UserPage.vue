@@ -2,16 +2,12 @@
   <div ref="profileRoot" class="profile-wrapper" :style="rootStyle" element-loading-text="加载中...">
     <button class="back-btn-fixed" @click="goBack"><el-icon><ArrowLeft /></el-icon>返回</button>
     <el-result v-if="pageError" icon="error" title="出错了" :sub-title="errorMessage">
-      <template #extra>
-        <el-button type="primary" @click="reload">重试</el-button>
-      </template>
+      <template #extra><el-button type="primary" @click="reload">重试</el-button></template>
     </el-result>
     <div v-else :class="['profile-container', { 'has-background': !!userData.background }]">
       <div class="user-card">
         <div class="profile-header" :style="headerGradientStyle">
-          <div class="avatar-container">
-            <img :src="userData.avatar" class="avatar" alt="avatar" />
-          </div>
+          <div class="avatar-container"><img :src="userData.avatar" class="avatar" alt="avatar" /></div>
           <div class="header-info">
             <h1 class="user-name" :style="headerTextStyle">{{ userData.nick }}</h1>
             <div class="user-meta" :style="headerTextStyle">
@@ -57,27 +53,21 @@
               :disabled="friendButtonDisabled"
               @click="handleFriendAction"
             >{{ friendButtonText }}</el-button>
-            <el-button
-              class="btn-follow"
-              :class="followButtonClass"
-              :loading="followLoading"
-              @click="toggleFollow"
-            >{{ followButtonText }}</el-button>
+            <el-button class="btn-follow" :class="followButtonClass" :loading="followLoading" @click="toggleFollow">
+              {{ followButtonText }}
+            </el-button>
           </div>
         </div>
       </div>
       <div class="articles-card" v-loading="articlesLoading">
-        <div class="card-header">
-          <h3>文章</h3>
-        </div>
+        <div class="card-header"><h3>文章</h3></div>
         <div v-if="articles.length === 0" class="empty-articles">暂无文章</div>
         <ul v-else class="article-list">
           <li v-for="article in articles" :key="article.id" class="article-item">
             <router-link :to="`/article/${article.id}`" class="article-link">
               <div class="article-title">{{ article.title }}</div>
               <div class="article-meta">
-                <span>{{ formatDateShort(article.created_at) }}</span>
-                <el-icon><ArrowRight /></el-icon>
+                <span>{{ formatDateShort(article.created_at) }}</span><el-icon><ArrowRight /></el-icon>
               </div>
             </router-link>
           </li>

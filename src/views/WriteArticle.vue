@@ -2,18 +2,12 @@
   <div class="write-article-container">
     <div class="editor-navbar">
       <div class="nav-left">
-        <button class="nav-btn" @click="goBack" title="返回"><el-icon>
-            <ArrowLeft />
-          </el-icon></button>
+        <button class="nav-btn" @click="goBack" title="返回"><el-icon><ArrowLeft /></el-icon></button>
       </div>
-      <div class="nav-center">
-        <h1 class="page-title">{{ articleId ? '编辑文章' : '写文章' }}</h1>
-      </div>
+      <div class="nav-center"><h1 class="page-title">{{ articleId ? '编辑文章' : '写文章' }}</h1></div>
       <div class="nav-right">
         <button @click="toggleSettings" :class="['nav-btn', { active: showSettings }]" title="文章设置">
-          <el-icon>
-            <Setting />
-          </el-icon>
+          <el-icon><Setting /></el-icon>
         </button>
       </div>
     </div>
@@ -28,18 +22,13 @@
           <div class="image-manager-wrapper">
             <div class="image-manager-header" @click="toggleImagePanel">
               <div class="header-left">
-                <el-icon>
-                  <Picture />
-                </el-icon>
+                <el-icon><Picture /></el-icon>
                 <span class="image-manager-title">文章图片</span>
                 <span class="image-count-badge" v-if="imageCount > 0">{{ imageCount }}</span>
               </div>
               <div class="header-right">
                 <span class="image-manager-tip">支持多种图片格式，单张不超过10MB</span>
-                <el-icon class="collapse-icon">
-                  <ArrowDown v-if="!imagePanelCollapsed" />
-                  <ArrowRight v-else />
-                </el-icon>
+                <el-icon class="collapse-icon"><ArrowDown v-if="!imagePanelCollapsed" /><ArrowRight v-else /></el-icon>
               </div>
             </div>
             <div class="image-manager-content" v-show="!imagePanelCollapsed">
@@ -47,20 +36,14 @@
                 <div v-for="(image, index) in displayImages" :key="index" class="image-item">
                   <img :src="image" class="image-preview" alt="预览" />
                   <button class="image-remove" @click="removeImage(index)" title="删除图片">
-                    <el-icon>
-                      <Close />
-                    </el-icon>
+                    <el-icon><Close /></el-icon>
                   </button>
                 </div>
               </div>
-              <div v-else class="image-empty"><el-icon>
-                  <Picture />
-                </el-icon><span>暂无图片，点击下方按钮上传</span></div>
+              <div v-else class="image-empty"><el-icon><Picture /></el-icon><span>暂无图片，点击下方按钮上传</span></div>
               <div class="upload-area">
                 <button class="upload-btn" @click="triggerFileSelect" :disabled="isUploading">
-                  <el-icon>
-                    <Plus />
-                  </el-icon>{{ isUploading ? '上传中...' : '上传图片' }}
+                  <el-icon><Plus /></el-icon>{{ isUploading ? '上传中...' : '上传图片' }}
                 </button>
                 <input
                   ref="fileInputRef"
@@ -76,14 +59,10 @@
           <div class="editor-footer">
             <div class="info-stats">
               <span class="word-count">字数: {{ wordCount }}</span>
-              <span class="image-count"><el-icon>
-                  <Picture />
-                </el-icon>{{ imageCount }}张图片</span>
+              <span class="image-count"><el-icon><Picture /></el-icon>{{ imageCount }}张图片</span>
             </div>
             <button class="publish-btn" @click="handlePublish" :disabled="isPublishing">
-              <el-icon>
-                <Promotion />
-              </el-icon>
+              <el-icon><Promotion /></el-icon>
               <span>{{ isPublishing ? '发布中...' : articleId ? '更新文章' : '发布文章' }}</span>
             </button>
           </div>
@@ -92,9 +71,7 @@
       <div :class="['settings-panel', { 'visible': showSettings }]">
         <div class="settings-header">
           <h3 class="settings-title">文章设置</h3>
-          <button class="close-settings" @click="showSettings = false"><el-icon>
-              <Close />
-            </el-icon></button>
+          <button class="close-settings" @click="showSettings = false"><el-icon><Close /></el-icon></button>
         </div>
         <div class="settings-content">
           <div class="setting-item">
@@ -102,9 +79,7 @@
             <div class="tags-input">
               <div class="selected-tags" v-if="article.tags && article.tags.length > 0">
                 <span v-for="(tag, index) in article.tags" :key="index" class="tag">
-                  {{ tag }}<el-icon class="tag-close" @click="removeTag(index)">
-                    <Close />
-                  </el-icon>
+                  {{ tag }}<el-icon class="tag-close" @click="removeTag(index)"><Close /></el-icon>
                 </span>
               </div>
               <input v-model="newTag" type="text" placeholder="输入标签，按回车添加" @keyup.enter="addTag" />
@@ -125,8 +100,7 @@
             </div>
           </div>
           <div class="setting-item" v-if="articleId && article.published_at">
-            <label>发布时间</label>
-            <div class="publish-time">{{ formatDateLong(article.published_at) }}</div>
+            <label>发布时间</label><div class="publish-time">{{ formatDateLong(article.published_at) }}</div>
           </div>
         </div>
       </div>

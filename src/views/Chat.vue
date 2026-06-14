@@ -18,27 +18,16 @@
     <div class="chat-input-area">
       <div class="toolbar">
         <div class="toolbar-left">
-          <el-button @click="$router.back()" text>
-            <el-icon><ArrowLeft /></el-icon>
-            <span>返回</span>
-          </el-button>
+          <el-button @click="$router.back()" text><el-icon><ArrowLeft /></el-icon><span>返回</span></el-button>
           <div class="chat-title" v-if="chatData">
             <span class="title-text">{{ displayName }}</span>
-            <span class="member-count" v-if="chatData.type === 'group'">
-              ({{ chatData.members ? chatData.members.length : 0 }})
-            </span>
+            <span class="member-count" v-if="chatData.type === 'group'">({{ chatData.members.length }})</span>
           </div>
         </div>
         <div class="toolbar-right">
-          <el-button @click="handleMoreOptions" text>
-            <el-icon><More /></el-icon>
-            <span>更多</span>
-          </el-button>
-          <el-button @click="triggerFileUpload" text>
-            <el-icon><Paperclip /></el-icon>
-            <span>文件</span>
-          </el-button>
-          <input type="file" ref="fileInput" @change="handleFileSelect" style="display:none" />
+          <el-button @click="handleMoreOptions" text><el-icon><More /></el-icon><span>更多</span></el-button>
+          <el-button @click="triggerFileUpload" text><el-icon><Paperclip /></el-icon><span>文件</span></el-button>
+          <input type="file" ref="fileInput" @change="handleFileSend" style="display:none" />
         </div>
       </div>
       <div class="input-area">
@@ -51,9 +40,8 @@
           resize="none"
           class="message-textarea"
         />
-        <el-button type="primary" @click="sendMessage" :disabled="!inputText.trim() && !selectedFiles.length">
-          <el-icon><Promotion /></el-icon>
-          <span>发送</span>
+        <el-button type="primary" @click="sendMessage" :disabled="!inputText.trim()">
+          <el-icon><Promotion /></el-icon><span>发送</span>
         </el-button>
       </div>
     </div>
@@ -88,7 +76,6 @@ if (typeof chatId !== 'string') {
   chatIdNum = parseInt(chatId)
 }
 const inputText = ref<string>('')
-const selectedFiles = ref<File[]>([])
 const chatData = ref<ChatAPIResponseData | null>(null)
 const messagesContainer = ref<HTMLDivElement | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -181,7 +168,7 @@ const getSenderDisplayName = (senderId: number): string => {
   return '未知用户'
 }
 const sendMessage = async () => {
-  if (!inputText.value.trim() && selectedFiles.value.length === 0) return
+  if (!inputText.value.trim()) return
   try {
     const response = await axios.post('/api/send', {
       target: chatId,
@@ -229,9 +216,9 @@ const handleMoreOptions = () => {
 const triggerFileUpload = () => {
   fileInput.value.click()
 }
-const handleFileSelect = (event: Event) => {
+const handleFileSend = (event: Event) => {
   const input = event.target as HTMLInputElement
-  selectedFiles.value = Array.from(input.files)
+  // 剩下的下次再写
 }
 const handleKeydown = (event: KeyboardEvent) => {
   if (event.key === 'Enter' && !event.shiftKey) {

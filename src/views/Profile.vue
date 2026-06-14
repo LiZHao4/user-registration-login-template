@@ -5,14 +5,11 @@
       <div class="card-header">
         <div class="header-left">
           <el-button type="text" @click="goBack" class="back-btn">
-            <el-icon><ArrowLeft /></el-icon>
-            <span>返回</span>
+            <el-icon><ArrowLeft /></el-icon><span>返回</span>
           </el-button>
         </div>
         <div class="header-title">编辑资料</div>
-        <div class="header-right">
-          <el-button type="primary" @click="handleSave" :loading="saving">保存</el-button>
-        </div>
+        <div class="header-right"><el-button type="primary" @click="handleSave" :loading="saving">保存</el-button></div>
       </div>
       <el-form ref="formRef" :model="form" :rules="formRules" label-position="top" class="profile-form">
         <el-form-item label="头像" class="avatar-item">
@@ -25,21 +22,14 @@
               :on-error="handleAvatarError"
             >
               <el-avatar :src="avatarUrl" :size="80" shape="circle" />
-              <div class="upload-overlay">
-                <el-icon><Plus /></el-icon>
-                <span>点击更换</span>
-              </div>
+              <div class="upload-overlay"><el-icon><Plus /></el-icon><span>点击更换</span></div>
             </el-upload>
           </div>
         </el-form-item>
-        <el-form-item label="昵称" prop="nick">
-          <el-input v-model="form.nick" placeholder="请输入昵称" />
-        </el-form-item>
+        <el-form-item label="昵称" prop="nick"><el-input v-model="form.nick" placeholder="请输入昵称" /></el-form-item>
         <el-form-item label="性别">
           <el-radio-group v-model="form.gender">
-            <el-radio label="M">男</el-radio>
-            <el-radio label="W">女</el-radio>
-            <el-radio label="N">未设置</el-radio>
+            <el-radio label="M">男</el-radio><el-radio label="W">女</el-radio><el-radio label="N">未设置</el-radio>
           </el-radio-group>
         </el-form-item>
         <el-form-item label="生日">
@@ -64,14 +54,8 @@
               :on-error="handleBackgroundError"
             >
               <div class="background-preview" :style="{ backgroundImage: `url(${customBackground})` }">
-                <div class="upload-overlay" v-if="!customBackground">
-                  <el-icon><Plus /></el-icon>
-                  <span>点击上传</span>
-                </div>
-                <div class="upload-overlay" v-else>
-                  <el-icon><Edit /></el-icon>
-                  <span>更换</span>
-                </div>
+                <div class="upload-overlay" v-if="!customBackground"><el-icon><Plus /></el-icon><span>点击上传</span></div>
+                <div class="upload-overlay" v-else><el-icon><Edit /></el-icon><span>更换</span></div>
               </div>
             </el-upload>
             <div class="bg-tip" v-if="customBackground">已设置背景图</div>
@@ -84,9 +68,7 @@
           <el-color-picker v-model="themeColor" show-alpha :predefine="predefineColors" />
         </el-form-item>
       </el-form>
-      <div class="password-section">
-        <el-button type="secondary" @click="handleChangePassword" long>修改密码</el-button>
-      </div>
+      <div class="password-section"><el-button type="secondary" @click="handleChangePassword" long>修改密码</el-button></div>
       <div class="footer-save">
         <el-button type="primary" @click="handleSave" :loading="saving" long>保存修改</el-button>
       </div>
@@ -98,7 +80,6 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
-import { ArrowLeft, Plus } from '@element-plus/icons-vue'
 import type { UploadRequestOptions, FormInstance, FormRules } from 'element-plus'
 import type { PrivateUserAPIResponseData } from '@/types/api'
 const router = useRouter()

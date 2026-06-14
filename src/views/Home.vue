@@ -4,14 +4,11 @@
     <div class="top-navbar">
       <div class="nav-left">
         <div class="user-info" @click="toggleUserCard" ref="userInfoRef">
-          <el-avatar :src="avatar" :size="16" />
-          <span class="nickname">{{ nickname }}</span>
+          <el-avatar :src="avatar" :size="16" /><span class="nickname">{{ nickname }}</span>
         </div>
         <div class="user-card" v-show="showUserCard" ref="userCardRef">
           <div class="card-header">
-            <div class="card-avatar">
-              <el-avatar :src="avatar" :size="48" />
-            </div>
+            <div class="card-avatar"><el-avatar :src="avatar" :size="48" /></div>
             <div class="card-user-info">
               <div class="card-nickname">{{ nickname }}</div>
               <div class="card-details">
@@ -19,43 +16,37 @@
                 <div class="card-detail-item">用户名：{{ username }}</div>
               </div>
             </div>
-            <div class="card-edit" @click="goToProfile">
-              <el-icon><Edit /></el-icon>
-              <span>修改</span>
-            </div>
+            <div class="card-edit" @click="goToProfile"><el-icon><Edit /></el-icon><span>修改</span></div>
           </div>
           <div class="card-divider"></div>
           <div class="card-menu">
             <div class="menu-item" @click="goToHomePage">
-              <el-icon><House /></el-icon>
-              <span>我的主页</span>
-              <el-icon><ArrowRight /></el-icon>
+              <el-icon><House /></el-icon><span>我的主页</span><el-icon><ArrowRight /></el-icon>
             </div>
             <div class="menu-item" @click="goToFollowing">
-              <el-icon><User /></el-icon>
-              <span>我的关注</span>
-              <el-icon><ArrowRight /></el-icon>
+              <el-icon><User /></el-icon><span>我的关注</span><el-icon><ArrowRight /></el-icon>
             </div>
             <div class="menu-item" @click="goToFollowers">
-              <el-icon><UserFilled /></el-icon>
-              <span>我的粉丝</span>
-              <el-icon><ArrowRight /></el-icon>
+              <el-icon><UserFilled /></el-icon><span>我的粉丝</span><el-icon><ArrowRight /></el-icon>
             </div>
             <div class="menu-item" @click="goToMyArticles">
-              <el-icon><Document /></el-icon>
-              <span>我的文章</span>
-              <el-icon><ArrowRight /></el-icon>
+              <el-icon><Document /></el-icon><span>我的文章</span><el-icon><ArrowRight /></el-icon>
             </div>
             <div class="menu-item" @click="goToSettings">
-              <el-icon><Setting /></el-icon>
-              <span>设置</span>
-              <el-icon><ArrowRight /></el-icon>
+              <el-icon><Setting /></el-icon><span>设置</span><el-icon><ArrowRight /></el-icon>
             </div>
           </div>
         </div>
       </div>
       <div class="nav-center">
-        <el-input v-model="searchKeyword" placeholder="搜索..." size="small" clearable @keyup.enter="handleSearch" class="search-input" />
+        <el-input
+          v-model="searchKeyword"
+          placeholder="搜索..."
+          size="small"
+          clearable
+          @keyup.enter="handleSearch"
+          class="search-input"
+        />
         <el-button :icon="Search" circle size="small" @click="handleSearch" class="search-button" />
       </div>
       <div class="nav-right">
@@ -71,18 +62,14 @@
             <el-badge :value="friendRequests" :offset="[0, 6]" type="danger" :max="99" v-if="friendRequests !== 0" />
           </div>
           <div class="nav-icon" @click="handleLogout" title="退出登录">
-            <el-icon><SwitchButton /></el-icon>
-            <span class="text">退出登录</span>
+            <el-icon><SwitchButton /></el-icon><span class="text">退出登录</span>
           </div>
         </div>
       </div>
     </div>
-    <div class="container">
-      <WaterfallFlow />
-    </div>
+    <div class="container"><WaterfallFlow /></div>
     <div class="floating-write-btn" @click="goToWriteArticle" title="写文章" :style="writeButtonStyle">
-      <el-icon><Edit /></el-icon>
-      <span class="btn-text">写文章</span>
+      <el-icon><Edit /></el-icon><span class="btn-text">写文章</span>
     </div>
   </div>
 </template>
