@@ -37,24 +37,7 @@
       </div>
       <el-divider />
       <div class="comments-section">
-        <h3 class="comments-title">评论区 ({{ article.commentCount }})</h3>
-        <div class="comment-input-wrapper">
-          <el-avatar :src="currentUserAvatar" :size="32" />
-          <div class="comment-input-area">
-            <el-input
-              v-model="newComment"
-              type="textarea"
-              :rows="3"
-              resize="none"
-              placeholder="写下你的评论..."
-              maxlength="500"
-              show-word-limit
-            />
-            <div class="comment-actions">
-              <el-button type="primary" @click="submitComment" :loading="submitting">发布评论</el-button>
-            </div>
-          </div>
-        </div>
+        <h3 class="comments-title">评论区 ({{ comments.length }})</h3>
         <div v-if="comments.length" class="comments-list">
           <div v-for="comment in comments" :key="comment.id" class="comment-item">
             <el-avatar :src="comment.avatar" :size="32" />
@@ -94,7 +77,14 @@ const newComment = ref('')
 const submitting = ref(false)
 const viewerRef = ref<any>(null)
 const viewerOptions = {
-  toolbar: true,
+  toolbar: {
+    zoomIn: 1,
+    zoomOut: 1,
+    reset: 1,
+    rotateLeft: 1,
+    rotateRight: 1,
+    play: false,
+  },
   zoomable: true,
   movable: true,
   zoomOnWheel: true,
@@ -107,7 +97,7 @@ const viewerOptions = {
   transition: true,
   fullscreen: false,
   keyboard: true,
-  minZoomRatio: 1,
+  minZoomRatio: 0.1,
   maxZoomRatio: 10
 }
 const currentUserAvatar = ref('https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png')
@@ -120,9 +110,7 @@ interface ArticleDetail {
   content: string
   images: string[]
   publishTime: number
-  commentCount: number
   likeCount: number
-  viewCount: number
   isLiked: boolean
 }
 interface CommentItem {
@@ -205,7 +193,6 @@ const submitComment = async () => {
         likeCount: 0
       }
       comments.value.unshift(newCommentData)
-      article.value.commentCount++
       newComment.value = ''
       ElMessage.success('评论发布成功')
     }

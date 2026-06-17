@@ -59,6 +59,59 @@ router.get('/articles', async (req, res) => {
     })
   }
 })
+router.get('/user/:userId/articles', async (req, res) => {
+  const userId = parseInt(req.params.userId)
+  if (isNaN(userId)) {
+    return res.status(400).json({ code: -1, msg: '用户ID无效。' })
+  }
+  const page = parseInt(req.query.page) || 1
+  const limit = parseInt(req.query.limit) || 10
+  const offset = (page - 1) * limit
+  try {
+    const query = `
+      SELECT 
+        p.id,
+        p.title,
+        p.content,
+        UNIX_TIMESTAMP(p.created_at) as publishTime,
+        COUNT(DISTINCT pl.id) as likeCount,
+        COUNT(DISTINCT c.id) as commentCount
+      FROM posts p
+      LEFT JOIN post_likes pl ON p.id = pl.post_id
+      LEFT JOIN comments c ON p.id = c.post_id
+      WHERE p.user_id = ?
+      GROUP BY p.id, p.title, p.content, p.created_at
+      ORDER BY p.created_at DESC
+      LIMIT ${limit} OFFSET ${offset}
+    `
+    const articles = await db.query(query, [userId])
+    const totalResult = await db.getOne(
+      `SELECT COUNT(*) as total FROM posts WHERE user_id = ?`,
+      [userId]
+    )
+    res.json({
+      code: 1,
+      data: {
+        list: articles.map(article => ({
+          id: article.id,
+          title: article.title,
+          content: article.content,
+          publishTime: article.publishTime,
+          likeCount: article.likeCount || 0,
+          commentCount: article.commentCount || 0
+        })),
+        total: totalResult.total,
+        page, limit
+      }
+    })
+  } catch (error) {
+    console.error('获取用户文章列表失败:', error)
+    res.status(500).json({
+      code: -1,
+      msg: '获取用户文章列表失败。'
+    })
+  }
+})
 router.get('/articles/:id', async (req, res) => {
   const articleId = parseInt(req.params.id)
   if (isNaN(articleId)) {

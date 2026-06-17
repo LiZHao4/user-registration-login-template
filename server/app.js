@@ -7,6 +7,7 @@ import chatRoutes from './routes/chat.js'
 import articleRoutes from './routes/article.js'
 import messageRoutes from './routes/message.js'
 import uploadRoutes from './routes/upload.js'
+import followRoutes from './routes/follow.js'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import morgan from 'morgan'
@@ -47,6 +48,7 @@ app.use('/api', chatRoutes)
 app.use('/api', articleRoutes)
 app.use('/api', messageRoutes)
 app.use('/api', uploadRoutes)
+app.use('/api', followRoutes)
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')))
 app.use(express.static(path.join(__dirname, '../dist')))
 app.use((req, res, next) => {

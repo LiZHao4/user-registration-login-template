@@ -281,8 +281,8 @@ router.get('/user/:id', async (req, res) => {
       }
       const followRow = await db.getOne(
         `SELECT
-           EXISTS(SELECT 1 FROM follows WHERE follower_id = ? AND followee_id = ?) AS is_following,
-           EXISTS(SELECT 1 FROM follows WHERE follower_id = ? AND followee_id = ?) AS is_followed_by`,
+           EXISTS(SELECT 1 FROM follows WHERE follower_id = ? AND following_id = ?) AS is_following,
+           EXISTS(SELECT 1 FROM follows WHERE follower_id = ? AND following_id = ?) AS is_followed_by`,
         [currentUserId, targetId, targetId, currentUserId]
       )
       if (followRow.is_following && followRow.is_followed_by) {

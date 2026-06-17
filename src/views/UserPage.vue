@@ -67,7 +67,7 @@
             <router-link :to="`/article/${article.id}`" class="article-link">
               <div class="article-title">{{ article.title }}</div>
               <div class="article-meta">
-                <span>{{ formatDateShort(article.created_at) }}</span><el-icon><ArrowRight /></el-icon>
+                <span>{{ formatDateShort(article.publishTime) }}</span><el-icon><ArrowRight /></el-icon>
               </div>
             </router-link>
           </li>
@@ -90,7 +90,9 @@
 import { ref, computed, onMounted, onUnmounted, watch, reactive, type CSSProperties } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
-import type { PublicUser, GenderType, PublicUserAPIResponseData } from '@/types/api'
+import type {
+  PublicUser, GenderType, PublicUserAPIResponseData, UserArticle, UserArticleListAPIResponseData
+} from '@/types/api'
 import { formatDateShort } from '@/utils/dateFormatter'
 const route = useRoute()
 const router = useRouter()
@@ -117,7 +119,7 @@ const savingRemark = ref(false)
 const remarkEditMode = ref(false)
 const remarkInput = ref('')
 const followLoading = ref(false)
-const articles = ref<any>([])
+const articles = ref<UserArticle[]>([])
 const articlesLoading = ref(false)
 const currentPage = ref(1)
 const pageSize = 10
@@ -211,7 +213,14 @@ const friendButtonDisabled = computed(() => {
   return friendLoading.value || 
     ['true', 'pending'].includes(userData.friend_status)
 })
-const followButtonText = computed(() => userData.follow_status ? '已关注' : '关注')
+const followButtonText = computed(() => {
+  switch (userData.follow_status) {
+    case 0: return '关注'
+    case 1: return '已关注'
+    case 2: return '回关'
+    case 3: return '互相关注'
+  }
+})
 const followButtonClass = computed(() => userData.follow_status ? 'btn-following' : 'btn-follow')
 async function fetchUserData(id: string) {
   try {
@@ -236,10 +245,10 @@ async function updateRemark(targetId: string, remark: string) {
   return res.data
 }
 async function fetchArticles(userId: string, page: number, limit: number) {
-  const res = await axios.get('/articles.php', {
-    params: { user_id: userId, page, limit }
+  const res = await axios.get<UserArticleListAPIResponseData>(`/api/user/${userId}/articles`, {
+    params: { page, limit }
   })
-  return res.data // 期望格式 { code:1, data: { list: Article[], total: number } }
+  return res.data
 }
 function applyBackground(url: string | null) {
   if (url) {
@@ -291,7 +300,27 @@ async function loadArticles(userId: string, page: number) {
   }
 }
 const handleFriendAction = async () => {}
-const toggleFollow = async () => {}
+const toggleFollow = async () => {
+  followLoading.value = true
+  try {
+    const res = await axios.request({
+      url: `/api/user/${userData.id}/follow`,
+      method: userData.follow_status ? 'delete' : 'post'
+    })
+    if (res.data.code === 1) {
+      userData.follow_status ^= 1
+    } else {
+      throw new Error(res.data.msg)
+    }
+  } catch (err) {
+    if (axios.isAxiosError(err)) {
+      throw new Error(err.response.data.msg)
+    }
+    throw new Error(err.message)
+  } finally {
+    followLoading.value = false
+  }
+}
 const startEditRemark = () => {
   remarkInput.value = userData.remark || ''
   remarkEditMode.value = true
@@ -639,6 +668,7 @@ watch(() => route.params.id, (newId, oldId) => {
   .profile-container {
     flex-direction: row;
     max-width: 1200px;
+    align-items: flex-start;
   }
   .user-card {
     flex: 0 0 35%;
