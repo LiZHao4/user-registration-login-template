@@ -153,9 +153,9 @@ onUnmounted(() => {
   bottom: 15px;
   right: 15px;
   background-color: #f56c6c;
-  color: white;
+  color: #fff;
   font-size: 12px;
-  font-weight: bold;
+  font-weight: 700;
   border-radius: 50%;
   min-width: 20px;
   height: 20px;
@@ -166,7 +166,7 @@ onUnmounted(() => {
 }
 .notification__close-btn {
   color: #909399;
-  transition: color 0.2s;
+  transition: color .2s;
 }
 .notification__close-btn:hover {
   color: #409eff;
@@ -200,7 +200,7 @@ onUnmounted(() => {
   color: #606266;
   line-height: 1.4;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }

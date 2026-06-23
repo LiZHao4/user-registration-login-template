@@ -247,7 +247,7 @@ const handleLogout = async () => {
   cursor: pointer;
   font-size: 12px;
   color: #666;
-  transition: all 0.2s ease;
+  transition: all .2s;
   flex-shrink: 0;
 }
 .card-edit:hover {
@@ -296,7 +296,7 @@ const handleLogout = async () => {
   display: flex;
   align-items: center;
   gap: 8px;
-  transition: all 0.3s ease;
+  transition: all .3s;
   z-index: 1000;
   font-size: 14px;
   font-weight: 600;
@@ -319,7 +319,7 @@ const handleLogout = async () => {
   align-items: center;
   padding: 12px 16px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all .2s;
   color: #333;
   font-size: 14px;
 }
@@ -355,7 +355,7 @@ const handleLogout = async () => {
   justify-content: center;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all .3s;
   color: #666;
   font-size: 15px;
   gap: 10px;
@@ -365,8 +365,7 @@ const handleLogout = async () => {
 .nav-icon .el-icon {
   font-size: 16px;
 }
-.nav-icon:hover,
-.user-info:hover {
+.nav-icon:hover, .user-info:hover {
   background: rgba(0, 0, 0, 0.05);
   color: #2575fc;
   transform: translateY(-2px);
@@ -390,10 +389,10 @@ const handleLogout = async () => {
 }
 .search-button {
   flex-shrink: 0;
-  background: rgba(255, 255, 255, 0.6);
+  background: #fff9;
   border: none;
   backdrop-filter: blur(4px);
-  transition: all 0.2s;
+  transition: all .2s;
 }
 .search-button:hover {
   background: rgba(255, 255, 255, 0.9);
@@ -409,7 +408,7 @@ const handleLogout = async () => {
   backdrop-filter: blur(4px);
   border-radius: 20px;
   box-shadow: none;
-  transition: all 0.2s;
+  transition: all .2s;
 }
 .search-input :deep(.el-input__wrapper:hover) {
   background: rgba(255, 255, 255, 0.95);
@@ -441,7 +440,7 @@ const handleLogout = async () => {
   margin-right: 20px;
   padding: 5px;
   border-radius: 8px;
-  transition: all 0.3s ease;
+  transition: all .3s;
   cursor: pointer;
   gap: 10px;
 }
@@ -459,11 +458,11 @@ const handleLogout = async () => {
   width: 280px;
   z-index: 1001;
   overflow: hidden;
-  animation: fadeIn 0.2s ease;
+  animation: fadeIn .2s;
   border: 1px solid rgba(0, 0, 0, 0.1);
 }
 @keyframes fadeIn {
-  from {
+  0% {
     opacity: 0;
     transform: translateY(-10px);
   }
@@ -472,7 +471,7 @@ const handleLogout = async () => {
     transform: translateY(0);
   }
 }
-@media (max-width: 480px) {
+@media (width <= 480px) {
   .floating-write-btn {
     bottom: 15px;
     right: 15px;
@@ -497,12 +496,12 @@ const handleLogout = async () => {
     width: 260px;
   }
 }
-@media (max-width: 520px) {
+@media (width <= 520px) {
   .text {
     display: none;
   }
 }
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .btn-text {
     display: none;
   }

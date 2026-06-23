@@ -6,7 +6,7 @@ import Components from 'unplugin-vue-components/vite'
 import AutoImport from 'unplugin-auto-import/vite'
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 import { parseIniFile } from './parse'
-
+import cssnano from 'cssnano'
 const config = parseIniFile('./settings.ini')
 const targetUrl = `http://${config.server.backend_host}:${config.server.backend_port}`
 export default defineConfig({
@@ -24,6 +24,27 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('element-plus')) {
+              return 'vendor-element'
+            }
+            return 'vendor'
+          }
+        }
+      }
+    }
+  },
+  css: {
+    postcss: {
+      plugins: [
+        cssnano({ preset: ['default', { mergeRules: false }]})
+      ]
+    }
   },
   server: {
     proxy: {

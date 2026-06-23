@@ -70,7 +70,7 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 12px;
   padding: 16px;
-  pointer-events: none;
+  pointer-events: auto;
 }
 .notification-container:not(.is-mobile) {
   top: 20px;
@@ -87,15 +87,10 @@ onUnmounted(() => {
 .notification-container.is-mobile .notification-list-leave-to {
   transform: translateX(-50%) translateY(-30px);
 }
-.notification-list-enter-active,
-.notification-list-leave-active {
-  transition: all 0.3s ease;
+.notification-list-enter-active, .notification-list-leave-active {
+  transition: all .3s;
 }
-.notification-list-enter-from {
-  opacity: 0;
-  transform: translateX(30px);
-}
-.notification-list-leave-to {
+.notification-list-enter-from, .notification-list-leave-to {
   opacity: 0;
   transform: translateX(30px);
 }

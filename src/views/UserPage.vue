@@ -61,8 +61,15 @@
       </div>
       <div class="articles-card" v-loading="articlesLoading">
         <div class="card-header"><h3>文章</h3></div>
-        <div v-if="articles.length === 0" class="empty-articles">暂无文章</div>
-        <ul v-else class="article-list">
+        <div v-if="articlesStatus === 'error'" class="error-articles">
+          <el-icon><WarningFilled /></el-icon>
+          <span>文章加载失败</span>
+          <el-button type="primary" size="small" @click="reloadArticles">点击重试</el-button>
+        </div>
+        <div v-else-if="articlesStatus === 'success' && articles.length === 0" class="empty-articles">
+          <span>这个人很懒，还没有发表过文章</span>
+        </div>
+        <ul v-else-if="articlesStatus === 'success' && articles.length > 0" class="article-list">
           <li v-for="article in articles" :key="article.id" class="article-item">
             <router-link :to="`/article/${article.id}`" class="article-link">
               <div class="article-title">{{ article.title }}</div>
@@ -72,10 +79,13 @@
             </router-link>
           </li>
         </ul>
+        <p v-if="articlesStatus === 'error'" class="page-error-tip">
+          <el-icon><Warning /></el-icon> 加载新页面失败，请稍后重试
+        </p>
         <el-pagination
           v-if="articlesTotal > pageSize"
           background
-          layout="prev, pager, next"
+          layout="prev,pager,next"
           :total="articlesTotal"
           :page-size="pageSize"
           :current-page="currentPage"
@@ -94,6 +104,7 @@ import type {
   PublicUser, GenderType, PublicUserAPIResponseData, UserArticle, UserArticleListAPIResponseData
 } from '@/types/api'
 import { formatDateShort } from '@/utils/dateFormatter'
+import { ElMessage } from 'element-plus'
 const route = useRoute()
 const router = useRouter()
 const pageLoading = ref(true)
@@ -124,8 +135,10 @@ const articlesLoading = ref(false)
 const currentPage = ref(1)
 const pageSize = 10
 const articlesTotal = ref(0)
+const articlesStatus = ref<'loading' | 'success' | 'error'>('loading')
 let originalBodyBg = ''
 let articleRequestId = 0
+const id = parseInt(route.params.id as string)
 const getGenderText = (gender: GenderType): string => {
   if (gender === 'M') return '男'
   if (gender === 'W') return '女'
@@ -222,7 +235,7 @@ const followButtonText = computed(() => {
   }
 })
 const followButtonClass = computed(() => userData.follow_status ? 'btn-following' : 'btn-follow')
-async function fetchUserData(id: string) {
+async function fetchUserData() {
   try {
     const res = await axios.get<PublicUserAPIResponseData>(`/api/user/${id}`)
     if (res.data.code === 1) {
@@ -244,7 +257,7 @@ async function updateRemark(targetId: string, remark: string) {
   )
   return res.data
 }
-async function fetchArticles(userId: string, page: number, limit: number) {
+async function fetchArticles(userId: number, page: number, limit: number) {
   const res = await axios.get<UserArticleListAPIResponseData>(`/api/user/${userId}/articles`, {
     params: { page, limit }
   })
@@ -252,23 +265,23 @@ async function fetchArticles(userId: string, page: number, limit: number) {
 }
 function applyBackground(url: string | null) {
   if (url) {
-    document.body.style.background = `url(${url}) center / cover no-repeat fixed`;
-    document.body.classList.add('has-background');
+    document.body.style.background = `url(${url}) center / cover no-repeat fixed`
+    document.body.classList.add('has-background')
   } else {
-    document.body.style.background = originalBodyBg || 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)';
-    document.body.classList.remove('has-background');
+    document.body.style.background = 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)'
+    document.body.classList.remove('has-background')
   }
 }
 function resetBackground() {
   document.body.classList.remove('has-background')
   document.body.style.background = originalBodyBg
 }
-async function loadProfile(id: string) {
+async function loadProfile() {
   pageLoading.value = true
   pageError.value = false
   try {
-    await fetchUserData(id)
-    await loadArticles(id, currentPage.value)
+    await fetchUserData()
+    await loadArticles(currentPage.value)
     pageLoading.value = false
   } catch (err) {
     pageError.value = true
@@ -276,30 +289,37 @@ async function loadProfile(id: string) {
     pageLoading.value = false
   }
 }
-async function loadArticles(userId: string, page: number) {
+async function loadArticles( page: number) {
   const requestId = ++articleRequestId
-  articlesLoading.value = true
+  articlesStatus.value = 'loading'
   try {
-    const data = await fetchArticles(userId, page, pageSize)
+    const data = await fetchArticles(id, page, pageSize)
     if (requestId !== articleRequestId) return
     if (data.code === 1) {
       articles.value = data.data.list
       articlesTotal.value = data.data.total
+      articlesStatus.value = 'success'
     } else {
       throw new Error(data.msg)
     }
   } catch (err) {
     if (requestId === articleRequestId) {
-      articles.value = []
-      articlesTotal.value = 0
+      if (page === 1) {
+        articles.value = []
+        articlesTotal.value = 0
+        articlesStatus.value = 'error'
+      } else {
+        articlesStatus.value = 'success'
+        ElMessage.error('加载更多失败，请稍后重试')
+      }
     }
   } finally {
-    if (requestId === articleRequestId) {
-      articlesLoading.value = false
+    if (requestId === articleRequestId && articlesStatus.value !== 'error') {
+      articlesStatus.value = 'success'
     }
   }
 }
-const handleFriendAction = async () => {}
+const handleFriendAction = () => {}
 const toggleFollow = async () => {
   followLoading.value = true
   try {
@@ -348,39 +368,40 @@ const saveRemark = async () => {
 }
 const handlePageChange = (page: number) => {
   currentPage.value = page
-  const userId = route.params.id as string
-  if (userId) {
-    loadArticles(userId, page)
+  if (id) {
+    loadArticles(page)
   }
 }
 const reload = () => {
   const id = route.params.id as string
-  if (id) loadProfile(id)
+  if (id) loadProfile()
 }
 const goBack = () => {
   router.back()
 }
+const reloadArticles = async () => {
+  await loadArticles(currentPage.value)
+}
 onMounted(() => {
-  originalBodyBg = document.body.style.background || getComputedStyle(document.body).background
-  const id = route.params.id as string
+  originalBodyBg = document.body.style.background
   if (!id) {
     pageError.value = true
     errorMessage.value = '用户ID参数缺失。'
     pageLoading.value = false
     return
   }
-  loadProfile(id)
+  loadProfile()
 })
 onUnmounted(resetBackground)
-watch(() => userData.background, (newBg) => {
+watch(() => userData.background, newBg => {
   applyBackground(newBg)
-}, { immediate: true })
+})
 watch(() => route.params.id, (newId, oldId) => {
   if (newId && newId !== oldId) {
     currentPage.value = 1
     articles.value = []
     articlesTotal.value = 0
-    loadProfile(newId as string)
+    loadProfile()
   }
 })
 </script>

@@ -1,8 +1,7 @@
 <template>
   <div class="chat-records-container">
     <div class="records-toolbar">
-      <el-button @click="goBack" text><el-icon><ArrowLeft /></el-icon>返回</el-button>
-      <h3>聊天记录</h3>
+      <el-button @click="goBack" text><el-icon><ArrowLeft /></el-icon>返回</el-button><h3>聊天记录</h3>
     </div>
     <div class="records-list" v-if="props.messages.length">
       <div v-for="(record, index) in props.messages" :key="index" class="record-item">
@@ -18,15 +17,11 @@
               <el-icon><Document /></el-icon>{{ record.content }}
             </a>
           </template>
-          <template v-else>
-            [暂不支持的消息类型]
-          </template>
+          <template v-else>[暂不支持的消息类型]</template>
         </div>
       </div>
     </div>
-    <div v-else class="empty-records">
-      暂无聊天记录
-    </div>
+    <div v-else class="empty-records">暂无聊天记录</div>
   </div>
 </template>
 <script setup lang="ts">

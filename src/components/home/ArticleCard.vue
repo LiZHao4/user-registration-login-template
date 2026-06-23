@@ -3,7 +3,7 @@
     <div class="article-header">
       <el-avatar :src="avatar" :size="24" />
       <span class="article-author">{{ nickname }}</span>
-      <span class="article-time">{{ formatDateShort(publishTime) }}</span>
+      <span class="article-time">{{ formatDateShort(updateTime) }}</span>
     </div>
     <h3 class="article-title">{{ title }}</h3>
     <p class="article-content">{{ content }}</p>
@@ -15,8 +15,7 @@
     </div>
     <div class="article-stats">
       <span class="stat-item"><el-icon><ChatDotRound /></el-icon>{{ commentCount }}</span>
-      <span class="stat-item"><span class="heart-icon">♡</span>{{ likeCount }}</span>
-      <!-- 实心爱心：❤️，以后有用 -->
+      <span class="stat-item"><span class="heart-icon">{{ isLiked ? '❤️' : '♡' }}</span>{{ likeCount }}</span>
     </div>
   </div>
 </template>
@@ -32,9 +31,10 @@ const props = defineProps<{
   title: string
   content: string
   images: string[]
-  publishTime: number
+  updateTime: number
   commentCount: number
   likeCount: number
+  isLiked: boolean
 }>()
 const displayImages = computed(() => props.images.slice(0, 3))
 const goToArticle = () => {
@@ -52,17 +52,17 @@ const goToArticle = () => {
   max-width: 100px;
 }
 .article-card {
-  background: white;
+  background: #fff;
   border-radius: 12px;
   padding: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .1);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all .3s;
   break-inside: avoid;
 }
 .article-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .15);
 }
 .article-content {
   font-size: 14px;
@@ -70,7 +70,7 @@ const goToArticle = () => {
   line-height: 1.5;
   margin-bottom: 12px;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
   white-space: pre-wrap;
@@ -89,7 +89,7 @@ const goToArticle = () => {
 }
 .article-images {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 5px;
   margin-bottom: 12px;
 }
@@ -120,22 +120,19 @@ const goToArticle = () => {
 }
 .image-wrapper {
   position: relative;
-  aspect-ratio: 1 / 1;
+  aspect-ratio: 1;
 }
 .more-overlay {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
-  color: white;
+  inset: 0;
+  background: #0009;
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 6px;
   font-size: 18px;
-  font-weight: bold;
+  font-weight: 700;
 }
 .stat-item {
   display: flex;

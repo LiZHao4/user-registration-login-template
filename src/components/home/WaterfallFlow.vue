@@ -11,12 +11,13 @@
         :id="article.id"
         :avatar="article.avatar"
         :nickname="article.nick"
-        :publishTime="article.publishTime"
+        :updateTime="article.updateTime"
         :title="article.title"
         :commentCount="article.commentCount"
         :likeCount="article.likeCount"
         :content="article.content"
         :images="article.images"
+        :isLiked="article.isLiked"
       />
     </div>
   </div>
@@ -25,12 +26,7 @@
 import { ref, computed, watch, onMounted, onUnmounted, nextTick, type CSSProperties } from 'vue'
 import axios from 'axios'
 import type { HomeArticleListAPIResponseData } from '@/types/api'
-const props = defineProps({
-  gap: {
-    type: Number,
-    default: 20
-  }
-})
+const gap = 20
 const container = ref(null)
 const columnCount = ref(0)
 const columnHeights = ref([])
@@ -68,9 +64,9 @@ const calculateLayout = () => {
     const minHeight = Math.min(...columnHeights.value)
     const columnIndex = columnHeights.value.indexOf(minHeight)
     const itemWidth = getItemWidth()
-    const left = columnIndex * (itemWidth + props.gap)
+    const left = columnIndex * (itemWidth + gap)
     const top = columnHeights.value[columnIndex]
-    columnHeights.value[columnIndex] += itemHeight + props.gap
+    columnHeights.value[columnIndex] += itemHeight + gap
     itemPositions.value.push({ left, top, width: itemWidth })
   })
   containerHeight.value = Math.max(...columnHeights.value)
@@ -78,7 +74,7 @@ const calculateLayout = () => {
 const getItemWidth = () => {
   if (!container.value) return 0
   const containerWidth = container.value.offsetWidth
-  return (containerWidth - (columnCount.value - 1) * props.gap) / columnCount.value
+  return (containerWidth - (columnCount.value - 1) * gap) / columnCount.value
 }
 const getItemStyle = (index: number): CSSProperties => {
   const position = itemPositions.value[index]
@@ -115,7 +111,7 @@ onUnmounted(() => {
   margin: 0 auto;
 }
 .waterfall-item {
-  transition: all 0.3s ease;
+  transition: all .3s;
   box-sizing: border-box;
 }
 </style>

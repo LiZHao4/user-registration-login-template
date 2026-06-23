@@ -1,5 +1,5 @@
 <template>
-  <div class="article-detail-container">
+  <div ref="containerRef" class="article-detail-container">
     <div class="back-button" @click="goBack"><el-icon><ArrowLeft /></el-icon><span>返回</span></div>
     <div v-if="loading" class="loading-container"><el-skeleton :rows="10" animated /></div>
     <div v-else-if="error" class="error-container">
@@ -11,7 +11,10 @@
           <el-avatar :src="article.user_avatar" :size="40" />
           <div class="author-details">
             <div class="author-name">{{ article.user_nick }}</div>
-            <div class="publish-time">{{ formatDateShort(article.publishTime) }}</div>
+            <div class="publish-time">{{
+              formatDateLong(article.publishTime) +
+              (isArticleEdited ? ` 发布 | ${formatDateLong(article.updateTime)} 更新` : '')
+            }}</div>
           </div>
         </div>
       </div>
@@ -23,14 +26,9 @@
         </div>
       </div>
       <div class="article-body">{{ article.content }}</div>
-      <div v-if="article.images.length" class="article-images">
-        <viewer :images="article.images" :options="viewerOptions" ref="viewerRef">
-          <div
-            v-for="(image, index) in article.images"
-            :key="index"
-            class="image-item"
-            @click="() => showImageViewer(index)"
-          >
+      <div v-if="article.images.length">
+        <viewer :images="article.images" :options="viewerOptions" class="article-images">
+          <div v-for="(image, index) in article.images" :key="index" class="image-item">
             <img :src="image" class="image-thumb" alt="文章图片" />
           </div>
         </viewer>
@@ -59,14 +57,36 @@
         <div v-else class="no-comments"><el-empty description="暂无评论，快来抢沙发吧~" :image-size="80" /></div>
       </div>
     </div>
+    <div ref="commentBarRef" class="comment-bar">
+      <div class="comment-bar-inner">
+        <el-input
+          v-model="newComment"
+          type="textarea"
+          placeholder="说点什么……"
+          resize="none"
+          class="comment-input"
+          @keydown.ctrl.enter="submitComment"
+          :autosize="{ minRows: 1, maxRows: 10 }"
+        />
+        <el-button
+          type="primary"
+          :loading="submitting"
+          @click="submitComment"
+          class="comment-submit-btn"
+        >
+          发布
+        </el-button>
+      </div>
+    </div>
   </div>
 </template>
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, onUnmounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
-import { formatDateShort } from '@/utils/dateFormatter'
+import { formatDateShort, formatDateLong } from '@/utils/dateFormatter'
+import type { ArticleDetail } from '@/types/api'
 const route = useRoute()
 const router = useRouter()
 const loading = ref(true)
@@ -75,9 +95,13 @@ const article = ref<ArticleDetail | null>(null)
 const comments = ref<CommentItem[]>([])
 const newComment = ref('')
 const submitting = ref(false)
-const viewerRef = ref<any>(null)
+const containerRef = ref<HTMLElement | null>(null)
+const commentBarRef = ref<HTMLElement | null>(null)
+const isArticleEdited = computed<boolean>(() => article.value.updateTime > article.value.publishTime)
 const viewerOptions = {
   toolbar: {
+    prev: 1,
+    next: 1,
     zoomIn: 1,
     zoomOut: 1,
     reset: 1,
@@ -85,34 +109,11 @@ const viewerOptions = {
     rotateRight: 1,
     play: false,
   },
-  zoomable: true,
-  movable: true,
-  zoomOnWheel: true,
   title: false,
-  navbar: false,
-  button: false,
-  tooltip: false,
-  rotatable: true,
-  scalable: true,
-  transition: true,
-  fullscreen: false,
-  keyboard: true,
   minZoomRatio: 0.1,
   maxZoomRatio: 10
 }
-const currentUserAvatar = ref('https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png')
-interface ArticleDetail {
-  id: number
-  user_id: number
-  user_avatar: string
-  user_nick: string
-  title: string
-  content: string
-  images: string[]
-  publishTime: number
-  likeCount: number
-  isLiked: boolean
-}
+let resizeObserver: ResizeObserver | null = null
 interface CommentItem {
   id: number
   avatar: string
@@ -186,7 +187,7 @@ const submitComment = async () => {
     if (response.data.code === 200) {
       const newCommentData: CommentItem = {
         id: response.data.data.id,
-        avatar: currentUserAvatar.value,
+        avatar: 'placeholder',
         nickname: '当前用户',
         content: newComment.value.trim(),
         createTime: Date.now(),
@@ -223,13 +224,29 @@ const replyToComment = (comment: CommentItem) => {
   const inputArea = document.querySelector('.comment-input-area')
   inputArea?.scrollIntoView({ behavior: 'smooth', block: 'center' })
 }
-const showImageViewer = (index: number) => {
-  if (viewerRef.value) {
-    viewerRef.value.view(index)
+const updateContainerPadding = () => {
+  if (containerRef.value && commentBarRef.value) {
+    const barHeight = commentBarRef.value.offsetHeight
+    containerRef.value.style.paddingBottom = `${barHeight + 20}px`
   }
 }
 onMounted(() => {
   fetchArticle()
+  nextTick(() => {
+    if (commentBarRef.value) {
+      updateContainerPadding()
+      resizeObserver = new ResizeObserver(() => {
+        updateContainerPadding()
+      })
+      resizeObserver.observe(commentBarRef.value)
+    }
+  })
+})
+onUnmounted(() => {
+  if (resizeObserver) {
+    resizeObserver.disconnect()
+    resizeObserver = null
+  }
 })
 </script>
 <style scoped>
@@ -238,7 +255,7 @@ onMounted(() => {
   line-height: 1.8;
   color: #333;
   margin-bottom: 32px;
-  white-space: pre;
+  white-space: pre-wrap;
   word-wrap: break-word;
 }
 .article-content {
@@ -322,6 +339,34 @@ onMounted(() => {
   font-weight: 600;
   color: #333;
 }
+.comment-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 100;
+  
+  padding: 12px 20px;
+  display: flex;
+  justify-content: center;
+}
+.comment-bar-inner {
+  max-width: 1000px;
+  width: 100%;
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(12px);
+  padding: 8px 12px 8px 16px;
+  border-top: 1px outset #f0f2f5;
+  border-radius: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.2s;
+}
+.comment-bar-inner:focus-within {
+  box-shadow: 0 4px 16px rgba(64, 158, 255, 0.15);
+}
 .comment-content {
   flex: 1;
 }
@@ -331,16 +376,23 @@ onMounted(() => {
   justify-content: space-between;
   margin-bottom: 8px;
 }
-.comment-input-area {
+.comment-input {
   flex: 1;
+  min-height: 40px;
 }
-.comment-input-wrapper {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 32px;
-  padding: 20px;
-  background: #f8f9fa;
-  border-radius: 12px;
+.comment-input :deep(.el-textarea__inner) {
+  background: transparent;
+  padding: 0;
+  font-size: 14px;
+  box-shadow: none;
+  border: none;
+  border-radius: 0;
+  max-height: 40vh;
+  overflow-y: auto;
+}
+.comment-input :deep(.el-textarea__inner:focus) {
+  border: none;
+  box-shadow: none;
 }
 .comment-item {
   display: flex;
@@ -368,6 +420,24 @@ onMounted(() => {
 .comment-like .heart-icon {
   font-size: 14px;
   margin-right: 2px;
+}
+.comment-submit-btn {
+  height: 40px;
+  padding: 0 24px;
+  border-radius: 20px;
+  font-weight: 500;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, #409eff, #66b1ff);
+  border: none;
+  color: white;
+  transition: transform .3s;
+}
+.comment-submit-btn:hover {
+  opacity: 0.9;
+  transform: scale(1.02);
+}
+.comment-submit-btn:active {
+  transform: scale(0.96);
 }
 .comment-time {
   font-size: 12px;
@@ -474,9 +544,6 @@ onMounted(() => {
   }
   .article-title {
     font-size: 22px;
-  }
-  .comment-input-wrapper {
-    padding: 12px;
   }
 }
 @media (max-width: 480px) {

@@ -205,3 +205,20 @@ export interface UserArticleListAPIResponseData extends APIResponse {
 export interface ImageUploadAPIResponseData extends APIResponse {
   imageNames?: string[]
 }
+export interface ArticleDetail {
+  id: number
+  user_id: number
+  user_avatar: string
+  user_nick: string
+  title: string
+  content: string
+  images: string[]
+  tags: string[]
+  publishTime: number
+  updateTime: number
+  likeCount: number
+  isLiked: boolean
+}
+export interface ArticleDetailAPIResponseData extends APIResponse {
+  data: ArticleDetail
+}

@@ -7,13 +7,11 @@
           <h3 class="header-title">好友列表</h3>
         </div>
         <div class="header-buttons">
-          <el-button type="primary"><el-icon><User /></el-icon><span class="header-button-text">添加好友</span></el-button>
+          <el-button type="primary"><span>添加好友</span></el-button>
           <el-button type="primary">
-            <el-icon><Bell /></el-icon>
-            <span class="header-button-text">好友请求</span>
-            <el-badge v-if="newFriendsCount > 0" :value="newFriendsCount" :max="99" />
+            <span>好友请求</span><el-badge v-if="newFriendsCount > 0" :value="newFriendsCount" :max="99" />
           </el-button>
-          <el-button type="primary"><el-icon><Plus /></el-icon><span class="header-button-text">创建群组</span></el-button>
+          <el-button type="primary"><span>创建群组</span></el-button>
         </div>
       </div>
     </div>
@@ -115,6 +113,7 @@ onMounted(fetchFriendsList)
 .header-buttons {
   display: flex;
   gap: 8px;
+  overflow-x: auto;
 }
 .header-buttons .el-button .el-badge {
   margin-left: 8px;
@@ -174,9 +173,6 @@ onMounted(fetchFriendsList)
 @media (max-width: 480px) {
   .header-title {
     font-size: 16px;
-  }
-  .header-button-text {
-    display: none;
   }
   .header-buttons .el-button .el-icon {
     margin-right: 0;

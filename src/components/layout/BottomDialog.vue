@@ -106,11 +106,11 @@ watch(
 </script>
 <style scoped>
 .bottom-dialog__button {
-  flex: 0 1 auto;
+  flex: 0 auto;
   min-width: 80px;
 }
 .bottom-dialog__close {
-  background: none;
+  background: 0 0;
   border: none;
   font-size: 1.5rem;
   cursor: pointer;
@@ -122,7 +122,7 @@ watch(
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  transition: background-color 0.2s, color 0.2s;
+  transition: background-color .2s, color .2s;
 }
 .bottom-dialog__close:hover {
   background: #f5f5f5;
@@ -143,7 +143,7 @@ watch(
   padding: 1rem 1.5rem 1.5rem;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: .75rem;
   justify-content: flex-end;
 }
 .bottom-dialog__header {
@@ -159,7 +159,7 @@ watch(
   color: #333;
 }
 .dialog {
-  background: white;
+  background: #fff;
   border-radius: 12px 12px 0 0;
   width: 100%;
   max-width: 500px;
@@ -171,16 +171,13 @@ watch(
 }
 .dialog-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   display: none;
   align-items: flex-end;
   justify-content: center;
   z-index: 2000;
 }
-@media (max-width: 480px) {
+@media (width <= 480px) {
   .dialog {
     max-width: 100%;
     border-radius: 0;
@@ -189,7 +186,7 @@ watch(
 </style>
 <style>
 @keyframes slideDown {
-  from {
+  0% {
     transform: translateY(0);
   }
   to {
@@ -197,7 +194,7 @@ watch(
   }
 }
 @keyframes slideUp {
-  from {
+  0% {
     transform: translateY(100%);
   }
   to {

@@ -1,23 +1,27 @@
 import express from 'express'
 import db from '../config.js'
-import { authMiddleware } from '../middlewares/auth.js'
+import { authMiddleware, verifyToken } from '../middlewares/auth.js'
 const router = express.Router()
 router.get('/articles', async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1
     const limit = parseInt(req.query.limit) || 30
     const offset = (page - 1) * limit
+    const userId = await verifyToken(req.cookies.t)
     const query = `
       SELECT 
         p.id,
         p.title,
         p.content,
         UNIX_TIMESTAMP(p.created_at) as publishTime,
+        UNIX_TIMESTAMP(p.updated_at) as updateTime,
         u.user_avatar,
         u.nick,
         COUNT(DISTINCT pl.id) as likeCount,
+        CASE WHEN ? IS NULL THEN 0 ELSE (
+          SELECT COUNT(*) FROM post_likes WHERE post_id = p.id AND user_id = ?
+        ) END AS is_liked,
         COUNT(DISTINCT c.id) as commentCount,
-        GROUP_CONCAT(pi.image_name) as imageNames,
         -- 热度分数 = 点赞数 * 0.6 + 评论数 * 0.4 + 时间衰减因子
         (COUNT(DISTINCT pl.id) * 0.6 + 
           COUNT(DISTINCT c.id) * 0.4 +
@@ -26,26 +30,30 @@ router.get('/articles', async (req, res) => {
       LEFT JOIN users u ON p.user_id = u.id
       LEFT JOIN post_likes pl ON p.id = pl.post_id
       LEFT JOIN comments c ON p.id = c.post_id
-      LEFT JOIN post_images pi ON p.id = pi.post_id
       GROUP BY p.id, p.title, p.content, p.created_at, u.user_avatar, u.nick
       ORDER BY hotScore DESC, p.created_at DESC
       LIMIT ${offset}, ${limit}
     `
-    // Don't use parameterized query for this SQL statement, or it will cause an error
-    const results = await db.query(query)
-    const articles = results.map(article => {
-      const images = article.imageNames ? article.imageNames.split(',').map(image => `/uploads/images/${image}.png`) : []
+    // DO NOT use parameterized placeholder for LIMIT and OFFSET — it will cause an error.
+    // Only numeric values are allowed here.
+    const results = await db.query(query, [userId, userId])
+    const articlePromises = results.map(async article => {
+      const imageRecords = await db.query('SELECT image_name FROM post_images WHERE post_id = ?', [article.id])
+      const images = imageRecords.map(row => `/uploads/images/${row.image_name}.png`)
       return {
         id: article.id,
         avatar: article.user_avatar,
         nick: article.nick,
         publishTime: article.publishTime,
+        updateTime: article.updateTime,
         title: article.title,
         content: article.content, images,
         commentCount: article.commentCount,
-        likeCount: article.likeCount
+        likeCount: article.likeCount,
+        isLiked: !!article.is_liked
       }
     })
+    const articles = await Promise.all(articlePromises)
     res.json({
       code: 1,
       msg: '获取文章列表成功。',
@@ -65,7 +73,7 @@ router.get('/user/:userId/articles', async (req, res) => {
     return res.status(400).json({ code: -1, msg: '用户ID无效。' })
   }
   const page = parseInt(req.query.page) || 1
-  const limit = parseInt(req.query.limit) || 10
+  const limit = parseInt(req.query.limit) || 30
   const offset = (page - 1) * limit
   try {
     const query = `
@@ -74,6 +82,7 @@ router.get('/user/:userId/articles', async (req, res) => {
         p.title,
         p.content,
         UNIX_TIMESTAMP(p.created_at) as publishTime,
+        UNIX_TIMESTAMP(p.updated_at) as updateTime,
         COUNT(DISTINCT pl.id) as likeCount,
         COUNT(DISTINCT c.id) as commentCount
       FROM posts p
@@ -97,6 +106,7 @@ router.get('/user/:userId/articles', async (req, res) => {
           title: article.title,
           content: article.content,
           publishTime: article.publishTime,
+          updateTime: article.updateTime,
           likeCount: article.likeCount || 0,
           commentCount: article.commentCount || 0
         })),
@@ -125,6 +135,7 @@ router.get('/articles/:id', async (req, res) => {
         p.content,
         p.visibility,
         UNIX_TIMESTAMP(p.created_at) as publishTime,
+        UNIX_TIMESTAMP(p.updated_at) as updateTime,
         u.id as user_id,
         u.nick,
         u.user_avatar,
@@ -182,8 +193,8 @@ router.get('/articles/:id', async (req, res) => {
         user_avatar: article.user_avatar,
         title: article.title,
         content: article.content,
-        visibility: article.visibility,
         publishTime: article.publishTime,
+        updateTime: article.updateTime,
         likeCount: article.likeCount,
         images, tags
       }
@@ -356,6 +367,67 @@ router.put('/articles/:id', authMiddleware, async (req, res) => {
       return res.status(400).json({ code: -1, msg: '无效的图片ID。' })
     }
     console.error('修改文章失败:', error)
+    res.status(500).json({ code: -1, msg: '服务器错误，请稍后重试。' })
+  }
+})
+router.get('/articles/:id/comments', async (req, res) => {
+  const articleId = parseInt(req.params.id)
+  if (isNaN(articleId)) {
+    return res.status(400).json({ code: -1, msg: '文章 ID 无效。' })
+  }
+  let page = parseInt(req.query.page) || 1
+  let limit = parseInt(req.query.limit) || 30
+  if (page < 1) page = 1
+  if (limit < 1) limit = 30
+  const offset = (page - 1) * limit
+  try {
+    const userId = verifyToken(req.cookies.t)
+    const listQuery = `
+      SELECT 
+        c.id,
+        c.content,
+        c.parent_id AS parentId,
+        UNIX_TIMESTAMP(c.created_at) AS createdAt,
+        u.id AS userId,
+        u.nick,
+        u.user_avatar AS avatar,
+        (SELECT COUNT(*) FROM comments WHERE parent_id = c.id AND is_deleted = 0) AS replyCount,
+        (SELECT COUNT(*) FROM comment_likes WHERE comment_id = c.id) AS likeCount,
+        CASE WHEN ? IS NULL THEN 0 ELSE (
+          SELECT COUNT(*) FROM comment_likes WHERE comment_id = c.id AND user_id = ?
+        ) END AS is_liked,
+      FROM comments c
+      LEFT JOIN users u ON c.user_id = u.id
+      WHERE c.post_id = ? AND c.is_deleted = 0 AND parent_id IS NULL
+      ORDER BY c.created_at DESC
+      LIMIT ${limit} OFFSET ${offset}
+    `
+    const comments = await db.query(listQuery, [articleId])
+    const totalResult = await db.getOne(
+      'SELECT COUNT(*) AS total FROM comments WHERE post_id = ? AND is_deleted = 0 AND parent_id IS NULL',
+      [articleId]
+    )
+    const total = totalResult.total
+    const list = comments.map(row => ({
+      id: row.id,
+      user_id: row.userId,
+      user_nick: row.nick,
+      user_avatar: row.avatar,
+      content: row.content,
+      parentId: row.parentId,
+      createdAt: row.createdAt,
+      replyCount: row.replyCount,
+      likeCount: row.likeCount,
+      isLiked: row.is_liked
+    }))
+    res.json({
+      code: 1,
+      msg: '获取评论列表成功。',
+      data: list,
+      total, page, limit
+    })
+  } catch (error) {
+    console.error('获取评论列表失败:', error)
     res.status(500).json({ code: -1, msg: '服务器错误，请稍后重试。' })
   }
 })
