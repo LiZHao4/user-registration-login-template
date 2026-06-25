@@ -70,6 +70,7 @@ const goToArticle = () => {
   line-height: 1.5;
   margin-bottom: 12px;
   display: -webkit-box;
+  -webkit-line-clamp: 3;
   line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;

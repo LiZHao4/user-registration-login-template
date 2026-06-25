@@ -54,11 +54,11 @@ interface PrivateChat extends Friend {
   type: 'friend'
   friend_id: number
 }
-interface GroupChat extends Friend {
+export interface GroupChat extends Friend {
   type: 'group'
   member_count: number
 }
-type FriendItem = PrivateChat | GroupChat
+export type FriendItem = PrivateChat | GroupChat
 interface Message {
   id: number
   sent_at: number
@@ -129,7 +129,6 @@ interface ChatRecordsMessage extends Message {
 export type MessageItem = TextMessage | FileMessage | GroupInviteMessage | SystemMessage | MessageChangeRecords | ChatRecordsMessage
 export interface FriendListAPIResponseData extends APIResponse {
   data: FriendItem[]
-  user_id: number
 }
 interface FriendRequestUser {
   id: number
@@ -179,24 +178,24 @@ interface GroupChatAPIResponseData extends ChatAPI {
 export type ChatAPIResponseData = PrivateChatAPIResponseData | GroupChatAPIResponseData
 export interface UserArticle {
   id: number
-  publishTime: number
+  updateTime: number
   title: string
   content: string
+}
+interface HomeArticle extends UserArticle {
+  avatar: string
+  nick: string
   images: string[]
   likeCount: number
   commentCount: number
   isLike: boolean
 }
-interface HomeArticle extends UserArticle {
-  avatar: string
-  nick: string
-}
 export interface HomeArticleListAPIResponseData extends APIResponse {
   data: HomeArticle[]
 }
 export interface UserArticleListAPIResponseData extends APIResponse {
-  data: {
-    list: UserArticle[]
+  data: UserArticle[]
+  pagination: {
     total: number
     page: number
     limit: number

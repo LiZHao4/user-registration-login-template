@@ -14,11 +14,12 @@ import { ref, provide, reactive, onUnmounted, onMounted } from 'vue'
 import type { DialogConfig, DialogConfigFunc } from './components/layout/BottomDialog.vue'
 import { io } from 'socket.io-client'
 import NotificationContainer from './components/layout/NotificationContainer.vue'
-import { getDisplayContent } from './utils/messageUtils'
+import { getDisplayContent0 } from './utils/messageUtils'
 import { useRouter } from 'vue-router'
 import { useUserStore } from './stores/user'
 import { useChatStore } from './stores/chat'
 import axios from 'axios'
+import { useSessionStore } from './stores/session'
 const notificationContainer = ref<InstanceType<typeof NotificationContainer> | null>(null)
 const userStore = useUserStore()
 const router = useRouter()
@@ -58,8 +59,10 @@ const connectWebSocket = () => {
       doLogout()
     }
   })
-  socket.on('new_message', message => {
+  socket.on('new_message', async message => {
     const currentPath = router.currentRoute.value.path
+    const sessionStore = useSessionStore()
+    await sessionStore.updateSessionFromMessage(message)
     if (currentPath === `/chat/${message.session}`) {
       const messageStructure = {
         id: message.id,
@@ -70,12 +73,9 @@ const connectWebSocket = () => {
       }
       const chatStore = useChatStore()
       chatStore.addMessage(parseInt(message.session), messageStructure)
-    } else if (currentPath === '/friends') {
-      // 需要通知FriendsList.vue组件，需要更新好友列表中消息，时间，以及未读数量
-      // 还没写好接口，下次再说
-    } else {
+    } else if (currentPath !== '/friends') {
       const title = message.type === 'group' ? message.group_name : message.remark || message.msg_nick
-      const messageContent = getDisplayContent(message, userStore.userId)
+      const messageContent = await getDisplayContent0(message, userStore.userId)
       const imageUrl = message.type === 'group' ? message.group_avatar : message.sender_avatar
       notificationContainer.value.addNotification({
         title,
@@ -100,7 +100,6 @@ const disconnectWebSocket = () => {
 const doLogout = () => {
   userStore.logout()
   disconnectWebSocket()
-  hasShownDialog = false
   router.push('/login')
 }
 const globalDialogVisible = ref<boolean>(false)

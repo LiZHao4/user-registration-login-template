@@ -58,7 +58,9 @@ import type { ChatAPIResponseData, ChatAPISimple, ChatRecordItem, MessageItem } 
 import type { DialogConfigFunc, DialogButton } from '@/components/layout/BottomDialog.vue'
 import { formatDateLong } from '@/utils/dateFormatter'
 import { useChatStore } from '@/stores/chat'
+import { useSessionStore } from '@/stores/session'
 const chatStore = useChatStore()
+const sessionStore = useSessionStore()
 const showGlobalDialog = inject<DialogConfigFunc>('showGlobalDialog')
 const route = useRoute()
 const router = useRouter()
@@ -263,6 +265,7 @@ const initChat = async () => {
     configurable: true
   })
   chatData.value = reactiveData
+  sessionStore.clearUnread(chatIdNum)
 }
 const scrollToBottomSmooth = () => {
   const container = messagesContainer.value

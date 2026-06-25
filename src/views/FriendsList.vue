@@ -34,17 +34,22 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, onMounted, inject } from 'vue'
+import { ref, onMounted, inject, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useUserStore } from '@/stores/user'
+import { useSessionStore } from '@/stores/session'
+import { storeToRefs } from 'pinia'
 import { getDisplayNick, getDisplayContent } from '@/utils/messageUtils'
 import axios from 'axios'
 import type { FriendItem, FriendListAPIResponseData, FriendRequestAPIResponseData } from '@/types/api'
 import type { DialogConfigFunc } from '@/components/layout/BottomDialog.vue'
 const router = useRouter()
+const store = useUserStore()
+const sessionStore = useSessionStore()
 const loading = ref<boolean>(false)
-const friends = ref<FriendItem[]>([])
-const currentUserId = ref<number>(0)
+const { friends } = storeToRefs(sessionStore)
 const newFriendsCount = ref<number>(0)
+const currentUserId = store.userId
 const showGlobalDialog = inject<DialogConfigFunc>('showGlobalDialog')
 const fetchFriendsList = async (): Promise<void> => {
   loading.value = true
@@ -54,8 +59,8 @@ const fetchFriendsList = async (): Promise<void> => {
       axios.get<FriendRequestAPIResponseData>('/api/requests')
     ])
     if (friendsResponse.data.code === 1) {
-      friends.value = friendsResponse.data.data
-      currentUserId.value = friendsResponse.data.user_id
+      const sessions = friendsResponse.data.data
+      sessionStore.initSessions(sessions)
     }
     if (requestsResponse.data.code === 1) {
       newFriendsCount.value = requestsResponse.data.received.length

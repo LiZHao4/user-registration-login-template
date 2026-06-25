@@ -1,19 +1,17 @@
 import express from 'express'
 import db from '../config.js'
 import { authMiddleware, verifyToken } from '../middlewares/auth.js'
+import { pagination } from '../middlewares/pagination.js'
 const router = express.Router()
-router.get('/articles', async (req, res) => {
+router.get('/articles', pagination(), async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1
-    const limit = parseInt(req.query.limit) || 30
-    const offset = (page - 1) * limit
+    const { limit, offset } = req.pagination
     const userId = await verifyToken(req.cookies.t)
     const query = `
       SELECT 
         p.id,
         p.title,
         p.content,
-        UNIX_TIMESTAMP(p.created_at) as publishTime,
         UNIX_TIMESTAMP(p.updated_at) as updateTime,
         u.user_avatar,
         u.nick,
@@ -30,13 +28,21 @@ router.get('/articles', async (req, res) => {
       LEFT JOIN users u ON p.user_id = u.id
       LEFT JOIN post_likes pl ON p.id = pl.post_id
       LEFT JOIN comments c ON p.id = c.post_id
+      WHERE p.visibility = 'public'
+        OR ? IS NOT NULL
+        AND p.visibility = 'mutuals'
+        AND (
+          p.user_id = ?
+          OR EXISTS (SELECT 1 FROM follows WHERE follower_id = ? AND following_id = p.user_id)
+          AND EXISTS (SELECT 1 FROM follows WHERE follower_id = p.user_id AND following_id = ?)
+        )
       GROUP BY p.id, p.title, p.content, p.created_at, u.user_avatar, u.nick
       ORDER BY hotScore DESC, p.created_at DESC
       LIMIT ${offset}, ${limit}
     `
     // DO NOT use parameterized placeholder for LIMIT and OFFSET — it will cause an error.
     // Only numeric values are allowed here.
-    const results = await db.query(query, [userId, userId])
+    const results = await db.query(query, [userId, userId, userId, userId, userId, userId])
     const articlePromises = results.map(async article => {
       const imageRecords = await db.query('SELECT image_name FROM post_images WHERE post_id = ?', [article.id])
       const images = imageRecords.map(row => `/uploads/images/${row.image_name}.png`)
@@ -67,49 +73,43 @@ router.get('/articles', async (req, res) => {
     })
   }
 })
-router.get('/user/:userId/articles', async (req, res) => {
-  const userId = parseInt(req.params.userId)
-  if (isNaN(userId)) {
+router.get('/user/:userId/articles', pagination(10), async (req, res) => {
+  const targetUserId = parseInt(req.params.userId)
+  if (isNaN(targetUserId)) {
     return res.status(400).json({ code: -1, msg: '用户ID无效。' })
   }
-  const page = parseInt(req.query.page) || 1
-  const limit = parseInt(req.query.limit) || 30
-  const offset = (page - 1) * limit
+  const { page, limit, offset } = req.pagination
+  const currentUserId = await verifyToken(req.cookies.t)
   try {
     const query = `
       SELECT 
         p.id,
         p.title,
         p.content,
-        UNIX_TIMESTAMP(p.created_at) as publishTime,
-        UNIX_TIMESTAMP(p.updated_at) as updateTime,
-        COUNT(DISTINCT pl.id) as likeCount,
-        COUNT(DISTINCT c.id) as commentCount
+        UNIX_TIMESTAMP(p.updated_at) as updateTime
       FROM posts p
       LEFT JOIN post_likes pl ON p.id = pl.post_id
       LEFT JOIN comments c ON p.id = c.post_id
       WHERE p.user_id = ?
-      GROUP BY p.id, p.title, p.content, p.created_at
+        AND (
+          p.visibility = 'public'
+          OR p.visibility = 'mutuals'
+          AND EXISTS (SELECT 1 FROM follows WHERE follower_id = ? AND following_id = p.user_id)
+          AND EXISTS (SELECT 1 FROM follows WHERE follower_id = p.user_id AND following_id = ?)
+          OR p.visibility = 'private' 
+          AND p.user_id = ?
+        )
+      GROUP BY p.id, p.title, p.content, p.created_at, p.updated_at, p.visibility
       ORDER BY p.created_at DESC
       LIMIT ${limit} OFFSET ${offset}
     `
-    const articles = await db.query(query, [userId])
-    const totalResult = await db.getOne(
-      `SELECT COUNT(*) as total FROM posts WHERE user_id = ?`,
-      [userId]
-    )
+    const articles = await db.query(query, [targetUserId, currentUserId, currentUserId, currentUserId])
+    const totalResult = await db.getOne('SELECT COUNT(*) as total FROM posts WHERE user_id = ?', [targetUserId])
     res.json({
       code: 1,
-      data: {
-        list: articles.map(article => ({
-          id: article.id,
-          title: article.title,
-          content: article.content,
-          publishTime: article.publishTime,
-          updateTime: article.updateTime,
-          likeCount: article.likeCount || 0,
-          commentCount: article.commentCount || 0
-        })),
+      msg: '获取用户文章列表成功。',
+      data: articles,
+      pagination: {
         total: totalResult.total,
         page, limit
       }
@@ -164,7 +164,7 @@ router.get('/articles/:id', async (req, res) => {
         return res.status(403).json({ code: -1, msg: '无权查看此文章。' })
       }
     }
-    // 对于 'friends' 可见性，也可以在这里做额外判断，按需添加。
+    // 对于 'mutuals' 可见性，也可以在这里做额外判断，按需添加。
     */
     // 提示：可用verifyToken函数来验证token是否有效
     const imageQuery = `
@@ -243,24 +243,18 @@ router.post('/articles', authMiddleware, async (req, res) => {
     }
     if (tags && tags.length > 0) {
       for (const tagName of tags) {
-        const [existingTag] = await connection.execute(
-          'SELECT id FROM post_tags WHERE tag = ?',
-          [tagName]
-        )
+        const existingTag = await connection.execute('SELECT id FROM post_tags WHERE tag = ?', [tagName])
         let tagId
         if (existingTag.length > 0) {
           tagId = existingTag[0].id
         } else {
-          const [tagResult] = await connection.execute(
+          const tagResult = await connection.execute(
             'INSERT INTO post_tags (tag, creator) VALUES (?, ?)',
             [tagName, userId]
           )
           tagId = tagResult.insertId
         }
-        await connection.execute(
-          'INSERT INTO post_tag_relations (post_id, tag_id) VALUES (?, ?)',
-          [postId, tagId]
-        )
+        await connection.execute('INSERT INTO post_tag_relations (post_id, tag_id) VALUES (?, ?)', [postId, tagId])
       }
     }
     await db.commit(connection)
@@ -330,20 +324,14 @@ router.put('/articles/:id', authMiddleware, async (req, res) => {
         if (imgRows.length === 0) {
           throw new Error('INVALID_IMAGE')
         }
-        await connection.execute(
-          'INSERT INTO post_images (post_id, image_name) VALUES (?, ?)',
-          [articleId, imageName]
-        )
+        await connection.execute('INSERT INTO post_images (post_id, image_name) VALUES (?, ?)', [articleId, imageName])
       }
     }
     await connection.execute('DELETE FROM post_tag_relations WHERE post_id = ?', [articleId])
     if (tags && tags.length > 0) {
       for (const tagName of tags) {
         let tagId
-        const existingTag = await connection.execute(
-          'SELECT id FROM post_tags WHERE tag = ?',
-          [tagName]
-        )
+        const existingTag = await connection.execute('SELECT id FROM post_tags WHERE tag = ?', [tagName])
         if (existingTag.length > 0) {
           tagId = existingTag[0].id
         } else {
@@ -353,10 +341,7 @@ router.put('/articles/:id', authMiddleware, async (req, res) => {
           )
           tagId = tagResult.insertId
         }
-        await connection.execute(
-          'INSERT INTO post_tag_relations (post_id, tag_id) VALUES (?, ?)',
-          [articleId, tagId]
-        )
+        await connection.execute('INSERT INTO post_tag_relations (post_id, tag_id) VALUES (?, ?)', [articleId, tagId])
       }
     }
     await db.commit(connection)
@@ -402,7 +387,7 @@ router.get('/articles/:id/comments', async (req, res) => {
       ORDER BY c.created_at DESC
       LIMIT ${limit} OFFSET ${offset}
     `
-    const comments = await db.query(listQuery, [articleId])
+    const comments = await db.query(listQuery, [userId, userId, articleId])
     const totalResult = await db.getOne(
       'SELECT COUNT(*) AS total FROM comments WHERE post_id = ? AND is_deleted = 0 AND parent_id IS NULL',
       [articleId]

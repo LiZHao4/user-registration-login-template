@@ -96,8 +96,7 @@ router.get('/friends', async (req, res) => {
     res.json({
       code: 1,
       msg: '好友列表获取成功。',
-      data: finalData,
-      user_id: userId
+      data: finalData
     })
   } catch (error) {
     res.status(500).json({

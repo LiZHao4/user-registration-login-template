@@ -12,7 +12,7 @@
             <h1 class="user-name" :style="headerTextStyle">{{ userData.nick }}</h1>
             <div class="user-meta" :style="headerTextStyle">
               <span class="username">@{{ userData.user }}</span>
-              <span class="user-id">ID: {{ userData.id || route.params.id }}</span>
+              <span class="user-id">ID: {{ userData.id }}</span>
             </div>
           </div>
         </div>
@@ -74,14 +74,16 @@
             <router-link :to="`/article/${article.id}`" class="article-link">
               <div class="article-title">{{ article.title }}</div>
               <div class="article-meta">
-                <span>{{ formatDateShort(article.publishTime) }}</span><el-icon><ArrowRight /></el-icon>
+                <span>{{ formatDateShort(article.updateTime) }}</span><el-icon><ArrowRight /></el-icon>
               </div>
             </router-link>
           </li>
         </ul>
-        <p v-if="articlesStatus === 'error'" class="page-error-tip">
-          <el-icon><Warning /></el-icon> 加载新页面失败，请稍后重试
-        </p>
+        <div v-if="loadMoreError" class="load-more-error">
+          <el-icon><WarningFilled /></el-icon>
+          <span>加载更多失败，请</span>
+          <el-button type="primary" size="small" @click="reloadMore">重试</el-button>
+        </div>
         <el-pagination
           v-if="articlesTotal > pageSize"
           background
@@ -136,6 +138,7 @@ const currentPage = ref(1)
 const pageSize = 10
 const articlesTotal = ref(0)
 const articlesStatus = ref<'loading' | 'success' | 'error'>('loading')
+const loadMoreError = ref(false)
 let originalBodyBg = ''
 let articleRequestId = 0
 const id = parseInt(route.params.id as string)
@@ -292,12 +295,13 @@ async function loadProfile() {
 async function loadArticles( page: number) {
   const requestId = ++articleRequestId
   articlesStatus.value = 'loading'
+  loadMoreError.value = false
   try {
     const data = await fetchArticles(id, page, pageSize)
     if (requestId !== articleRequestId) return
     if (data.code === 1) {
-      articles.value = data.data.list
-      articlesTotal.value = data.data.total
+      articles.value = data.data
+      articlesTotal.value = data.pagination.total
       articlesStatus.value = 'success'
     } else {
       throw new Error(data.msg)
@@ -309,6 +313,7 @@ async function loadArticles( page: number) {
         articlesTotal.value = 0
         articlesStatus.value = 'error'
       } else {
+        loadMoreError.value = true
         articlesStatus.value = 'success'
         ElMessage.error('加载更多失败，请稍后重试')
       }
@@ -381,6 +386,10 @@ const goBack = () => {
 }
 const reloadArticles = async () => {
   await loadArticles(currentPage.value)
+}
+const reloadMore = () => {
+  loadMoreError.value = false
+  loadArticles(currentPage.value)
 }
 onMounted(() => {
   originalBodyBg = document.body.style.background
@@ -595,9 +604,60 @@ watch(() => route.params.id, (newId, oldId) => {
   color: #6c757d;
   padding: 30px 0;
 }
+.error-articles {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px 20px;
+  margin: 10px 0;
+  transition: all 0.3s ease;
+}
+.error-articles span {
+  font-size: 1.1rem;
+  color: #b33a3a;
+  font-weight: 500;
+}
+.error-articles .el-button {
+  margin-top: 4px;
+  border-radius: 30px;
+  padding: 10px 28px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #f56c6c, #ee5a5a);
+  border: none;
+  color: #fff;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 12px rgba(245, 108, 108, 0.35);
+}
+.error-articles .el-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(245, 108, 108, 0.45);
+  background: linear-gradient(135deg, #f77a7a, #e84a4a);
+}
+.error-articles .el-icon {
+  font-size: 48px;
+  color: #f56c6c;
+  animation: error-pulse 2s ease-in-out infinite;
+}
 .header-info {
   flex: 1;
   word-break: break-all;
+}
+.load-more-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 15px 0 10px;
+  padding: 10px;
+  background-color: #fef0f0;
+  border: 1px solid #fde2e2;
+  border-radius: 8px;
+  color: #f56c6c;
+}
+.load-more-error .el-button {
+  margin-left: 4px;
 }
 .pagination {
   margin-top: 20px;
@@ -680,6 +740,16 @@ watch(() => route.params.id, (newId, oldId) => {
 }
 .username {
   opacity: 0.9;
+}
+@keyframes error-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 0.8;
+  }
 }
 @media (min-width: 992px) {
   .articles-card {
