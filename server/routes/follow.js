@@ -1,6 +1,7 @@
 import express from 'express'
 import db from '../config.js'
 import { authMiddleware } from '../middlewares/auth.js'
+import { pagination } from '../middlewares/pagination.js'
 const router = express.Router()
 router.use(authMiddleware)
 router.post('/user/:userId/follow', async (req, res) => {
@@ -57,14 +58,12 @@ router.delete('/user/:userId/follow', async (req, res) => {
     res.status(500).json({ code: -1, msg: '服务器内部错误。' })
   }
 })
-router.get('/self/followers', async (req, res) => {
+router.get('/self/followers', pagination(), async (req, res) => {
   try {
-    const currentUserId = req.user.id
-    const page = parseInt(req.query.page) || 1
-    const limit = parseInt(req.query.limit) || 30
-    const offset = (page - 1) * limit
+    const currentUserId = req.userId
+    const { page, limit, offset } = req.pagination
     const list = await db.query(
-      `SELECT u.id, u.nickname, u.avatar, u.bio,
+      `SELECT u.id, u.nick, u.user_avatar AS avatar, u.bio,
               (SELECT COUNT(*) > 0 FROM follows f2 WHERE f2.follower_id = ? AND f2.following_id = u.id) as isFollowing
        FROM follows f
        JOIN users u ON f.follower_id = u.id
@@ -79,9 +78,15 @@ router.get('/self/followers', async (req, res) => {
     res.json({
       code: 1,
       msg: '获取粉丝列表成功。',
-      data: {
-        list,
-        total: totalResult,
+      data: list.map(item => ({
+        user_id: item.id,
+        nick: item.nick,
+        avatar: item.avatar,
+        bio: item.bio,
+        follow_status: item.isFollowing ? 3 : 2
+      })),
+      pagination: {
+        total: totalResult.total,
         page: parseInt(page),
         limit: parseInt(limit)
       }
@@ -91,19 +96,19 @@ router.get('/self/followers', async (req, res) => {
     res.status(500).json({ code: -1, message: '服务器内部错误。' })
   }
 })
-router.get('/self/following', async (req, res) => {
+router.get('/self/followings', pagination(), async (req, res) => {
   try {
-    const currentUserId = req.user.id
-    const page = parseInt(req.query.page) || 1
-    const limit = parseInt(req.query.limit) || 30
-    const offset = (page - 1) * limit
+    const currentUserId = req.userId
+    const { page, limit, offset } = req.pagination
     const list = await db.query(
-      `SELECT u.id, u.nickname, u.avatar, u.bio, true as isFollowing
+      `SELECT u.id, u.nick, u.user_avatar AS avatar, u.bio,
+              (SELECT COUNT(*) > 0 FROM follows f2 
+               WHERE f2.follower_id = u.id AND f2.following_id = ?) AS isFollowedByThem
        FROM follows f
        JOIN users u ON f.following_id = u.id
        WHERE f.follower_id = ?
        LIMIT ${limit} OFFSET ${offset}`,
-      [currentUserId]
+      [currentUserId, currentUserId]
     )
     const totalResult = await db.getOne(
       'SELECT COUNT(*) as total FROM follows WHERE follower_id = ?',
@@ -112,8 +117,14 @@ router.get('/self/following', async (req, res) => {
     res.json({
       code: 1,
       msg: '获取关注列表成功。',
-      data: {
-        list,
+      data: list.map(item => ({
+        user_id: item.id,
+        nick: item.nick,
+        avatar: item.avatar,
+        bio: item.bio,
+        follow_status: item.isFollowedByThem ? 3 : 1
+      })),
+      pagination: {
         total: totalResult.total,
         page: parseInt(page),
         limit: parseInt(limit)

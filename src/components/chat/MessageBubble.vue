@@ -17,9 +17,7 @@
               <a :href="fileUrl" :download="message.content" class="file-link">
                 <small class="file-type-label">文件</small>
                 <div class="file-info">
-                  <el-icon :size="20" :class="fileIconColorClass">
-                    <component :is="fileIconComponent" />
-                  </el-icon>
+                  <el-icon :size="20" :class="fileIconColorClass"><component :is="fileIconComponent" /></el-icon>
                   <span class="file-name">{{ message.content }}</span>
                 </div>
               </a>
@@ -40,8 +38,7 @@
               <div class="records-header">
                 <span class="records-label">聊天记录</span>
                 <span>
-                  <span class="records-count">{{ message.content.length }} 条记录</span>
-                  <el-icon><ArrowRight /></el-icon>
+                  <span class="records-count">{{ message.content.length }} 条记录</span><el-icon><ArrowRight /></el-icon>
                 </span>
               </div>
               <div v-for="(record, idx) in message.content.slice(0, 2)" :key="idx">
@@ -69,10 +66,7 @@
           v-if="showMessageMenu"
           class="message-menu"
           ref="messageMenu"
-          :style="{
-            top: menuPosition.y + 'px',
-            left: menuPosition.x + 'px'
-          }"
+          :style="{ top: menuPosition.y + 'px', left: menuPosition.x + 'px' }"
         >
           <div class="menu-item" @click="handleEdit" v-if="canEdit">编辑</div>
           <div class="menu-item" @click="handleRecall" v-if="canRecall">撤回</div>
@@ -87,18 +81,12 @@
 import { ref, computed, onMounted, onUnmounted, type Component } from 'vue'
 import { useRouter } from 'vue-router'
 import { formatDateLong } from '@/utils/dateFormatter'
-import type { GroupInviteMessage, MessageChangeRecords, SystemMessage, MessageItem, ChangeAsRecord } from '@/types/api'
+import type {
+  GroupInviteMessage, MessageChangeRecords, SystemMessage, MessageItem, ChangeAsRecord
+} from '@/types/api/chat'
 import {
-  Document, Picture, VideoCamera, Headset, DataLine, DocumentCopy, Tickets, FolderOpened, ArrowLeft, ArrowRight
+  Document, Picture, VideoCamera, Headset, DataLine, DocumentCopy, Tickets, FolderOpened
 } from '@element-plus/icons-vue'
-export interface MessageProp {
-  message: MessageItem
-  chatType: string
-  isMyMessage: boolean
-  avatar: string
-  displayName: string
-  currentUserId: number
-}
 const fileTypeConfig: Record<string, { icon: Component, colorClass: string }> = {
   doc: { icon: Document, colorClass: 'text-primary' },
   docx: { icon: Document, colorClass: 'text-primary' },
@@ -134,7 +122,14 @@ const fileTypeConfig: Record<string, { icon: Component, colorClass: string }> = 
   conf: { icon: Tickets, colorClass: 'text-secondary' }
 }
 const router = useRouter()
-const props = defineProps<MessageProp>()
+const props = defineProps<{
+  message: MessageItem
+  chatType: string
+  isMyMessage: boolean
+  avatar: string
+  displayName: string
+  currentUserId: number
+}>()
 const fileUrl = computed<string>(() => {
   if (props.message.type !== 2) return ''
   return '/upload/files/' + props.message.multi

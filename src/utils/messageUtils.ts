@@ -1,5 +1,5 @@
 import type { FriendItem } from '@/types/api'
-import type { MessageNotificationType } from '@/types/socket'
+import type { MessageType } from '@/types/socket'
 import axios from 'axios'
 export function getDisplayNick(item: FriendItem): string {
   const isTypeFriend = item.type === 'friend'
@@ -19,7 +19,7 @@ export function getDisplayContent(item: FriendItem, currentUserId: number): stri
       if (isTypeGroup && item.msg_sender !== currentUserId) {
         contentString += item.msg_nick + ': '
       }
-      contentString += item.content.replace(/\n/g, ' ')
+      contentString += item.content
     } else if (item.msg_type === 2) {
       if (isTypeGroup && item.msg_sender !== currentUserId) {
         contentString += item.msg_nick + ': '
@@ -89,7 +89,7 @@ export function getDisplayContent(item: FriendItem, currentUserId: number): stri
   }
   return item.content || ''
 }
-export async function getDisplayContent0(item: MessageNotificationType, currentUserId: number): Promise<string> {
+export async function getDisplayContent0(item: MessageType, currentUserId: number): Promise<string> {
   const isTypeFriend = item.type === 'friend'
   const isTypeGroup = item.type === 'group'
   const data = {

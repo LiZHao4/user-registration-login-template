@@ -17,13 +17,11 @@ import { Server } from 'socket.io'
 import { initSocket } from './socket.js'
 import cookie from 'cookie'
 import { verifyToken } from './middlewares/auth.js'
-import { parseIniFile } from '../parse.ts'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
-const config = parseIniFile(path.join(__dirname, '../settings.ini'))
 const app = express()
-const HOST = config.server.backend_host
-const PORT = config.server.backend_port
+const HOST = process.env.BACKEND_HOST
+const PORT = parseInt(process.env.BACKEND_PORT)
 const logsDir = path.join(__dirname, 'logs')
 if (!fs.existsSync(logsDir)) {
   fs.mkdirSync(logsDir, { recursive: true })

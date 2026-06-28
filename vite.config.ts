@@ -5,10 +5,14 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 import Components from 'unplugin-vue-components/vite'
 import AutoImport from 'unplugin-auto-import/vite'
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
-import { parseIniFile } from './parse'
 import cssnano from 'cssnano'
-const config = parseIniFile('./settings.ini')
-const targetUrl = `http://${config.server.backend_host}:${config.server.backend_port}`
+import dotenv from 'dotenv'
+dotenv.config()
+const backendHost = process.env.BACKEND_HOST
+const backendPort = process.env.BACKEND_PORT
+const frontendHost = process.env.FRONTEND_HOST
+const frontendPort = process.env.FRONTEND_PORT
+const targetUrl = `http://${backendHost}:${backendPort}`
 export default defineConfig({
   plugins: [
     vue(),
@@ -62,7 +66,7 @@ export default defineConfig({
         ws: true
       }
     },
-    port: parseInt(config.server.frontend_port),
-    host: config.server.frontend_host
+    port: parseInt(frontendPort),
+    host: frontendHost
   }
 } as UserConfig)

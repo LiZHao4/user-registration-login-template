@@ -19,19 +19,7 @@
 </template>
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-interface NotificationOptions {
-  title: string
-  content: string
-  time: number
-  imageUrl?: string
-  badge?: number
-  duration: number
-  onClick?: () => void
-}
-interface NotificationInstance extends NotificationOptions {
-  id: string
-  visible: boolean
-}
+import type { NotificationInstance, NotificationOptions } from '@/types/notification'
 const notifications = ref<NotificationInstance[]>([])
 const isMobile = ref(window.innerWidth < 768)
 const updateLayout = () => {
@@ -39,7 +27,7 @@ const updateLayout = () => {
 }
 const addNotification = (options: NotificationOptions) => {
   const id = `${Date.now()}-${Math.random().toString(36).substring(2, 10)}`
-  const newNotification: NotificationInstance = {
+  const newNotification = {
     ...options,
     id,
     visible: true

@@ -11,7 +11,7 @@
 </template>
 <script setup lang="ts">
 import { ref, provide, reactive, onUnmounted, onMounted } from 'vue'
-import type { DialogConfig, DialogConfigFunc } from './components/layout/BottomDialog.vue'
+import type { DialogConfig, DialogConfigFunc } from './types/dialog'
 import { io } from 'socket.io-client'
 import NotificationContainer from './components/layout/NotificationContainer.vue'
 import { getDisplayContent0 } from './utils/messageUtils'
@@ -104,7 +104,7 @@ const doLogout = () => {
 }
 const globalDialogVisible = ref<boolean>(false)
 const globalDialogConfig = reactive<DialogConfig>({})
-const showGlobalDialog: DialogConfigFunc = config => {
+const showGlobalDialog: DialogConfigFunc = (config) => {
   globalDialogConfig.title = config.title || '提示'
   globalDialogConfig.content = config.content || ''
   globalDialogConfig.buttons = config.buttons || [{ label: '确定', type: 'primary' }]

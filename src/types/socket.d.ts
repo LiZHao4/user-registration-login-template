@@ -1,4 +1,5 @@
-interface MessageNotification {
+import {} from ''
+interface Message {
   id: number
   session: number
   content: string
@@ -9,15 +10,15 @@ interface MessageNotification {
   time: number
   unread_count: number
 }
-interface FriendMessageNotification extends MessageNotification {
+interface FriendMessage extends Message {
   sender_avatar: string
   type: 'friend'
 }
-interface GroupMessageNotification extends MessageNotification {
+interface GroupMessage extends Message {
   group_avatar: string
   members: number
   group_name: string
   group_nickname: string
   type: 'group'
 }
-export type MessageNotificationType = FriendMessageNotification | GroupMessageNotification
+type MessageType = FriendMessage | GroupMessage

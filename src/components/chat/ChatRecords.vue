@@ -26,7 +26,7 @@
 </template>
 <script setup lang="ts">
 import { formatDateLong } from '@/utils/dateFormatter'
-import type { ChatRecordItem } from '@/types/api'
+import type { ChatRecordItem } from '@/types/api/chat'
 const props = defineProps<{
   messages: ChatRecordItem[]
 }>()

@@ -31,25 +31,8 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, reactive, watch, computed, type Component } from 'vue'
-export interface DialogButton {
-  label: string
-  type?: 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'info'
-  size?: 'large' | 'default' | 'small'
-  click?: (formData: Record<string, any>) => Promise<boolean | void> | boolean | void
-}
-export interface DialogConfig {
-  title?: string
-  content?: string
-  buttons?: DialogButton[]
-  component?: Component
-}
-export type DialogConfigFunc = (config: DialogConfig) => void
-export type DialogProps = {
-  formData: Record<string, any>
-  updateForm: (key: string, value: any) => void
-  deleteForm: (key: string) => void
-}
+import { ref, reactive, watch, computed } from 'vue'
+import type { DialogConfig } from '@/types/dialog'
 const props = defineProps<{
   config: DialogConfig
   visible: boolean
@@ -59,18 +42,18 @@ const emit = defineEmits<{
 }>()
 const dialogOverlay = ref<HTMLElement | null>(null)
 const dialogElement = ref<HTMLElement | null>(null)
-const formData = reactive<DialogProps['formData']>({})
+const formData = reactive<Record<string, any>>({})
 const internalVisible = computed({
   get: () => props.visible,
   set: value => emit('update:visible', value)
 })
-const updateForm: DialogProps['updateForm'] = (key, value) => {
+const updateForm = (key: string, value: any) => {
   formData[key] = value
 }
-const deleteForm: DialogProps['deleteForm'] = key => {
+const deleteForm = (key: string) => {
   delete formData[key]
 }
-const handleButtonClick = async (button: DialogButton) => {
+const handleButtonClick = async (button: DialogConfig['buttons'][number]) => {
   let shouldClose = true
   if (button.click) {
     const result = await button.click(formData)

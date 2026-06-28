@@ -14,12 +14,10 @@
 </template>
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-export type ButtonType = 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'default'
-export type ButtonSize = 'small' | 'medium' | 'large'
 const props = withDefaults(defineProps<{
   label?: string
-  type?: ButtonType
-  size?: ButtonSize
+  type?: 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'default'
+  size?: 'small' | 'medium' | 'large'
   backgroundColor?: string
   textColor?: string
   hoverBackgroundColor?: string

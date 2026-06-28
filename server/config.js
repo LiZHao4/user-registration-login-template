@@ -1,16 +1,16 @@
 import mysql from 'mysql2/promise'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { parseIniFile } from '../parse.ts'
+import dotenv from 'dotenv'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
-const config = parseIniFile(path.join(__dirname, '../settings.ini'))
+dotenv.config({ path: path.join(__dirname, '../.env') })
 const dbConfig = {
-  host: config.database.host,
-  port: config.database.port,
-  user: config.database.user,
-  password: config.database.pass,
-  database: config.database.db
+  host: process.env.DB_HOST,
+  port: parseInt(process.env.DB_PORT),
+  user: process.env.DB_USER,
+  password: process.env.DB_PASS,
+  database: process.env.DB_NAME
 }
 const pool = mysql.createPool(dbConfig)
 async function testConnection() {

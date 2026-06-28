@@ -54,8 +54,8 @@
 import { ref, onMounted, nextTick, inject, computed, onUnmounted, reactive, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
-import type { ChatAPIResponseData, ChatAPISimple, ChatRecordItem, MessageItem } from '@/types/api'
-import type { DialogConfigFunc, DialogButton } from '@/components/layout/BottomDialog.vue'
+import type { ChatResponse, ChatAPISimple, ChatRecordItem, MessageItem } from '@/types/api/chat'
+import type { DialogConfigFunc, DialogButton } from '@/types/dialog'
 import { formatDateLong } from '@/utils/dateFormatter'
 import { useChatStore } from '@/stores/chat'
 import { useSessionStore } from '@/stores/session'
@@ -78,7 +78,7 @@ if (typeof chatId !== 'string') {
   chatIdNum = parseInt(chatId)
 }
 const inputText = ref<string>('')
-const chatData = ref<ChatAPIResponseData | null>(null)
+const chatData = ref<ChatResponse | null>(null)
 const messagesContainer = ref<HTMLDivElement | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
 const recordsDialog = ref<HTMLDialogElement | null>(null)
@@ -255,7 +255,7 @@ const handleScroll = () => {
   }
 }
 const initChat = async () => {
-  const response = await axios.get<ChatAPIResponseData>(`/api/chat/${chatIdNum}?num=30&getmeta=`)
+  const response = await axios.get<ChatResponse>(`/api/chat/${chatIdNum}?num=30&getmeta=`)
   const rawData = response.data
   chatStore.setMessages(chatIdNum, rawData.data)
   const reactiveData = reactive(rawData)

@@ -25,7 +25,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, nextTick, type CSSProperties } from 'vue'
 import axios from 'axios'
-import type { HomeArticleListAPIResponseData } from '@/types/api'
+import type { HomeArticleListResponse } from '@/types/api/atricle'
 const gap = 20
 const container = ref(null)
 const columnCount = ref(0)
@@ -96,7 +96,7 @@ watch(articles, () => {
   })
 }, { deep: true, immediate: true })
 onMounted(async () => {
-  const response = await axios.get<HomeArticleListAPIResponseData>('/api/articles')
+  const response = await axios.get<HomeArticleListResponse>('/api/articles')
   articles.value = response.data.data
   updateColumnCount()
   window.addEventListener('resize', handleResize)

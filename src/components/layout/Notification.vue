@@ -25,7 +25,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onUnmounted, watch, computed } from 'vue'
 import { formatDateShort } from '@/utils/dateFormatter'
 import { Close } from '@element-plus/icons-vue'
 const props = withDefaults(defineProps<{
@@ -46,10 +46,7 @@ const emit = defineEmits<{
   (e: 'update:modelValue', value: boolean): void
   (e: 'close'): void
 }>()
-const isMobile = ref(window.innerWidth < 768)
-const updateLayout = () => {
-  isMobile.value = window.innerWidth < 768
-}
+const isMobile = computed<boolean>(() => window.innerWidth < 768)
 const notificationRef = ref<HTMLDivElement | null>(null)
 let startY = 0
 let offsetY = 0
@@ -123,12 +120,7 @@ watch(() => props.modelValue, newVal => {
     clearAutoClose()
   }
 }, { immediate: true })
-onMounted(() => {
-  updateLayout()
-  window.addEventListener('resize', updateLayout)
-})
 onUnmounted(() => {
-  window.removeEventListener('resize', updateLayout)
   clearAutoClose()
 })
 </script>

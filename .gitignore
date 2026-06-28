@@ -6,5 +6,6 @@ logs/
 *.pid.lock
 .vscode/
 uploads/
+.env
 components.d.ts
 auto-imports.d.ts

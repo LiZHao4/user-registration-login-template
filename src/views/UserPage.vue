@@ -102,9 +102,8 @@
 import { ref, computed, onMounted, onUnmounted, watch, reactive, type CSSProperties } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
-import type {
-  PublicUser, GenderType, PublicUserAPIResponseData, UserArticle, UserArticleListAPIResponseData
-} from '@/types/api'
+import type { PublicUserResponse, PublicUser, GenderType } from '@/types/api/user'
+import type { UserArticleListResponse, UserArticle } from '@/types/api/atricle'
 import { formatDateShort } from '@/utils/dateFormatter'
 import { ElMessage } from 'element-plus'
 const route = useRoute()
@@ -240,7 +239,7 @@ const followButtonText = computed(() => {
 const followButtonClass = computed(() => userData.follow_status ? 'btn-following' : 'btn-follow')
 async function fetchUserData() {
   try {
-    const res = await axios.get<PublicUserAPIResponseData>(`/api/user/${id}`)
+    const res = await axios.get<PublicUserResponse>(`/api/user/${id}`)
     if (res.data.code === 1) {
       Object.assign(userData, res.data.data)
     } else {
@@ -261,7 +260,7 @@ async function updateRemark(targetId: string, remark: string) {
   return res.data
 }
 async function fetchArticles(userId: number, page: number, limit: number) {
-  const res = await axios.get<UserArticleListAPIResponseData>(`/api/user/${userId}/articles`, {
+  const res = await axios.get<UserArticleListResponse>(`/api/user/${userId}/articles`, {
     params: { page, limit }
   })
   return res.data
@@ -292,7 +291,7 @@ async function loadProfile() {
     pageLoading.value = false
   }
 }
-async function loadArticles( page: number) {
+async function loadArticles(page: number) {
   const requestId = ++articleRequestId
   articlesStatus.value = 'loading'
   loadMoreError.value = false
@@ -330,7 +329,7 @@ const toggleFollow = async () => {
   try {
     const res = await axios.request({
       url: `/api/user/${userData.id}/follow`,
-      method: userData.follow_status ? 'delete' : 'post'
+      method: userData.follow_status % 2 ? 'delete' : 'post'
     })
     if (res.data.code === 1) {
       userData.follow_status ^= 1
@@ -367,6 +366,7 @@ const saveRemark = async () => {
       throw new Error(data.msg)
     }
   } catch (err) {
+    ElMessage.error(err.message)
   } finally {
     savingRemark.value = false
   }

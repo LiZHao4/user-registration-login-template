@@ -44,6 +44,16 @@ const routes: RouteRecordRaw[] = [
     path: '/article/:id',
     name: 'ArticleDetail',
     component: () => import('@/views/ArticleDetail.vue')
+  },
+  {
+    path: '/followings',
+    name: 'Followings',
+    component: () => import('@/views/FollowPanel.vue')
+  },
+  {
+    path: '/followers',
+    name: 'Followers',
+    component: () => import('@/views/FollowPanel.vue')
   }
 ]
 const router = createRouter({

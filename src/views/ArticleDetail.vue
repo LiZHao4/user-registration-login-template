@@ -68,12 +68,7 @@
           @keydown.ctrl.enter="submitComment"
           :autosize="{ minRows: 1, maxRows: 10 }"
         />
-        <el-button
-          type="primary"
-          :loading="submitting"
-          @click="submitComment"
-          class="comment-submit-btn"
-        >
+        <el-button type="primary" :loading="submitting" @click="submitComment" class="comment-submit-btn">
           发布
         </el-button>
       </div>
@@ -86,7 +81,7 @@ import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import { formatDateShort, formatDateLong } from '@/utils/dateFormatter'
-import type { ArticleDetail } from '@/types/api'
+import type { ArticleDetail } from '@/types/api/atricle'
 const route = useRoute()
 const router = useRouter()
 const loading = ref(true)

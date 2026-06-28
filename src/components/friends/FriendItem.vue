@@ -3,8 +3,7 @@
     <el-avatar :src="avatar" :alt="name" :size="48" />
     <div class="content-container">
       <div class="top-row">
-        <span class="friend-name">{{ name }}</span>
-        <span class="message-time">{{ formatDateShort(time) }}</span>
+        <span class="friend-name">{{ name }}</span><span class="message-time">{{ formatDateShort(time) }}</span>
       </div>
       <div class="bottom-row">
         <p class="message-preview">{{ message || '暂无消息' }}</p>
@@ -15,14 +14,13 @@
 </template>
 <script setup lang="ts">
 import { formatDateShort } from '@/utils/dateFormatter'
-interface Props {
+const props = defineProps<{
   avatar: string
   name: string
   message: string
   time: number
   count: number
-}
-const props = defineProps<Props>()
+}>()
 const emit = defineEmits<{
   (e: 'click'): void
 }>()

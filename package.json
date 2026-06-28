@@ -25,6 +25,7 @@
     "@types/node": "^24.10.1",
     "@vitejs/plugin-vue": "^6.0.2",
     "cssnano": "^8.0.2",
+    "dotenv": "^17.4.2",
     "typescript": "^5.9.3",
     "unplugin-auto-import": "^21.0.0",
     "unplugin-vue-components": "^31.0.0",

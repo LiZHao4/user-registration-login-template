@@ -34,15 +34,16 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, onMounted, inject, computed } from 'vue'
+import { ref, onMounted, inject } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useSessionStore } from '@/stores/session'
 import { storeToRefs } from 'pinia'
 import { getDisplayNick, getDisplayContent } from '@/utils/messageUtils'
 import axios from 'axios'
-import type { FriendItem, FriendListAPIResponseData, FriendRequestAPIResponseData } from '@/types/api'
-import type { DialogConfigFunc } from '@/components/layout/BottomDialog.vue'
+import type { FriendListResponse, FriendItem } from '@/types/api/friend'
+import type { FriendRequestResponse } from '@/types/api/request'
+import type { DialogConfigFunc } from '@/types/dialog'
 const router = useRouter()
 const store = useUserStore()
 const sessionStore = useSessionStore()
@@ -55,8 +56,8 @@ const fetchFriendsList = async (): Promise<void> => {
   loading.value = true
   try {
     const [friendsResponse, requestsResponse] = await Promise.all([
-      axios.get<FriendListAPIResponseData>('/api/friends'),
-      axios.get<FriendRequestAPIResponseData>('/api/requests')
+      axios.get<FriendListResponse>('/api/friends'),
+      axios.get<FriendRequestResponse>('/api/requests')
     ])
     if (friendsResponse.data.code === 1) {
       const sessions = friendsResponse.data.data

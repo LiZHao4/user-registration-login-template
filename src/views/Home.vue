@@ -78,10 +78,11 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { getContrastColor } from '@/utils/color'
-import type { APIResponse, PrivateUserAPIResponseData } from '@/types/api'
+import type { PrivateUserResponse } from '@/types/api/user'
+import type { LogoutResponse } from '@/types/api/auth'
 import { Search } from '@element-plus/icons-vue'
 const router = useRouter()
-const userData = ref<PrivateUserAPIResponseData>({} as PrivateUserAPIResponseData)
+const userData = ref<PrivateUserResponse>({} as PrivateUserResponse)
 const userInfoRef = ref<HTMLDivElement | null>(null)
 const userCardRef = ref<HTMLDivElement | null>(null)
 const showUserCard = ref<boolean>(false)
@@ -159,7 +160,7 @@ const goToWriteArticle = () => {
   router.push('/write')
 }
 const goToFollowing = () => {
-  router.push('/following')
+  router.push('/followings')
   showUserCard.value = false
 }
 const goToFollowers = () => {
@@ -180,7 +181,7 @@ const goToHomePage = () => {
 }
 onMounted(async () => {
   try {
-    const response = await axios.get<PrivateUserAPIResponseData>('/api/self')
+    const response = await axios.get<PrivateUserResponse>('/api/self')
     const data = response.data
     if (data.code === 1) {
       userData.value = data
@@ -198,7 +199,7 @@ onUnmounted(() => {
 })
 const handleLogout = async () => {
   try {
-    const response = await axios.post<APIResponse>('/api/logout', null, {
+    const response = await axios.post<LogoutResponse>('/api/logout', null, {
       withCredentials: true
     })
     if (response.data.code === 1) {
