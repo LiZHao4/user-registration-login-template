@@ -25,7 +25,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, nextTick, type CSSProperties } from 'vue'
 import axios from 'axios'
-import type { HomeArticleListResponse } from '@/types/api/atricle'
+import type { HomeArticleListResponse } from '@/types/api/article'
 const gap = 20
 const container = ref(null)
 const columnCount = ref(0)

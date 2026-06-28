@@ -81,7 +81,7 @@ import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import { formatDateShort, formatDateLong } from '@/utils/dateFormatter'
-import type { ArticleDetail } from '@/types/api/atricle'
+import type { ArticleDetail } from '@/types/api/article'
 const route = useRoute()
 const router = useRouter()
 const loading = ref(true)

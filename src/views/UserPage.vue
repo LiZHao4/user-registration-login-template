@@ -103,7 +103,7 @@ import { ref, computed, onMounted, onUnmounted, watch, reactive, type CSSPropert
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import type { PublicUserResponse, PublicUser, GenderType } from '@/types/api/user'
-import type { UserArticleListResponse, UserArticle } from '@/types/api/atricle'
+import type { UserArticleListResponse, UserArticle } from '@/types/api/article'
 import { formatDateShort } from '@/utils/dateFormatter'
 import { ElMessage } from 'element-plus'
 const route = useRoute()

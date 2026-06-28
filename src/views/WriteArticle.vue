@@ -113,14 +113,15 @@ import { useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
 import { formatDateLong } from '@/utils/dateFormatter'
 import { ElMessage } from 'element-plus'
-import type { ImageUploadAPIResponseData } from '@/types/api'
+import type { ImageUploadResponse } from '@/types/api/upload'
+import type { ArticleDetailResponse } from '@/types/api/article'
 interface ArticleData {
   id: number | null
   title: string
   content: string
   tags: string[]
   images: string[]
-  visibility: 'public' | 'private' | 'friends'
+  visibility: 'public' | 'mutuals' | 'private'
   published_at: number | null
 }
 const router = useRouter()
@@ -182,7 +183,7 @@ const handleFileChange = async (event: Event) => {
   const currentCount = article.value.images.length
   const remainingSlots = 100 - currentCount
   if (files.length > remainingSlots) {
-    ElMessage.warning(`最多只能上传100张图片，当前已上传${currentCount}张`)
+    showNotification(`最多只能上传100张图片，当前已上传${currentCount}张`, 'warning')
     input.value = ''
     return
   }
@@ -190,11 +191,11 @@ const handleFileChange = async (event: Event) => {
   for (let i = 0; i < files.length; i++) {
     const file = files[i]
     if (!file.type.startsWith('image/')) {
-      ElMessage.error(`文件“${file.name}”不是图片格式`)
+      showNotification(`文件“${file.name}”不是图片格式`, 'error')
       continue
     }
     if (file.size > 10 * 1024 * 1024) {
-      ElMessage.error(`图片“${file.name}”超过10MB限制`)
+      showNotification(`图片“${file.name}”超过10MB限制`, 'error')
       continue
     }
     validFiles.push(file)
@@ -213,7 +214,7 @@ const uploadImages = async (files: File[]) => {
     files.forEach(file => {
       formData.append('image', file)
     })
-    const response = await axios.post<ImageUploadAPIResponseData>('/api/upload/images', formData, {
+    const response = await axios.post<ImageUploadResponse>('/api/upload/images', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
       timeout: 300000
     })
@@ -221,7 +222,7 @@ const uploadImages = async (files: File[]) => {
       const urls = response.data.imageNames
       if (urls.length) {
         article.value.images.push(...urls)
-        ElMessage.success(`成功上传${urls.length}张图片`)
+        showNotification(`成功上传${urls.length}张图片`, 'success')
       } else {
         throw new Error('未返回图片地址')
       }
@@ -231,12 +232,13 @@ const uploadImages = async (files: File[]) => {
       const data = error.response.data
       const message = data.msg
       ElMessage.error(message)
+      showNotification(message, 'error')
     } 
     else if (error.request) {
-      ElMessage.error('网络异常，请检查网络连接后重试')
+      showNotification('网络异常，请检查网络连接后重试', 'error')
     } 
     else {
-      ElMessage.error(error.message || '批量上传失败，请重试')
+      showNotification('批量上传失败，请重试', 'error')
     }
   } finally {
     isUploading.value = false
@@ -313,7 +315,7 @@ const showNotification = (message: string, type: 'primary' | 'success' | 'error'
 const loadArticle = async () => {
   if (!articleId.value) return
   try {
-    const response = await axios.get(`/api/articles/${articleId.value}`)
+    const response = await axios.get<ArticleDetailResponse>(`/api/articles/${articleId.value}`)
     if (response.data.code === 1) {
       const data = response.data.data
       article.value = {
@@ -323,7 +325,7 @@ const loadArticle = async () => {
         images: data.images.map(image => image.match(/^\/uploads\/images\/(.+)\.png$/)[1]) || [],
         tags: data.tags || [],
         visibility: data.visibility || 'public',
-        published_at: data.published_at || null
+        published_at: data.publishTime || null
       }
       originalArticle.value = JSON.parse(JSON.stringify(article.value))
     }

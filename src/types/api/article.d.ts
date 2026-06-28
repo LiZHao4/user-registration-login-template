@@ -22,6 +22,7 @@ interface ArticleDetail {
   content: string
   images: string[]
   tags: string[]
+  visibility: 'public' | 'mutuals' | 'private'
   publishTime: number
   updateTime: number
   likeCount: number

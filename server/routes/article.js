@@ -196,6 +196,7 @@ router.get('/articles/:id', async (req, res) => {
         publishTime: article.publishTime,
         updateTime: article.updateTime,
         likeCount: article.likeCount,
+        visibility: article.visibility,
         images, tags
       }
     })
