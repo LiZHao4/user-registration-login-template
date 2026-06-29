@@ -233,4 +233,58 @@ router.get('/chat/:id', async (req, res) => {
     })
   }
 })
+router.post('/chat/:id/mark-read', async (req, res) => {
+  try {
+    const sessionId = parseInt(req.params.id)
+    const userId = req.userId
+
+    if (!sessionId || !/^\d+$/.test(req.params.id)) {
+      return res.status(400).json({
+        code: -1,
+        msg: '会话ID必须是有效的数字。'
+      })
+    }
+    const validateResult = await db.getOne(
+      `SELECT (SELECT COUNT(*) FROM friendships WHERE id = ? AND (source = ? OR target = ?)) 
+              + (SELECT COUNT(*) FROM group_members WHERE \`group\` = ? AND user = ?) AS validate`,
+      [sessionId, userId, userId, sessionId, userId]
+    )
+    if (validateResult.validate === 0) {
+      return res.status(403).json({
+        code: -1,
+        msg: '没有权限操作该会话。'
+      })
+    }
+    const maxIdResult = await db.getOne(
+      'SELECT COALESCE(MAX(id), 0) AS currentMaxId FROM chats WHERE session = ?',
+      [sessionId]
+    )
+    const currentMaxId = maxIdResult.currentMaxId
+    const existingStatus = await db.getOne(
+      'SELECT 1 FROM message_read_status WHERE session_id = ? AND user_id = ?',
+      [sessionId, userId]
+    )
+    if (existingStatus) {
+      await db.query(
+        'UPDATE message_read_status SET max_id = ? WHERE session_id = ? AND user_id = ?',
+        [currentMaxId, sessionId, userId]
+      )
+    } else {
+      await db.query(
+        'INSERT INTO message_read_status (session_id, user_id, max_id) VALUES (?, ?, ?)',
+        [sessionId, userId, currentMaxId]
+      )
+    }
+    res.json({
+      code: 1,
+      msg: '标记已读成功。'
+    })
+  } catch (error) {
+    console.error('标记已读失败:', error)
+    res.status(500).json({
+      code: -1,
+      msg: '服务器内部错误。'
+    })
+  }
+})
 export default router

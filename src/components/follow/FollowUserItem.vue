@@ -1,23 +1,52 @@
 <template>
-  <div class="user-item">
+  <div class="user-item" @click="goToUser">
     <el-avatar :src="user.avatar" :size="48" />
     <div class="user-info">
-      <div class="user-name">{{ user.nick }}</div>
+      <div class="user-name">{{ user.remark || user.nick }}</div>
       <div class="user-bio">{{ user.bio || '这个人很懒，什么都没留下' }}</div>
     </div>
-    <el-button type="primary" plain size="small" :class="['follow-btn', { 'followed': user.follow_status % 2 == 1 }]">{{
-      user.follow_status === 0 ? '关注' :
-      user.follow_status === 1 ? '已关注' :
-      user.follow_status === 2 ? '回关' :
-      '互相关注'
-    }}</el-button>
+    <el-button
+      type="primary"
+      plain
+      size="small"
+      :class="['follow-btn', { 'followed': user.follow_status % 2 == 1 }]"
+      @click.stop="handleFollow"
+    >
+      {{ buttonText }}
+    </el-button>
   </div>
 </template>
 <script setup lang="ts">
 import type { UserFollowInfo } from '@/types/api/follow'
-defineProps<{
+import { useRouter } from 'vue-router'
+import axios from 'axios'
+import { computed } from 'vue'
+const props = defineProps<{
   user: UserFollowInfo
 }>()
+const emit = defineEmits<{
+  (e: 'follow', userId: number, newStatus: number): void
+}>()
+const router = useRouter()
+const goToUser = () => {
+  router.push(`/user/${props.user.user_id}`)
+}
+const buttonText = computed(() => {
+  const status = props.user.follow_status
+  if (status === 0) return '关注'
+  else if (status === 1) return '已关注'
+  else if (status === 2) return '回关'
+  else return '互相关注'
+})
+const handleFollow = async () => {
+  const currentStatus = props.user.follow_status
+  const apiUrl = `/api/user/${props.user.user_id}/follow`
+  const method = currentStatus % 2 === 0 ? 'post' : 'delete'
+  try {
+    await axios[method](apiUrl)
+    emit('follow', props.user.user_id, currentStatus ^ 1)
+  } catch {}
+}
 </script>
 <style scoped>
 .follow-btn {

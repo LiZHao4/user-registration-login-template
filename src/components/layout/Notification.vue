@@ -9,15 +9,12 @@
     @touchend="onTouchEnd"
   >
     <div v-if="badge" class="notification__badge">{{ badge }}</div>
-    <div v-if="imageUrl" class="notification__image">
-      <img :src="imageUrl" alt="通知图片" />
-    </div>
+    <div v-if="imageUrl" class="notification__image"><img :src="imageUrl" alt="通知图片" /></div>
     <div class="notification__content">
       <div class="notification__header">
         <h3 class="notification__title">{{ title }}</h3>
         <span class="notification__time">
-          {{ formatDateShort(time) }}
-          <el-button class="notification__close-btn" link :icon="Close" @click="close" />
+          {{ formatDateShort(time) }}<el-button class="notification__close-btn" link :icon="Close" @click.stop="close" />
         </span>
       </div>
       <p class="notification__message">{{ content }}</p>

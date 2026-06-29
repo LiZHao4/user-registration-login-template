@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import type { MessageItem } from '@/types/api'
+import type { MessageItem } from '@/types/api/chat'
 export const useChatStore = defineStore('chat', {
   state: () => ({
     messagesMap: new Map<number, MessageItem[]>()

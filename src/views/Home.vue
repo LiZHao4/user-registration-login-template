@@ -59,7 +59,13 @@
           <div class="nav-icon" @click="goToFriends" title="好友列表">
             <el-icon><UserFilled /></el-icon>
             <span class="text">好友列表</span>
-            <el-badge :value="friendRequests" :offset="[0, 6]" type="danger" :max="99" v-if="friendRequests !== 0" />
+            <el-badge
+              :value="unreadFriendMessages"
+              :offset="[0, 6]"
+              type="danger"
+              :max="99"
+              v-if="unreadFriendMessages !== 0"
+            />
           </div>
           <div class="nav-icon" @click="handleLogout" title="退出登录">
             <el-icon><SwitchButton /></el-icon><span class="text">退出登录</span>
@@ -81,12 +87,19 @@ import { getContrastColor } from '@/utils/color'
 import type { PrivateUserResponse } from '@/types/api/user'
 import type { LogoutResponse } from '@/types/api/auth'
 import { Search } from '@element-plus/icons-vue'
+import { useSessionStore } from '@/stores/session'
+import { storeToRefs } from 'pinia'
+import { useFriendStore } from '@/stores/friend'
 const router = useRouter()
+const sessionStore = useSessionStore()
+const friendStore = useFriendStore()
 const userData = ref<PrivateUserResponse>({} as PrivateUserResponse)
 const userInfoRef = ref<HTMLDivElement | null>(null)
 const userCardRef = ref<HTMLDivElement | null>(null)
 const showUserCard = ref<boolean>(false)
 const searchKeyword = ref<string>('')
+const { totalUnreadCount } = storeToRefs(sessionStore)
+const { unreadCount: friendRequests } = storeToRefs(friendStore)
 const avatar = computed<string>(() => userData.value.data?.avatar || 'default.png')
 const nickname = computed<string>(() => userData.value.data?.nick || '默认昵称')
 const userId = computed<number>(() => userData.value.data?.id || 0)
@@ -94,10 +107,7 @@ const username = computed<string>(() => userData.value.data?.user || 'default_us
 const customBackground = computed<string>(() => userData.value.data?.background || '')
 const themeColor = computed<string>(() => userData.value.data?.theme_color || '')
 const unreadMessages = computed<number>(() => userData.value.data?.systemMessageUnreadCount)
-const friendRequests = computed<number>(() => 
-  userData.value.data?.friendUnreadCount +
-  userData.value.data?.friendRequestCount
-)
+const unreadFriendMessages = computed<number>(() => totalUnreadCount.value + friendRequests.value)
 const backgroundStyle = computed(() => {
   if (customBackground.value) {
     return {

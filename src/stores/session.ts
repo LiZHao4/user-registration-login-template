@@ -8,6 +8,7 @@ export const useSessionStore = defineStore('session', {
     sessions: [] as FriendItem[]
   }),
   getters: {
+    totalUnreadCount: state => state.sessions.reduce((sum, s) => sum + s.unread_count, 0),
     friends: state => state.sessions
   },
   actions: {

@@ -297,6 +297,7 @@ onUnmounted(() => {
   if (messagesContainer.value) {
     messagesContainer.value.removeEventListener('scroll', handleScroll)
   }
+  navigator.sendBeacon(`/api/chat/${chatId}/mark-read`)
 })
 </script>
 <style scoped>

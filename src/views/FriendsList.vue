@@ -34,60 +34,28 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, onMounted, inject } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useSessionStore } from '@/stores/session'
 import { storeToRefs } from 'pinia'
 import { getDisplayNick, getDisplayContent } from '@/utils/messageUtils'
-import axios from 'axios'
-import type { FriendListResponse, FriendItem } from '@/types/api/friend'
-import type { FriendRequestResponse } from '@/types/api/request'
-import type { DialogConfigFunc } from '@/types/dialog'
+import type { FriendItem } from '@/types/api/friend'
+import { useFriendStore } from '@/stores/friend'
 const router = useRouter()
 const store = useUserStore()
 const sessionStore = useSessionStore()
+const friendStore = useFriendStore()
 const loading = ref<boolean>(false)
 const { friends } = storeToRefs(sessionStore)
-const newFriendsCount = ref<number>(0)
+const { unreadCount: newFriendsCount } = storeToRefs(friendStore)
 const currentUserId = store.userId
-const showGlobalDialog = inject<DialogConfigFunc>('showGlobalDialog')
-const fetchFriendsList = async (): Promise<void> => {
-  loading.value = true
-  try {
-    const [friendsResponse, requestsResponse] = await Promise.all([
-      axios.get<FriendListResponse>('/api/friends'),
-      axios.get<FriendRequestResponse>('/api/requests')
-    ])
-    if (friendsResponse.data.code === 1) {
-      const sessions = friendsResponse.data.data
-      sessionStore.initSessions(sessions)
-    }
-    if (requestsResponse.data.code === 1) {
-      newFriendsCount.value = requestsResponse.data.received.length
-    }
-  } catch (error) {
-    let message = '无法连接到服务器，请检查网络。'
-    if (axios.isAxiosError(error)) {
-      message = error.response.data.msg || message
-    } else if (error instanceof Error) {
-      message = error.message
-    }
-    showGlobalDialog({
-      title: '错误',
-      content: message
-    })
-  } finally {
-    loading.value = false
-  }
-}
 const selectFriend = (friend: FriendItem) => {
   router.push(`/chat/${friend.id}`)
 }
 const goBack = () => {
   router.back()
 }
-onMounted(fetchFriendsList)
 </script>
 <style scoped>
 .back-button {

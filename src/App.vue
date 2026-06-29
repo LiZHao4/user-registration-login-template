@@ -20,8 +20,11 @@ import { useUserStore } from './stores/user'
 import { useChatStore } from './stores/chat'
 import axios from 'axios'
 import { useSessionStore } from './stores/session'
+import { useFriendStore } from './stores/friend'
 const notificationContainer = ref<InstanceType<typeof NotificationContainer> | null>(null)
 const userStore = useUserStore()
+const sessionStore = useSessionStore()
+const friendStore = useFriendStore()
 const router = useRouter()
 let socket: ReturnType<typeof io> | null = null
 let hasShownDialog = false
@@ -61,7 +64,6 @@ const connectWebSocket = () => {
   })
   socket.on('new_message', async message => {
     const currentPath = router.currentRoute.value.path
-    const sessionStore = useSessionStore()
     await sessionStore.updateSessionFromMessage(message)
     if (currentPath === `/chat/${message.session}`) {
       const messageStructure = {
@@ -90,6 +92,9 @@ const connectWebSocket = () => {
       })
     }
   })
+  socket.on('friend_request', (data) => {
+    friendStore.addReceivedRequest(data)
+  })
 }
 const disconnectWebSocket = () => {
   if (socket) {
@@ -101,6 +106,14 @@ const doLogout = () => {
   userStore.logout()
   disconnectWebSocket()
   router.push('/login')
+}
+const loadSessions = async () => {
+  try {
+    const res = await axios.get('/api/friends')
+    if (res.data.code === 1) {
+      sessionStore.initSessions(res.data.data)
+    }
+  } catch {}
 }
 const globalDialogVisible = ref<boolean>(false)
 const globalDialogConfig = reactive<DialogConfig>({})
@@ -124,6 +137,8 @@ onMounted(async () => {
   await initAuth()
   if (userStore.isLogin) {
     connectWebSocket()
+    await loadSessions()
+    await friendStore.fetchRequests()
   }
   window.addEventListener('user-logged-in', connectWebSocket)
 })

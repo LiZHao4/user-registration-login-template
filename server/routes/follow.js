@@ -64,12 +64,13 @@ router.get('/self/followers', pagination(), async (req, res) => {
     const { page, limit, offset } = req.pagination
     const list = await db.query(
       `SELECT u.id, u.nick, u.user_avatar AS avatar, u.bio,
+              (SELECT remark FROM user_remarks WHERE user_id = ? AND target_user_id = u.id) AS remark,
               (SELECT COUNT(*) > 0 FROM follows f2 WHERE f2.follower_id = ? AND f2.following_id = u.id) as isFollowing
        FROM follows f
        JOIN users u ON f.follower_id = u.id
        WHERE f.following_id = ?
        LIMIT ${limit} OFFSET ${offset}`,
-      [currentUserId, currentUserId]
+      [currentUserId, currentUserId, currentUserId]
     )
     const totalResult = await db.getOne(
       'SELECT COUNT(*) as total FROM follows WHERE following_id = ?',
@@ -81,6 +82,7 @@ router.get('/self/followers', pagination(), async (req, res) => {
       data: list.map(item => ({
         user_id: item.id,
         nick: item.nick,
+        remark: item.remark,
         avatar: item.avatar,
         bio: item.bio,
         follow_status: item.isFollowing ? 3 : 2
@@ -102,13 +104,14 @@ router.get('/self/followings', pagination(), async (req, res) => {
     const { page, limit, offset } = req.pagination
     const list = await db.query(
       `SELECT u.id, u.nick, u.user_avatar AS avatar, u.bio,
+              (SELECT remark FROM user_remarks WHERE user_id = ? AND target_user_id = u.id) AS remark,
               (SELECT COUNT(*) > 0 FROM follows f2 
                WHERE f2.follower_id = u.id AND f2.following_id = ?) AS isFollowedByThem
        FROM follows f
        JOIN users u ON f.following_id = u.id
        WHERE f.follower_id = ?
        LIMIT ${limit} OFFSET ${offset}`,
-      [currentUserId, currentUserId]
+      [currentUserId, currentUserId, currentUserId]
     )
     const totalResult = await db.getOne(
       'SELECT COUNT(*) as total FROM follows WHERE follower_id = ?',
@@ -120,6 +123,7 @@ router.get('/self/followings', pagination(), async (req, res) => {
       data: list.map(item => ({
         user_id: item.id,
         nick: item.nick,
+        remark: item.remark,
         avatar: item.avatar,
         bio: item.bio,
         follow_status: item.isFollowedByThem ? 3 : 1

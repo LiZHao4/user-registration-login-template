@@ -58,7 +58,7 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 12px;
   padding: 16px;
-  pointer-events: auto;
+  pointer-events: none;
 }
 .notification-container:not(.is-mobile) {
   top: 20px;

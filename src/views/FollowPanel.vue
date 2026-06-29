@@ -8,7 +8,12 @@
     <el-tabs v-model="activeTab" class="follow-tabs" stretch>
       <el-tab-pane label="关注" name="followings">
         <div class="user-list">
-          <FollowUserItem v-for="user in followings.list.value" :key="user.user_id" :user="user" />
+          <FollowUserItem
+            v-for="user in followings.list.value"
+            :key="user.user_id"
+            :user="user"
+            @follow="onFollowUpdate"
+          />
           <div v-if="followings.hasMore.value" ref="sentinelFollowings" class="sentinel"></div>
           <div v-if="followings.loading.value" class="load-tip">加载中...</div>
           <div v-if="!followings.loading.value && followings.list.value.length === 0" class="empty-state">暂无关注</div>
@@ -16,7 +21,12 @@
       </el-tab-pane>
       <el-tab-pane label="粉丝" name="followers">
         <div class="user-list">
-          <FollowUserItem v-for="user in followers.list.value" :key="user.user_id" :user="user" />
+          <FollowUserItem
+            v-for="user in followers.list.value"
+            :key="user.user_id"
+            :user="user"
+            @follow="onFollowUpdate"
+          />
           <div v-if="followers.hasMore.value" ref="sentinelFollowers" class="sentinel"></div>
           <div v-if="followers.loading.value" class="load-tip">加载中...</div>
           <div v-if="!followers.loading.value && followers.list.value.length === 0" class="empty-state">还没有粉丝</div>
@@ -48,8 +58,10 @@ function useFollowList(fetchFn: (page: number, pageSize: number) => Promise<Foll
   const pageSize = 30
   const total = ref(0)
   const loading = ref(false)
+  const loaded = ref(false)
   const hasMore = computed(() => list.value.length < total.value)
   const reset = async () => {
+    if (loaded.value) return
     list.value = []
     page.value = 1
     total.value = 0
@@ -64,9 +76,8 @@ function useFollowList(fetchFn: (page: number, pageSize: number) => Promise<Foll
       list.value = [...list.value, ...res.data]
       total.value = res.pagination.total
       page.value++
-    } catch (error) {
-      console.error('加载失败', error)
-    } finally {
+      loaded.value = true
+    } catch {} finally {
       loading.value = false
     }
   }
@@ -109,6 +120,16 @@ function observeSentinel(
   )
   observer.observe(sentinel)
   observerRef.value = observer
+}
+const onFollowUpdate = (userId: number, newStatus: number) => {
+  const updateUser = (list: UserFollowInfo[]) => {
+    const user = list.find(u => u.user_id === userId)
+    if (user) {
+      user.follow_status = newStatus
+    }
+  }
+  updateUser(followings.list.value)
+  updateUser(followers.list.value)
 }
 watch(
   [() => followings.list.value.length, () => followings.hasMore.value],
