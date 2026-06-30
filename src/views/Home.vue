@@ -302,7 +302,7 @@ const handleLogout = async () => {
   right: 30px;
   padding: 12px 20px;
   border-radius: 50px;
-  box-shadow: 0 4px 20px rgba(37, 117, 252, 0.3);
+  box-shadow: 0 4px 20px rgba(37, 117, 252, .3);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -377,7 +377,7 @@ const handleLogout = async () => {
   font-size: 16px;
 }
 .nav-icon:hover, .user-info:hover {
-  background: rgba(0, 0, 0, 0.05);
+  background: rgba(0, 0, 0, .05);
   color: #2575fc;
   transform: translateY(-2px);
 }
@@ -400,34 +400,19 @@ const handleLogout = async () => {
 }
 .search-button {
   flex-shrink: 0;
-  background: #fff9;
+  background: rgba(255, 255, 255, .6);
   border: none;
   backdrop-filter: blur(4px);
   transition: all .2s;
 }
 .search-button:hover {
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, .9);
   transform: scale(1.05);
 }
 .search-input {
   min-width: 60px;
   max-width: 150px;
   flex: 1;
-}
-.search-input :deep(.el-input__wrapper) {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(4px);
-  border-radius: 20px;
-  box-shadow: none;
-  transition: all .2s;
-}
-.search-input :deep(.el-input__wrapper:hover) {
-  background: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 0 0 1px rgba(37, 117, 252, 0.3);
-}
-.search-input :deep(.el-input__wrapper.is-focus) {
-  background: white;
-  box-shadow: 0 0 0 1px #2575fc;
 }
 .top-navbar {
   position: fixed;
@@ -440,9 +425,10 @@ const handleLogout = async () => {
   align-items: center;
   height: 40px;
   padding: 0 10px;
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, .9);
   backdrop-filter: blur(10px);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .1);
 }
 .user-info {
   display: flex;
@@ -463,14 +449,29 @@ const handleLogout = async () => {
   top: 100%;
   left: 8px;
   margin-top: 8px;
-  background: white;
+  background: #fff;
   border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, .15);
   width: 280px;
   z-index: 1001;
   overflow: hidden;
   animation: fadeIn .2s;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(0, 0, 0, .1);
+}
+:deep(.el-input__wrapper) {
+  background: rgba(255, 255, 255, .85);
+  backdrop-filter: blur(4px);
+  border-radius: 20px;
+  box-shadow: none;
+  transition: all .2s;
+}
+:deep(.el-input__wrapper:hover) {
+  background: rgba(255, 255, 255, .95);
+  box-shadow: 0 0 0 1px rgba(37, 117, 252, .3);
+}
+:deep(.el-input__wrapper.is-focus) {
+  background: #fff;
+  box-shadow: 0 0 0 1px #2575fc;
 }
 @keyframes fadeIn {
   0% {

@@ -19,7 +19,7 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
-import type { LoginAPIResponseData } from '@/types/api'
+import type { LoginResponse } from '@/types/api/auth'
 import { ElMessage } from 'element-plus'
 import { formatDateLong } from '@/utils/dateFormatter'
 import { useUserStore } from '@/stores/user'
@@ -41,7 +41,7 @@ const submitForm = async () => {
   }
   loading.value = true
   try {
-    const result = await axios.post<LoginAPIResponseData>('/api/login', {
+    const result = await axios.post<LoginResponse>('/api/login', {
       user: form.username,
       pass: form.password
     })
@@ -70,7 +70,7 @@ const goToRegister = () => {
 }
 .form-group input {
   width: 100%;
-  padding: 0.75rem;
+  padding: .75rem;
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 1rem;
@@ -79,23 +79,23 @@ const goToRegister = () => {
 .form-group input:focus {
   outline: none;
   border-color: #007bff;
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+  box-shadow: 0 0 0 2px #007bff40;
 }
 .form-group label {
   display: block;
-  margin-bottom: 0.5rem;
+  margin-bottom: .5rem;
   color: #555;
   font-weight: 500;
 }
 .full-width {
   width: 100%;
-  margin-top: 0.5rem;
+  margin-top: .5rem;
 }
 .login-container {
-  background: white;
+  background: #fff;
   padding: 2rem;
   border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .1);
   width: 100%;
   max-width: 400px;
 }

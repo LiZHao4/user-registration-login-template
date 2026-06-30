@@ -8,13 +8,26 @@
     <div v-else-if="article" class="article-content">
       <div class="article-header">
         <div class="author-info">
-          <el-avatar :src="article.user_avatar" :size="40" />
-          <div class="author-details">
-            <div class="author-name">{{ article.user_nick }}</div>
-            <div class="publish-time">{{
-              formatDateLong(article.publishTime) +
-              (isArticleEdited ? ` 发布 | ${formatDateLong(article.updateTime)} 更新` : '')
-            }}</div>
+          <div class="author-left" @click="goToAuthorProfile">
+            <el-avatar :src="article.user_avatar" :size="40" />
+            <div class="author-details">
+              <div class="author-name">{{ article.user_nick }}</div>
+              <div class="publish-time">{{
+                formatDateLong(article.publishTime) +
+                (isArticleEdited ? ` 发布 | ${formatDateLong(article.updateTime)} 更新` : '')
+              }}</div>
+            </div>
+          </div>
+          <div class="author-right">
+            <el-button
+              type="primary"
+              size="small"
+              :loading="followLoading"
+              @click.stop="toggleFollow"
+              :plain="article.isFollowing"
+            >
+              {{ article.isFollowing ? '已关注' : '关注' }}
+            </el-button>
           </div>
         </div>
       </div>
@@ -90,6 +103,7 @@ const article = ref<ArticleDetail | null>(null)
 const comments = ref<CommentItem[]>([])
 const newComment = ref('')
 const submitting = ref(false)
+const followLoading = ref(false)
 const containerRef = ref<HTMLElement | null>(null)
 const commentBarRef = ref<HTMLElement | null>(null)
 const isArticleEdited = computed<boolean>(() => article.value.updateTime > article.value.publishTime)
@@ -105,7 +119,7 @@ const viewerOptions = {
     play: false,
   },
   title: false,
-  minZoomRatio: 0.1,
+  minZoomRatio: .1,
   maxZoomRatio: 10
 }
 let resizeObserver: ResizeObserver | null = null
@@ -120,6 +134,31 @@ interface CommentItem {
 }
 const goBack = () => {
   router.back()
+}
+const goToAuthorProfile = () => {
+  if (!article.value) return
+  const userId = article.value.user_id
+  router.push(`/user/${userId}`)
+}
+const toggleFollow = async () => {
+  if (!article.value) return
+  const userId = article.value.user_id
+  followLoading.value = true
+  try {
+    if (article.value.isFollowing == 'self') throw new Error('您还未登录，请先登录后再进行操作。')
+    const method = article.value.isFollowing == 'true' ? 'delete' : 'post'
+    const response = await axios[method](`/api/user/${userId}/follow`)
+    if (response.data.code === 1) {
+      article.value.isFollowing = article.value.isFollowing == 'true' ? 'false' : 'true'
+      ElMessage.success(article.value.isFollowing ? '关注成功。' : '已取消关注。')
+    } else {
+      throw new Error(response.data.message)
+    }
+  } catch (err) {
+    ElMessage.error(err.message)
+  } finally {
+    followLoading.value = false
+  }
 }
 const fetchArticle = async () => {
   const id = route.params.id
@@ -254,10 +293,10 @@ onUnmounted(() => {
   word-wrap: break-word;
 }
 .article-content {
-  background: white;
+  background: #fff;
   border-radius: 16px;
   padding: 32px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, .08);
 }
 .article-detail-container {
   max-width: 1000px;
@@ -287,22 +326,32 @@ onUnmounted(() => {
   font-weight: 700;
   color: #1a1a1a;
   line-height: 1.3;
-  margin: 0 0 20px 0;
+  margin: 0 0 20px;
 }
 .author-details {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
+.author-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.author-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
 .author-name {
   font-size: 16px;
   font-weight: 600;
   color: #333;
 }
-.author-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.author-right {
+  flex-shrink: 0;
+  margin-left: 16px;
 }
 .back-button {
   display: inline-flex;
@@ -310,17 +359,17 @@ onUnmounted(() => {
   gap: 6px;
   padding: 8px 16px;
   margin-bottom: 24px;
-  background: white;
+  background: #fff;
   border-radius: 20px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all .3s;
   font-size: 14px;
   color: #666;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .1);
 }
 .back-button:hover {
   transform: translateX(-2px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .15);
   color: #333;
 }
 .comment-actions {
@@ -340,7 +389,6 @@ onUnmounted(() => {
   right: 0;
   bottom: 0;
   z-index: 100;
-  
   padding: 12px 20px;
   display: flex;
   justify-content: center;
@@ -351,16 +399,17 @@ onUnmounted(() => {
   display: flex;
   gap: 12px;
   align-items: flex-end;
-  background: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, .6);
   backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   padding: 8px 12px 8px 16px;
   border-top: 1px outset #f0f2f5;
   border-radius: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  transition: box-shadow 0.2s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .04);
+  transition: box-shadow .2s;
 }
 .comment-bar-inner:focus-within {
-  box-shadow: 0 4px 16px rgba(64, 158, 255, 0.15);
+  box-shadow: 0 4px 16px rgba(64, 158, 255, .15);
 }
 .comment-content {
   flex: 1;
@@ -375,27 +424,13 @@ onUnmounted(() => {
   flex: 1;
   min-height: 40px;
 }
-.comment-input :deep(.el-textarea__inner) {
-  background: transparent;
-  padding: 0;
-  font-size: 14px;
-  box-shadow: none;
-  border: none;
-  border-radius: 0;
-  max-height: 40vh;
-  overflow-y: auto;
-}
-.comment-input :deep(.el-textarea__inner:focus) {
-  border: none;
-  box-shadow: none;
-}
 .comment-item {
   display: flex;
   gap: 12px;
   padding: 16px;
   background: #f8f9fa;
   border-radius: 12px;
-  transition: all 0.2s;
+  transition: all .2s;
 }
 .comment-item:hover {
   background: #f0f2f5;
@@ -407,7 +442,7 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  transition: color 0.2s;
+  transition: color .2s;
 }
 .comment-like:hover, .comment-reply:hover {
   color: #409eff;
@@ -424,15 +459,15 @@ onUnmounted(() => {
   flex-shrink: 0;
   background: linear-gradient(135deg, #409eff, #66b1ff);
   border: none;
-  color: white;
+  color: #fff;
   transition: transform .3s;
 }
 .comment-submit-btn:hover {
-  opacity: 0.9;
+  opacity: .9;
   transform: scale(1.02);
 }
 .comment-submit-btn:active {
-  transform: scale(0.96);
+  transform: scale(.96);
 }
 .comment-time {
   font-size: 12px;
@@ -460,7 +495,7 @@ onUnmounted(() => {
   margin-bottom: 24px;
 }
 .error-container, .loading-container {
-  background: white;
+  background: #fff;
   border-radius: 16px;
   padding: 40px;
   text-align: center;
@@ -468,7 +503,7 @@ onUnmounted(() => {
 .heart-icon {
   font-size: 16px;
   cursor: pointer;
-  transition: color 0.2s;
+  transition: color .2s;
   display: inline-block;
   line-height: 1;
 }
@@ -486,7 +521,7 @@ onUnmounted(() => {
 .image-item .el-image {
   width: 100%;
   height: 100%;
-  transition: transform 0.3s ease;
+  transition: transform .3s;
 }
 .image-item:hover .el-image {
   transform: scale(1.05);
@@ -499,7 +534,7 @@ onUnmounted(() => {
   height: 100%;
   object-fit: cover;
   cursor: pointer;
-  transition: transform 0.3s ease;
+  transition: transform .3s;
 }
 .no-comments {
   padding: 40px 20px;
@@ -518,12 +553,26 @@ onUnmounted(() => {
   font-size: 14px;
   color: #666;
   cursor: pointer;
-  transition: color 0.2s;
+  transition: color .2s;
 }
 .stat-item .liked {
   color: #ff6b6b;
 }
-@media (max-width: 768px) {
+:deep(.el-textarea__inner) {
+  background: transparent;
+  padding: 0;
+  font-size: 14px;
+  box-shadow: none;
+  border: none;
+  border-radius: 0;
+  max-height: 40vh;
+  overflow-y: auto;
+}
+:deep(.el-textarea__inner:focus) {
+  border: none;
+  box-shadow: none;
+}
+@media (width <= 768px) {
   .article-body {
     font-size: 14px;
     line-height: 1.6;
@@ -540,8 +589,17 @@ onUnmounted(() => {
   .article-title {
     font-size: 22px;
   }
+  .author-info {
+    flex-wrap: wrap;
+  }
+  .author-right {
+    margin-left: 0;
+    margin-top: 8px;
+    width: 100%;
+    text-align: right;
+  }
 }
-@media (max-width: 480px) {
+@media (width <= 480px) {
   .article-images {
     grid-template-columns: repeat(2, 1fr);
   }

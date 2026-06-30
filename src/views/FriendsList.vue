@@ -61,10 +61,10 @@ const goBack = () => {
 .back-button {
   padding: 8px;
   border: none;
-  background: transparent;
+  background: 0 0;
   cursor: pointer;
   border-radius: 50%;
-  transition: background-color 0.2s;
+  transition: background-color .2s;
 }
 .back-button:hover {
   background-color: rgba(0, 0, 0, 0.04);
@@ -91,9 +91,6 @@ const goBack = () => {
 }
 .header-buttons .el-button .el-badge {
   margin-left: 8px;
-}
-.header-buttons .el-button .el-icon {
-  margin-right: 8px;
 }
 .header-left {
   display: flex;
@@ -126,7 +123,7 @@ const goBack = () => {
 :deep(.el-skeleton) {
   padding: 20px;
 }
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .header-buttons {
     width: 100%;
     justify-content: space-between;
@@ -144,12 +141,9 @@ const goBack = () => {
     padding: 12px 16px;
   }
 }
-@media (max-width: 480px) {
+@media (width <= 480px) {
   .header-title {
     font-size: 16px;
-  }
-  .header-buttons .el-button .el-icon {
-    margin-right: 0;
   }
   .list-header {
     padding: 10px 12px;

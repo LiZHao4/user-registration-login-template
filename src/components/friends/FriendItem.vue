@@ -21,9 +21,7 @@ const props = defineProps<{
   time: number
   count: number
 }>()
-const emit = defineEmits<{
-  (e: 'click'): void
-}>()
+const emit = defineEmits<{ (e: 'click'): void }>()
 const handleItemClick = () => {
   emit('click')
 }
@@ -44,7 +42,7 @@ const handleItemClick = () => {
   padding: 12px 16px;
   border-bottom: 1px solid #f0f0f0;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: background-color .2s;
   position: relative;
   gap: 12px;
 }

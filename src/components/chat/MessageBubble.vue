@@ -332,7 +332,7 @@ onUnmounted(() => {
 .menu-item {
   padding: 8px 12px;
   cursor: pointer;
-  font-size: 0.9em;
+  font-size: .9em;
 }
 .menu-item:hover {
   background: #f5f5f5;
@@ -347,7 +347,7 @@ onUnmounted(() => {
   border-radius: 18px;
   max-width: 80%;
   word-wrap: break-word;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .1);
   position: relative;
 }
 .message-content {
@@ -364,22 +364,22 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   margin-bottom: 4px;
-  font-size: 0.8rem;
+  font-size: .8rem;
   color: #666;
   width: 100%;
 }
 .message-menu {
   position: fixed;
-  background: white;
+  background: #fff;
   border: 1px solid #e0e0e0;
   border-radius: 6px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .1);
   z-index: 1000;
   min-width: 80px;
 }
 .message-time {
-  font-size: 0.75rem;
-  opacity: 0.7;
+  font-size: .75rem;
+  opacity: .7;
 }
 .message-wrapper {
   display: flex;
@@ -391,7 +391,7 @@ onUnmounted(() => {
   justify-content: flex-start;
 }
 .message-wrapper.received .message-bubble {
-  background-color: white;
+  background-color: #fff;
   color: #333;
 }
 .message-wrapper.received .message-content {
@@ -414,28 +414,28 @@ onUnmounted(() => {
   justify-content: flex-end;
 }
 .message-wrapper.sent .system-content {
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(255, 255, 255, .9);
 }
 .message-wrapper.sent .system-label {
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(255, 255, 255, .7);
 }
 .page-indicator {
-  font-size: 0.75em;
+  font-size: .75em;
   color: #666;
 }
 .pagination-btn {
   border: none;
-  background: none;
+  background: 0 0;
   padding: 2px 6px;
   cursor: pointer;
-  font-size: 0.7em;
+  font-size: .7em;
 }
 .pagination-btn:disabled {
-  opacity: 0.5;
+  opacity: .5;
   cursor: not-allowed;
 }
 .pagination-container {
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, .9);
   padding: 2px 6px;
   border-radius: 12px;
   display: flex;

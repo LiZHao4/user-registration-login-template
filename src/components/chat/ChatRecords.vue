@@ -27,12 +27,8 @@
 <script setup lang="ts">
 import { formatDateLong } from '@/utils/dateFormatter'
 import type { ChatRecordItem } from '@/types/api/chat'
-const props = defineProps<{
-  messages: ChatRecordItem[]
-}>()
-const emit = defineEmits<{
-  (e: 'close'): void
-}>()
+const props = defineProps<{ messages: ChatRecordItem[] }>()
+const emit = defineEmits<{ (e: 'close'): void }>()
 const goBack = () => {
   emit('close')
 }
@@ -68,11 +64,11 @@ const goBack = () => {
   word-break: break-word;
 }
 .record-item {
-  background-color: white;
+  background-color: #fff;
   border-radius: 8px;
   padding: 12px;
   margin-bottom: 12px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .05);
 }
 .record-name {
   font-weight: 500;
@@ -86,7 +82,7 @@ const goBack = () => {
 }
 .record-time {
   flex-shrink: 0;
-  font-size: 0.8rem;
+  font-size: .8rem;
   color: #999;
   margin-left: auto;
 }
@@ -99,7 +95,7 @@ const goBack = () => {
   display: flex;
   align-items: center;
   padding: 0 16px;
-  background-color: white;
+  background-color: #fff;
   border-bottom: 1px solid #e0e0e0;
 }
 .records-toolbar h3 {

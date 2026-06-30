@@ -310,7 +310,7 @@ onUnmounted(() => {
 }
 .chat-input-area {
   border-top: 1px solid #e0e0e0;
-  background-color: white;
+  background-color: #fff;
 }
 .chat-messages {
   flex: 1;
@@ -348,7 +348,7 @@ onUnmounted(() => {
   align-items: end;
 }
 .member-count {
-  font-size: 0.8em;
+  font-size: .8em;
   color: #666;
   margin-left: 4px;
 }
@@ -357,7 +357,7 @@ onUnmounted(() => {
   font-family: inherit;
   font-size: 14px;
   resize: none;
-  transition: border-color 0.2s;
+  transition: border-color .2s;
 }
 .message-textarea :deep(textarea) {
   min-height: 32px;
@@ -381,13 +381,13 @@ onUnmounted(() => {
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
 }
 .records-dialog::backdrop {
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: #00000080;
 }
 .send-btn {
   display: flex;
   align-items: center;
   background-color: #0084ff;
-  color: white;
+  color: #fff;
   border: none;
   border-radius: 8px;
   padding: 8px 16px;
@@ -395,7 +395,7 @@ onUnmounted(() => {
   align-self: flex-end;
   min-width: 70px;
   justify-content: center;
-  transition: background-color 0.2s;
+  transition: background-color .2s;
 }
 .send-btn:disabled {
   background-color: #b3d9ff;
@@ -415,29 +415,28 @@ onUnmounted(() => {
 .toolbar {
   display: flex;
   justify-content: space-between;
-  padding: 8px 0px;
+  padding: 8px 0;
   border-bottom: 1px solid #f0f0f0;
   position: relative;
 }
 .toolbar-btn {
   display: flex;
   align-items: center;
-  background: none;
+  background: 0 0;
   border: 1px solid #e0e0e0;
   border-radius: 6px;
   padding: 6px 12px;
   margin-right: 8px;
   cursor: pointer;
-  font-size: 0.9em;
+  font-size: .9em;
   color: #555;
-  transition: all 0.2s;
+  transition: all .2s;
 }
 .toolbar-btn:hover {
   background-color: #f5f5f5;
   border-color: #ccc;
 }
-.toolbar-left,
-.toolbar-right {
+.toolbar-left, .toolbar-right {
   display: flex;
   align-items: center;
   flex-shrink: 0;

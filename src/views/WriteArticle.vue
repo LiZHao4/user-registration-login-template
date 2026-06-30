@@ -796,7 +796,7 @@ onBeforeUnmount(() => {
   background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
   overflow: hidden;
 }
-@media (max-width: 1024px) {
+@media (width <= 1024px) {
   .editor-main {
     padding: 10px;
   }
@@ -814,7 +814,7 @@ onBeforeUnmount(() => {
     box-shadow: -5px 0 20px rgba(0, 0, 0, 0.2);
   }
 }
-@media (max-width: 768px) {
+@media (max-width <= 768px) {
   .editor-navbar {
     padding: 10px 15px;
   }

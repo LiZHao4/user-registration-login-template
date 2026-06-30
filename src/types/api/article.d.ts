@@ -11,7 +11,7 @@ interface HomeArticle extends UserArticle {
   images: string[]
   likeCount: number
   commentCount: number
-  isLike: boolean
+  isLiked: boolean
 }
 interface ArticleDetail {
   id: number
@@ -27,6 +27,7 @@ interface ArticleDetail {
   updateTime: number
   likeCount: number
   isLiked: boolean
+  isFollowing: 'true' | 'false' | 'self'
 }
 interface HomeArticleListResponse extends Response {
   data: HomeArticle[]

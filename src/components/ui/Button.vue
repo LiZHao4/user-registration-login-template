@@ -67,7 +67,7 @@ const handleClick = () => {
   cursor: pointer;
   font-family: inherit;
   font-weight: 500;
-  transition: all 0.2s ease;
+  transition: all .2s ease;
   outline: none;
   position: relative;
   background-color: var(--bg-color, #f0f0f0);
@@ -78,7 +78,7 @@ const handleClick = () => {
   background-color: var(--hover-bg-color);
   color: var(--hover-text-color, var(--text-color));
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, .1);
 }
 .button-content {
   display: flex;
@@ -89,7 +89,7 @@ const handleClick = () => {
   border: 2px solid transparent;
   border-top: 2px solid currentColor;
   border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+  animation: spin .8s linear infinite;
   margin-right: 8px;
 }
 .danger {
@@ -103,7 +103,7 @@ const handleClick = () => {
   --hover-bg-color: #d9d9d9;
 }
 .disabled {
-  opacity: 0.6;
+  opacity: .6;
   cursor: not-allowed;
 }
 .large {

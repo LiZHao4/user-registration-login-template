@@ -11,9 +11,7 @@
       size="small"
       :class="['follow-btn', { 'followed': user.follow_status % 2 == 1 }]"
       @click.stop="handleFollow"
-    >
-      {{ buttonText }}
-    </el-button>
+    >{{ buttonText }}</el-button>
   </div>
 </template>
 <script setup lang="ts">
@@ -56,7 +54,7 @@ const handleFollow = async () => {
   font-size: 12px;
   border-color: #6366f1;
   color: #6366f1;
-  transition: all 0.25s;
+  transition: all .25s;
 }
 .follow-btn:hover {
   background: #6366f1;
@@ -91,13 +89,10 @@ const handleFollow = async () => {
   align-items: center;
   padding: 12px 0;
   border-bottom: 1px solid #f0f0f0;
-  transition: background-color 0.2s;
+  transition: background-color .2s;
 }
 .user-item:hover {
   background: #fafafa;
-}
-.user-item:last-child {
-  border-bottom: none;
 }
 .user-name {
   font-size: 15px;

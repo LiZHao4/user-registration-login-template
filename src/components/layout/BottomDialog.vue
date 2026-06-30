@@ -149,7 +149,7 @@ watch(
   max-height: 80vh;
   display: none;
   flex-direction: column;
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, .15);
   overflow: hidden;
 }
 .dialog-overlay {

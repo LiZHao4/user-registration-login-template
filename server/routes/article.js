@@ -125,9 +125,10 @@ router.get('/user/:userId/articles', pagination(10), async (req, res) => {
 router.get('/articles/:id', async (req, res) => {
   const articleId = parseInt(req.params.id)
   if (isNaN(articleId)) {
-    return res.status(400).json({ code: -1, msg: '文章 ID 无效。' })
+    return res.status(400).json({ code: -1, msg: '文章ID无效。' })
   }
   try {
+    const currentUserId = await verifyToken(req.cookies.t)
     const query = `
       SELECT 
         p.id,
@@ -151,22 +152,41 @@ router.get('/articles/:id', async (req, res) => {
       return res.status(404).json({ code: -1, msg: '文章不存在。' })
     }
     const article = rows[0]
-    /*
-    // 可选：可见性检查（如果文章是 private 且当前未登录用户不是作者，则拒绝访问）
-    // 如果需要根据当前登录用户判断，可以传入 req.userId；这里先简单返回全部，但建议加上
-    // 由于你没有在路由层加 authMiddleware，所以这个接口是公开的。如果文章是 private，应该返回 403。
-    // 根据你的业务决定：这里我加上检查，需要前端携带 token 时才能看到自己的私有文章。
-    // 如果希望完全公开（所有文章任何人可见），则删除下面这段。
-    if (article.visibility === 'private') {
-      // 检查是否有登录用户且是作者
-      const userId = req.userId // 注意：这个接口没有 authMiddleware，所以 req.userId 可能不存在。如果需要鉴权，可以添加 authMiddleware 或者手动解析 token。
-      if (!userId || userId !== article.user_id) {
-        return res.status(403).json({ code: -1, msg: '无权查看此文章。' })
+    const authorId = article.user_id
+    let allowed = false
+    const visibility = article.visibility
+    if (visibility === 'public') {
+      allowed = true
+    } else if (visibility === 'private') {
+      if (currentUserId && currentUserId === authorId) {
+        allowed = true
+      }
+    } else if (visibility === 'mutuals' || visibility === 'friends') {
+      if (currentUserId) {
+        const [follow, followBack] = await Promise.all([
+          db.query('SELECT 1 FROM follows WHERE follower_id = ? AND following_id = ?', [currentUserId, authorId]),
+          db.query('SELECT 1 FROM follows WHERE follower_id = ? AND following_id = ?', [authorId, currentUserId])
+        ])
+        if (follow.length > 0 && followBack.length > 0) {
+          allowed = true
+        }
       }
     }
-    // 对于 'mutuals' 可见性，也可以在这里做额外判断，按需添加。
-    */
-    // 提示：可用verifyToken函数来验证token是否有效
+    if (!allowed) {
+      return res.status(403).json({ code: -1, msg: '无权查看此文章。' })
+    }
+    let isFollowing = 'false'
+    if (currentUserId) {
+      if (currentUserId === authorId) {
+        isFollowing = 'self'
+      } else {
+        const result = await db.query(
+          'SELECT 1 FROM follows WHERE follower_id = ? AND following_id = ?',
+          [currentUserId, authorId]
+        )
+        if (result.length > 0) isFollowing = 'true'
+      }
+    }
     const imageQuery = `
       SELECT i.name
       FROM post_images pi
@@ -197,7 +217,7 @@ router.get('/articles/:id', async (req, res) => {
         updateTime: article.updateTime,
         likeCount: article.likeCount,
         visibility: article.visibility,
-        images, tags
+        images, tags, isFollowing
       }
     })
   } catch (error) {

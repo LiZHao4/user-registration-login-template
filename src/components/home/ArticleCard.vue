@@ -126,7 +126,7 @@ const goToArticle = () => {
 .more-overlay {
   position: absolute;
   inset: 0;
-  background: #0009;
+  background: rgba(0, 0, 0, .6);
   color: #fff;
   display: flex;
   align-items: center;

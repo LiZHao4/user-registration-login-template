@@ -186,8 +186,9 @@ onUnmounted(() => {
   font-size: 14px;
   font-weight: 500;
   padding: 4px 0;
-  transition: color 0.2s ease;
+  transition: color .2s;
   user-select: none;
+  -webkit-user-select: none;
 }
 .back-btn:hover {
   color: #6366f1;
@@ -208,7 +209,7 @@ onUnmounted(() => {
   background: #fff;
   border-radius: 16px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
-  padding: 0 0 12px 0;
+  padding: 0 0 12px;
   overflow: hidden;
 }
 .follow-tabs {
@@ -229,7 +230,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 16px 10px 16px;
+  padding: 14px 16px 10px;
   border-bottom: 1px solid #f0f0f0;
   background: #fff;
 }
@@ -237,7 +238,7 @@ onUnmounted(() => {
   font-weight: 600;
   font-size: 17px;
   color: #1a1a1a;
-  letter-spacing: 0.5px;
+  letter-spacing: .5px;
 }
 .sentinel {
   height: 1px;
@@ -261,13 +262,13 @@ onUnmounted(() => {
   color: #1a1a1a;
   font-weight: 600;
 }
-@media (min-width: 1400px) {
+@media (width >= 1400px) {
   .follow-panel {
     max-width: 1320px;
-    padding: 0 0 20px 0;
+    padding: 0 0 20px;
   }
   .panel-header {
-    padding: 20px 24px 14px 24px;
+    padding: 20px 24px 14px;
   }
   .panel-title {
     font-size: 20px;
@@ -286,12 +287,11 @@ onUnmounted(() => {
     max-width: 280px;
   }
   :deep(.user-item) {
-    border-bottom: none;
     border: 1px solid #f0f0f0;
     border-radius: 12px;
     padding: 16px 20px;
-    transition: box-shadow 0.25s, transform 0.2s;
-    background: #ffffff;
+    transition: box-shadow .25s, transform .2s;
+    background: #fff;
   }
   :deep(.user-item:hover) {
     background: #fafafa;

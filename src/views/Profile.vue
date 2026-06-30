@@ -78,7 +78,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { ElMessage, type UploadRequestOptions, type FormInstance, type FormRules } from 'element-plus'
-import type { PrivateUserAPIResponseData } from '@/types/api'
+import type { PrivateUserResponse } from '@/types/api/user'
 const router = useRouter()
 const avatarUrl = ref<string>('')
 const customBackground = ref<string>('')
@@ -122,7 +122,7 @@ const backgroundStyle = computed(() => {
 })
 const fetchUserProfile = async () => {
   try {
-    const response = await axios.get<PrivateUserAPIResponseData>('/api/self')
+    const response = await axios.get<PrivateUserResponse>('/api/self')
     const data = response.data
     if (data.code === 1) {
       const user = data.data
@@ -251,7 +251,7 @@ onMounted(fetchUserProfile)
   position: relative;
   cursor: pointer;
   overflow: hidden;
-  transition: all 0.2s;
+  transition: all .2s;
   width: 100%;
   display: flex;
   justify-content: end;
@@ -262,18 +262,19 @@ onMounted(fetchUserProfile)
   right: 0;
   width: 80px;
   height: 80px;
-  background: rgba(0, 0, 0, 0.5);
-  color: white;
+  background: #00000080;
+  color: #fff;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   opacity: 0;
-  transition: opacity 0.3s;
+  transition: opacity .3s;
   border-radius: 50%;
   font-size: 12px;
   gap: 4px;
   backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
 }
 .avatar-uploader:hover .upload-overlay {
   opacity: 1;
@@ -286,10 +287,10 @@ onMounted(fetchUserProfile)
   color: #2c3e50;
   padding: 6px 10px;
   border-radius: 30px;
-  transition: background-color 0.2s;
+  transition: background-color .2s;
 }
 .back-btn:hover {
-  background: rgba(0, 0, 0, 0.05);
+  background: rgba(0, 0, 0, .05);
   color: #2575fc;
 }
 .background-preview {
@@ -304,11 +305,11 @@ onMounted(fetchUserProfile)
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: border-color 0.3s;
+  transition: border-color .3s;
 }
 .background-preview .upload-overlay {
-  background: rgba(0,0,0,0.5);
-  color: white;
+  background: #00000080;
+  color: #fff;
   padding: 8px 16px;
   border-radius: 30px;
   display: flex;
@@ -318,7 +319,7 @@ onMounted(fetchUserProfile)
   opacity: 0;
 }
 .background-preview:hover {
-  border-color: #409EFF;
+  border-color: #409eff;
 }
 .background-preview:hover .upload-overlay {
   opacity: 1;
@@ -349,13 +350,11 @@ onMounted(fetchUserProfile)
   font-size: 14px;
   color: #64748b;
   font-weight: 400;
-  background: rgba(255,255,255,0.6);
+  background: rgba(255, 255, 255, .6);
   padding: 0 12px;
   border-radius: 30px;
 }
-.el-date-editor,
-.el-input,
-.el-textarea {
+.el-date-editor, .el-input, .el-textarea {
   border-radius: 12px;
 }
 .el-form-item {
@@ -403,31 +402,31 @@ onMounted(fetchUserProfile)
   z-index: 2;
   max-width: 600px;
   margin: 40px auto;
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, .85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-radius: 24px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, .15);
+  border: 1px solid #ffffff80;
   padding: 24px 28px;
-  transition: all 0.3s ease;
+  transition: all .3s;
 }
 .profile-container {
   position: relative;
   width: 100%;
-}
-.profile-form :deep(.el-textarea__inner) {
-  resize: none;
-  border-radius: 12px;
 }
 .upload-overlay .el-icon {
   font-size: 20px;
 }
 :deep(.el-input__wrapper) {
   border-radius: 12px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .05);
 }
-@media (max-width: 768px) {
+:deep(.el-textarea__inner) {
+  resize: none;
+  border-radius: 12px;
+}
+@media (width <= 768px) {
   .card-header {
     margin-bottom: 20px;
   }
@@ -450,7 +449,7 @@ onMounted(fetchUserProfile)
     max-width: 100%;
   }
 }
-@media (max-width: 480px) {
+@media (width <= 480px) {
   .profile-card {
     padding: 16px;
     border-radius: 20px;
