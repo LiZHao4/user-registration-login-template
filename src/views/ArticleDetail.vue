@@ -2,8 +2,8 @@
   <div ref="containerRef" class="article-detail-container">
     <div class="back-button" @click="goBack"><el-icon><ArrowLeft /></el-icon><span>返回</span></div>
     <div v-if="loading" class="loading-container"><el-skeleton :rows="10" animated /></div>
-    <div v-else-if="error" class="error-container">
-      <el-empty description="加载失败，请稍后重试" /><el-button type="primary" @click="fetchArticle">重新加载</el-button>
+    <div v-else-if="errorMsg" class="error-container">
+      <el-empty :description="errorMsg" /><el-button type="primary" @click="fetchArticle">重新加载</el-button>
     </div>
     <div v-else-if="article" class="article-content">
       <div class="article-header">
@@ -18,13 +18,13 @@
               }}</div>
             </div>
           </div>
-          <div class="author-right">
+          <div v-if="article.isFollowing !== 'self'" class="author-right">
             <el-button
               type="primary"
               size="small"
               :loading="followLoading"
               @click.stop="toggleFollow"
-              :plain="article.isFollowing"
+              :plain="article.isFollowing === 'true'"
             >
               {{ article.isFollowing ? '已关注' : '关注' }}
             </el-button>
@@ -70,7 +70,7 @@
         <div v-else class="no-comments"><el-empty description="暂无评论，快来抢沙发吧~" :image-size="80" /></div>
       </div>
     </div>
-    <div ref="commentBarRef" class="comment-bar">
+    <div v-if="article && !errorMsg" ref="commentBarRef" class="comment-bar">
       <div class="comment-bar-inner">
         <el-input
           v-model="newComment"
@@ -94,11 +94,12 @@ import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import { formatDateShort, formatDateLong } from '@/utils/dateFormatter'
-import type { ArticleDetail } from '@/types/api/article'
+import type { ArticleDetail, ArticleDetailResponse } from '@/types/api/article'
+import type { FollowResponse } from '@/types/api/follow'
 const route = useRoute()
 const router = useRouter()
 const loading = ref(true)
-const error = ref(false)
+const errorMsg = ref('')
 const article = ref<ArticleDetail | null>(null)
 const comments = ref<CommentItem[]>([])
 const newComment = ref('')
@@ -145,14 +146,14 @@ const toggleFollow = async () => {
   const userId = article.value.user_id
   followLoading.value = true
   try {
-    if (article.value.isFollowing == 'self') throw new Error('您还未登录，请先登录后再进行操作。')
+    if (article.value.isFollowing == 'self') throw new Error('不能关注自己。')
     const method = article.value.isFollowing == 'true' ? 'delete' : 'post'
-    const response = await axios[method](`/api/user/${userId}/follow`)
+    const response = await axios[method]<FollowResponse>(`/api/user/${userId}/follow`)
     if (response.data.code === 1) {
       article.value.isFollowing = article.value.isFollowing == 'true' ? 'false' : 'true'
       ElMessage.success(article.value.isFollowing ? '关注成功。' : '已取消关注。')
     } else {
-      throw new Error(response.data.message)
+      throw new Error(response.data.msg)
     }
   } catch (err) {
     ElMessage.error(err.message)
@@ -163,20 +164,18 @@ const toggleFollow = async () => {
 const fetchArticle = async () => {
   const id = route.params.id
   if (!id) {
-    error.value = true
+    errorMsg.value = '文章ID无效。'
     loading.value = false
     return
   }
   loading.value = true
-  error.value = false
+  errorMsg.value = ''
   try {
-    const articleResponse = await axios.get<{ code: number; data: ArticleDetail }>(
-      `/api/articles/${id}`
-    )
+    const articleResponse = await axios.get<ArticleDetailResponse>(`/api/articles/${id}`)
     if (articleResponse.data.code === 1) {
       article.value = articleResponse.data.data
     } else {
-      throw new Error('获取文章详情失败')
+      throw new Error(articleResponse.data.msg)
     }
     // 获取评论列表
     // const commentsResponse = await axios.get<{ code: number; data: CommentItem[] }>(
@@ -185,10 +184,9 @@ const fetchArticle = async () => {
     // if (commentsResponse.data.code === 200) {
     //   comments.value = commentsResponse.data.data
     // }
-  } catch (err) {
+  } catch (err: any) {
     console.error('获取文章详情失败:', err)
-    error.value = true
-    ElMessage.error('加载文章失败，请稍后重试')
+    errorMsg.value = err.response.data.msg
   } finally {
     loading.value = false
   }

@@ -41,18 +41,14 @@ import { useRouter, useRoute } from 'vue-router'
 import { FollowListResponse, UserFollowInfo } from '@/types/api/follow'
 import axios from 'axios'
 const fetchFollowings = async (page: number, pageSize: number): Promise<FollowListResponse> => {
-  const res = await axios.get<FollowListResponse>('/api/self/followings', {
-    params: { page, limit: pageSize }
-  })
+  const res = await axios.get<FollowListResponse>('/api/self/followings', { params: { page, limit: pageSize } })
   return res.data
 }
 const fetchFollowers = async (page: number, pageSize: number): Promise<FollowListResponse> => {
-  const res = await axios.get<FollowListResponse>('/api/self/followers', {
-    params: { page, limit: pageSize }
-  })
+  const res = await axios.get<FollowListResponse>('/api/self/followers', { params: { page, limit: pageSize } })
   return res.data
 }
-function useFollowList(fetchFn: (page: number, pageSize: number) => Promise<FollowListResponse>) {
+const useFollowList = (fetchFn: (page: number, pageSize: number) => Promise<FollowListResponse>) => {
   const list = ref<UserFollowInfo[]>([])
   const page = ref(1)
   const pageSize = 30
@@ -104,20 +100,19 @@ const sentinelFollowings = ref<HTMLElement | null>(null)
 const sentinelFollowers = ref<HTMLElement | null>(null)
 let observerFollowing: IntersectionObserver | null = null
 let observerFollowers: IntersectionObserver | null = null
-function observeSentinel(
+const observeSentinel = (
   sentinel: HTMLElement | null,
-  loadMoreFn: () => Promise<void>,
+  loadMoreFn: () => Promise<void>, 
   observerRef: { value: IntersectionObserver | null }
-) {
+) => {
   if (observerRef.value) {
     observerRef.value.disconnect()
     observerRef.value = null
   }
   if (!sentinel) return
-  const observer = new IntersectionObserver(
-    entries => entries[0].isIntersecting && loadMoreFn(),
-    { rootMargin: '0px 0px 100px 0px' }
-  )
+  const observer = new IntersectionObserver(entries => entries[0].isIntersecting && loadMoreFn(), {
+    rootMargin: '0 0 100px'
+  })
   observer.observe(sentinel)
   observerRef.value = observer
 }

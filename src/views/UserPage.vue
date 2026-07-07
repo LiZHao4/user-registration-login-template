@@ -11,8 +11,7 @@
           <div class="header-info">
             <h1 class="user-name" :style="headerTextStyle">{{ userData.nick }}</h1>
             <div class="user-meta" :style="headerTextStyle">
-              <span class="username">@{{ userData.user }}</span>
-              <span class="user-id">ID: {{ userData.id }}</span>
+              <span class="username">@{{ userData.user }}</span><span class="user-id">ID: {{ userData.id }}</span>
             </div>
           </div>
         </div>
@@ -153,9 +152,7 @@ const getAgeText = (birth: string): string => {
     const today = new Date()
     let age = today.getFullYear() - year
     const m = today.getMonth() + 1 - month
-    if (m < 0 || (m === 0 && today.getDate() < day)) {
-      age--
-    }
+    if (m < 0 || m === 0 && today.getDate() < day) age--
     return age + '岁'
   } catch {
     return '-'
@@ -192,23 +189,21 @@ const primaryColor = computed(() => userData.theme_color || '#4361ee')
 const detailValueColor = computed(() => {
   const color = primaryColor.value
   const brightness = getBrightness(color)
-  if (brightness > 0.7) {
-    return shadeColor(color, -50)
-  }
+  if (brightness > 0.7) return shadeColor(color, -50)
   return color
 })
 const secondaryColor = computed(() => shadeColor(primaryColor.value, -20))
 const headerGradientStyle = computed<CSSProperties>(() => ({
-  background: `linear-gradient(135deg, ${primaryColor.value}, ${secondaryColor.value})`
+  background: `linear-gradient(135deg,${primaryColor.value},${secondaryColor.value})`
 }))
 const headerTextStyle = computed<CSSProperties>(() => {
   const brightness = getBrightness(primaryColor.value)
-  return { color: brightness > 0.5 ? '#000000' : '#ffffff' }
+  return { color: brightness > 0.5 ? '#000' : '#fff' }
 })
 const rootStyle = computed<CSSProperties>(() => ({
   '--primary-color': primaryColor.value,
   '--secondary-color': secondaryColor.value,
-  '--btn-add-bg': `linear-gradient(135deg, ${primaryColor.value}, ${secondaryColor.value})`
+  '--btn-add-bg': `linear-gradient(135deg,${primaryColor.value},${secondaryColor.value})`
 }))
 const friendButtonText = computed(() => {
   switch (userData.friend_status) {
@@ -224,10 +219,7 @@ const friendButtonClass = computed(() => {
   }
   return 'btn-add'
 })
-const friendButtonDisabled = computed(() => {
-  return friendLoading.value || 
-    ['true', 'pending'].includes(userData.friend_status)
-})
+const friendButtonDisabled = computed(() => friendLoading.value || ['true', 'pending'].includes(userData.friend_status))
 const followButtonText = computed(() => {
   switch (userData.follow_status) {
     case 0: return '关注'
@@ -237,7 +229,7 @@ const followButtonText = computed(() => {
   }
 })
 const followButtonClass = computed(() => userData.follow_status ? 'btn-following' : 'btn-follow')
-async function fetchUserData() {
+const fetchUserData = async () => {
   try {
     const res = await axios.get<PublicUserResponse>(`/api/user/${id}`)
     if (res.data.code === 1) {
@@ -252,37 +244,38 @@ async function fetchUserData() {
     throw new Error(err.message)
   }
 }
-async function updateRemark(targetId: string, remark: string) {
-  const res = await axios.post(`/set_remark.php`,
+const updateRemark = async (targetId: string, remark: string) => {
+  const res = await axios.post('/set_remark.php',
     new URLSearchParams({ target: targetId, remark }),
     { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
   )
   return res.data
 }
-async function fetchArticles(userId: number, page: number, limit: number) {
+const fetchArticles = async (userId: number, page: number, limit: number) => {
   const res = await axios.get<UserArticleListResponse>(`/api/user/${userId}/articles`, {
     params: { page, limit }
   })
   return res.data
 }
-function applyBackground(url: string | null) {
+const applyBackground = (url: string | null) => {
   if (url) {
     document.body.style.background = `url(${url}) center / cover no-repeat fixed`
     document.body.classList.add('has-background')
   } else {
-    document.body.style.background = 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)'
+    document.body.style.background = 'linear-gradient(135deg,#f5f7fa 0%,#c3cfe2 100%)'
     document.body.classList.remove('has-background')
   }
 }
-function resetBackground() {
+const resetBackground = () => {
   document.body.classList.remove('has-background')
   document.body.style.background = originalBodyBg
 }
-async function loadProfile() {
+const loadProfile = async () => {
   pageLoading.value = true
   pageError.value = false
   try {
     await fetchUserData()
+    applyBackground(userData.background)
     await loadArticles(currentPage.value)
     pageLoading.value = false
   } catch (err) {
@@ -291,7 +284,7 @@ async function loadProfile() {
     pageLoading.value = false
   }
 }
-async function loadArticles(page: number) {
+const loadArticles = async (page: number) => {
   const requestId = ++articleRequestId
   articlesStatus.value = 'loading'
   loadMoreError.value = false
@@ -327,10 +320,7 @@ const handleFriendAction = () => {}
 const toggleFollow = async () => {
   followLoading.value = true
   try {
-    const res = await axios.request({
-      url: `/api/user/${userData.id}/follow`,
-      method: userData.follow_status % 2 ? 'delete' : 'post'
-    })
+    const res = await axios[userData.follow_status % 2 ? 'delete' : 'post'](`/api/user/${userData.id}/follow`)
     if (res.data.code === 1) {
       userData.follow_status ^= 1
     } else {

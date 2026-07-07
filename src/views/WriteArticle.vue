@@ -814,7 +814,7 @@ onBeforeUnmount(() => {
     box-shadow: -5px 0 20px rgba(0, 0, 0, 0.2);
   }
 }
-@media (max-width <= 768px) {
+@media (width <= 768px) {
   .editor-navbar {
     padding: 10px 15px;
   }
@@ -836,7 +836,7 @@ onBeforeUnmount(() => {
     font-size: 22px;
   }
 }
-@media (max-width: 480px) {
+@media (width <= 480px) {
   .editor-navbar {
     flex-wrap: wrap;
     gap: 10px;
