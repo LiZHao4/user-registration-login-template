@@ -1,4 +1,4 @@
-import type { FriendItem } from '@/types/api'
+import type { FriendItem } from '@/types/api/friend'
 import type { MessageType } from '@/types/socket'
 import axios from 'axios'
 export function getDisplayNick(item: FriendItem): string {

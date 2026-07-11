@@ -1,5 +1,5 @@
 import db from '../config.js'
-export const authMiddleware = async (req, res, next) => {
+export async function authMiddleware(req, res, next) {
   try {
     const token = req.cookies.t
     if (!token) {

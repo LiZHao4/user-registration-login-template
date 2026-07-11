@@ -56,3 +56,6 @@ export async function getDisplayName(db, viewerId, targetId, groupId = null) {
   }
   return '未知用户'
 }
+export function escapeLikeKeyword(raw) {
+  return raw.replace(/[%_\\]/g, '\\$&')
+}

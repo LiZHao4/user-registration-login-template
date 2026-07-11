@@ -158,7 +158,7 @@ const handleSearch = () => {
   }
 }
 const goToMessages = () => {
-  router.push('/system')
+  router.push('/messages')
 }
 const goToFriends = () => {
   router.push('/friends')

@@ -10,3 +10,4 @@ interface UserFollowInfo {
 interface FollowListResponse extends Response, Pagination {
   data: UserFollowInfo[]
 }
+type FollowResponse = Response

@@ -15,7 +15,7 @@
     </div>
     <div class="article-stats">
       <span class="stat-item"><el-icon><ChatDotRound /></el-icon>{{ commentCount }}</span>
-      <span class="stat-item"><span class="heart-icon">{{ isLiked ? '❤️' : '♡' }}</span>{{ likeCount }}</span>
+      <span class="stat-item"><el-icon><StarFilled v-if="isLiked" /><Star v-else /></el-icon>{{ likeCount }}</span>
     </div>
   </div>
 </template>

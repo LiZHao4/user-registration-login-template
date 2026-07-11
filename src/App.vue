@@ -1,12 +1,14 @@
 <template>
   <div class="app">
-    <router-view></router-view>
-    <BottomDialog
-      :visible="globalDialogVisible"
-      :config="globalDialogConfig"
-      @update:visible="globalDialogVisible = $event"
-    />
-    <NotificationContainer ref="notificationContainer" />
+    <el-config-provider :locale="zhCn">
+      <router-view></router-view>
+      <BottomDialog
+        :visible="globalDialogVisible"
+        :config="globalDialogConfig"
+        @update:visible="globalDialogVisible = $event"
+      />
+      <NotificationContainer ref="notificationContainer" />
+    </el-config-provider>
   </div>
 </template>
 <script setup lang="ts">
@@ -21,6 +23,7 @@ import { useChatStore } from './stores/chat'
 import axios from 'axios'
 import { useSessionStore } from './stores/session'
 import { useFriendStore } from './stores/friend'
+import zhCn from 'element-plus/es/locale/lang/zh-cn'
 const notificationContainer = ref<InstanceType<typeof NotificationContainer> | null>(null)
 const userStore = useUserStore()
 const sessionStore = useSessionStore()

@@ -34,8 +34,8 @@
       <h1 class="article-title">{{ article.title }}</h1>
       <div class="article-stats">
         <div class="stat-item" @click="toggleLike">
-          <span class="heart-icon" :class="{ liked: article.isLiked }">{{ article.isLiked ? '❤️' : '♡' }}</span>
-          <span>{{ article.likeCount }} 点赞</span>
+          <el-icon><StarFilled v-if="article.isLiked" /><Star v-else /></el-icon>
+          <span>{{ article.likeCount }} 收藏</span>
         </div>
       </div>
       <div class="article-body">{{ article.content }}</div>
@@ -60,7 +60,7 @@
               <div class="comment-text">{{ comment.content }}</div>
               <div class="comment-actions">
                 <span class="comment-like" @click="likeComment(comment.id)">
-                  <span class="heart-icon">♡</span>{{ comment.likeCount }}
+                  <LikeButton :is-liked="true" />{{ comment.likeCount }}
                 </span>
                 <span class="comment-reply" @click="replyToComment(comment)">回复</span>
               </div>
@@ -298,7 +298,7 @@ onUnmounted(() => {
 }
 .article-detail-container {
   max-width: 1000px;
-  margin: 0 auto;
+  margin: 0 auto 80px;
   padding: 20px;
   position: relative;
 }

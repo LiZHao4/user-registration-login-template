@@ -54,6 +54,21 @@ const routes: RouteRecordRaw[] = [
     path: '/followers',
     name: 'Followers',
     component: () => import('@/views/FollowPanel.vue')
+  },
+  {
+    path: '/search',
+    name: 'Search',
+    component: () => import('@/views/Search.vue')
+  },
+  {
+    path: '/my-articles',
+    name: 'MyArticles',
+    component: () => import('@/views/MyArticles.vue')
+  },
+  {
+    path: '/messages',
+    name: 'Messages',
+    component: () => import('@/views/Messages.vue')
   }
 ]
 const router = createRouter({

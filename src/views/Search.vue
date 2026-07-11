@@ -1,9 +1,7 @@
 <template>
-  <div class="search-container">
+  <div class="search-container" ref="searchContainer">
     <div class="top-navbar">
-      <div class="nav-left">
-        <el-button text @click="goBack" class="back-btn"><el-icon><ArrowLeft /></el-icon> 返回</el-button>
-      </div>
+      <div class="nav-left"><el-button text @click="goBack" class="back-btn" :icon="ArrowLeft">返回</el-button></div>
       <div class="nav-center">
         <el-input
           v-model="searchKeyword"
@@ -74,15 +72,15 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
-import { Search } from '@element-plus/icons-vue'
+import { Search, ArrowLeft } from '@element-plus/icons-vue'
 import type { SearchResponse, SearchUser } from '@/types/api/search'
 import { formatDateShort } from '@/utils/dateFormatter'
 const router = useRouter()
 const route = useRoute()
+const pageSize = 10
 const searchKeyword = ref<string>((route.query.keyword as string) || '')
 const effectiveKeyword = ref<string>((route.query.keyword as string) || '')
 const activeTab = ref<'article' | 'user' | 'tag'>((route.query.type as 'article' | 'user' | 'tag') || 'article')
-const pageSize = 10
 const loading = ref(false)
 const loadingMore = ref(false)
 const lists = ref({
@@ -90,6 +88,7 @@ const lists = ref({
   user: { list: [], total: 0, page: 1, isLoaded: false },
   tag: { list: [], total: 0, page: 1, isLoaded: false }
 })
+const searchContainer = ref<HTMLDivElement | null>(null)
 const hasMore = computed<boolean>(() => lists.value[activeTab.value].list.length < lists.value[activeTab.value].total)
 const escapeHtml = (text: string): string => {
   const div = document.createElement('div')
@@ -103,7 +102,7 @@ const highlightText = (text: string): string => {
   if (!keyword) return safeText
   const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   const reg = new RegExp(escapedKeyword, 'gi')
-  return safeText.replace(reg, (match) => `<span class="highlight">${match}</span>`)
+  return safeText.replace(reg, match => `<span class="highlight">${match}</span>`)
 }
 const goBack = () => {
   router.back()
@@ -142,7 +141,7 @@ const handleSearch = () => {
 }
 const onTabChange = (tab: 'article' | 'user' | 'tag') => {
   activeTab.value = tab
-  router.replace({ query: { type: tab } })
+  router.replace({ query: { keyword: effectiveKeyword.value, type: tab } })
   const hasData = lists.value[tab].isLoaded
   if (!hasData && effectiveKeyword.value) {
     lists.value[tab].page = 1
@@ -196,7 +195,7 @@ const fetchResults = async (reset = false, isLoadMore = false) => {
   }
 }
 const handleScroll = () => {
-  const container = document.querySelector('.search-results')
+  const container = searchContainer.value
   if (!container) return
   const { scrollTop, scrollHeight, clientHeight } = container
   if (scrollTop + clientHeight >= scrollHeight - 50) {
@@ -209,13 +208,13 @@ onMounted(() => {
   if (searchKeyword.value) {
     fetchResults(true)
   }
-  const container = document.querySelector('.search-results')
+  const container = searchContainer.value
   if (container) {
     container.addEventListener('scroll', handleScroll)
   }
 })
 onUnmounted(() => {
-  const container = document.querySelector('.search-results')
+  const container = searchContainer.value
   if (container) {
     container.removeEventListener('scroll', handleScroll)
   }
@@ -240,11 +239,6 @@ watch(() => route.query.keyword, newKeyword => {
 }
 .el-empty {
   margin-top: 40px;
-}
-.highlight {
-  background: #ffeaa7;
-  padding: 0 2px;
-  border-radius: 2px;
 }
 .item-meta {
   display: flex;
@@ -448,5 +442,11 @@ watch(() => route.query.keyword, newKeyword => {
     margin: 10px 8px;
     height: calc(100vh - 130px);
   }
+}
+</style>
+<style>
+.highlight {
+  background: #ffeaa7;
+  border-radius: 2px;
 }
 </style>

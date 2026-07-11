@@ -13,35 +13,35 @@
         <div class="nav-list">
           <div 
             class="nav-item" 
-            :class="{ active: activeTab === 'system' }"
-            @click="switchTab('system')"
+            :class="{ active: activeTab === 'relation' }"
+            @click="switchTab('relation')"
           >
-            <div class="nav-icon system-icon">
-              <el-icon><Bell /></el-icon>
+            <div class="nav-icon relation-icon">
+              <el-icon><User /></el-icon>
             </div>
             <div class="nav-content">
-              <span class="nav-title">系统消息</span>
-              <span class="nav-desc">官方通知与公告</span>
+              <span class="nav-title">关系消息</span>
+              <span class="nav-desc">好友与群组变动</span>
             </div>
-            <div class="nav-badge" v-if="systemUnread > 0">
-              {{ systemUnread > 99 ? '99+' : systemUnread }}
+            <div class="nav-badge" v-if="relationUnread > 0">
+              {{ relationUnread > 99 ? '99+' : relationUnread }}
             </div>
           </div>
           
           <div 
             class="nav-item" 
-            :class="{ active: activeTab === 'social' }"
-            @click="switchTab('social')"
+            :class="{ active: activeTab === 'interaction' }"
+            @click="switchTab('interaction')"
           >
-            <div class="nav-icon social-icon">
-              <el-icon><ChatDotRound /></el-icon>
+            <div class="nav-icon interaction-icon">
+              <el-icon><Bell /></el-icon>
             </div>
             <div class="nav-content">
-              <span class="nav-title">社交消息</span>
-              <span class="nav-desc">好友互动与私信</span>
+              <span class="nav-title">互动消息</span>
+              <span class="nav-desc">粉丝与评论动态</span>
             </div>
-            <div class="nav-badge" v-if="socialUnread > 0">
-              {{ socialUnread > 99 ? '99+' : socialUnread }}
+            <div class="nav-badge" v-if="interactionUnread > 0">
+              {{ interactionUnread > 99 ? '99+' : interactionUnread }}
             </div>
           </div>
         </div>
@@ -49,18 +49,71 @@
 
       <!-- 右侧内容区 -->
       <div class="content-area">
-        <!-- 系统消息板块 -->
-        <div class="system-messages" v-show="activeTab === 'system'">
+        <!-- 关系消息板块 -->
+        <div class="relation-messages" v-show="activeTab === 'relation'">
           <div class="content-header">
-            <h2>系统消息</h2>
-            <el-button text @click="markAllAsRead" v-if="systemUnread > 0">
+            <h2>关系消息</h2>
+            <el-button text @click="markAllAsRead('relation')" v-if="relationUnread > 0">
               全部标为已读
             </el-button>
           </div>
           
-          <div class="message-list" v-loading="systemLoading">
-            <div v-if="systemMessages.length === 0 && !systemLoading" class="empty-state">
-              <el-empty description="暂无系统消息">
+          <div class="message-list" v-loading="relationLoading">
+            <div v-if="relationMessages.length === 0 && !relationLoading" class="empty-state">
+              <el-empty description="暂无关系变动消息">
+                <template #image>
+                  <div class="empty-icon">
+                    <el-icon><User /></el-icon>
+                  </div>
+                </template>
+              </el-empty>
+            </div>
+
+            <div 
+              v-for="msg in relationMessages" 
+              :key="msg.id" 
+              class="message-card"
+              :class="{ unread: !msg.isRead }"
+              @click="viewMessage(msg, 'relation')"
+            >
+              <div class="card-header">
+                <div class="msg-type-badge" :class="getRelationTypeClass(msg.subType)">
+                  {{ getRelationTypeName(msg.subType) }}
+                </div>
+                <span class="msg-time">{{ formatTime(msg.sentAt) }}</span>
+              </div>
+              
+              <div class="card-body">
+                <div class="msg-thumbnail" v-if="msg.user?.avatar">
+                  <img :src="msg.user.avatar" :alt="msg.user.nick" />
+                </div>
+                <div class="msg-thumbnail default-thumb" v-else>
+                  <el-icon><User /></el-icon>
+                </div>
+                
+                <div class="msg-info">
+                  <h3 class="msg-title">{{ msg.title }}</h3>
+                  <div class="msg-content">{{ msg.content }}</div>
+                </div>
+              </div>
+              
+              <div class="unread-dot" v-if="!msg.isRead"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 互动消息板块 -->
+        <div class="interaction-messages" v-show="activeTab === 'interaction'">
+          <div class="content-header">
+            <h2>互动消息</h2>
+            <el-button text @click="markAllAsRead('interaction')" v-if="interactionUnread > 0">
+              全部标为已读
+            </el-button>
+          </div>
+          
+          <div class="message-list" v-loading="interactionLoading">
+            <div v-if="interactionMessages.length === 0 && !interactionLoading" class="empty-state">
+              <el-empty description="暂无互动消息">
                 <template #image>
                   <div class="empty-icon">
                     <el-icon><Bell /></el-icon>
@@ -70,106 +123,35 @@
             </div>
 
             <div 
-              v-for="msg in systemMessages" 
+              v-for="msg in interactionMessages" 
               :key="msg.id" 
-              class="system-message-card"
+              class="message-card"
               :class="{ unread: !msg.isRead }"
-              @click="viewSystemMessage(msg)"
+              @click="viewMessage(msg, 'interaction')"
             >
               <div class="card-header">
-                <div class="msg-type-badge" :class="getTypeClass(msg.type)">
-                  {{ getTypeName(msg.type) }}
+                <div class="msg-type-badge" :class="getInteractionTypeClass(msg.subType)">
+                  {{ getInteractionTypeName(msg.subType) }}
                 </div>
-                <span class="msg-time">{{ formatTime(msg.sent_at) }}</span>
+                <span class="msg-time">{{ formatTime(msg.sentAt) }}</span>
               </div>
               
               <div class="card-body">
-                <div class="msg-thumbnail" v-if="msg.content?.user?.avatar">
-                  <img :src="msg.content.user.avatar" :alt="msg.content.title" />
+                <div class="msg-thumbnail" v-if="msg.user?.avatar">
+                  <img :src="msg.user.avatar" :alt="msg.user.nick" />
                 </div>
                 <div class="msg-thumbnail default-thumb" v-else>
-                  <el-icon><Notification /></el-icon>
+                  <el-icon><Bell /></el-icon>
                 </div>
                 
                 <div class="msg-info">
-                  <h3 class="msg-title">{{ msg.content?.title || '系统通知' }}</h3>
-                  <div class="msg-content">
-                    <template v-if="msg.content?.type === 1">
-                      <span>{{ msg.content.content.split('%n')[0] }}</span>
-                      <span class="user-mention" v-if="msg.content.user">
-                        <img :src="msg.content.user.avatar" class="mention-avatar" />
-                        <span class="mention-name">{{ msg.content.user.nick }}</span>
-                      </span>
-                      <span>{{ msg.content.content.split('%n')[1] }}</span>
-                    </template>
-                    <template v-else>
-                      {{ msg.content?.content || '' }}
-                    </template>
-                  </div>
+                  <h3 class="msg-title">{{ msg.title }}</h3>
+                  <div class="msg-content">{{ msg.content }}</div>
+                  <div v-if="msg.target" class="msg-target">涉及内容：{{ msg.target }}</div>
                 </div>
               </div>
               
               <div class="unread-dot" v-if="!msg.isRead"></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 社交消息板块 -->
-        <div class="social-messages" v-show="activeTab === 'social'">
-          <div class="content-header">
-            <h2>社交消息</h2>
-            <div class="header-actions">
-              <el-input
-                v-model="searchKeyword"
-                placeholder="搜索联系人..."
-                :prefix-icon="Search"
-                clearable
-                class="search-input"
-              />
-            </div>
-          </div>
-          
-          <div class="chat-list" v-loading="socialLoading">
-            <div v-if="socialMessages.length === 0 && !socialLoading" class="empty-state">
-              <el-empty description="暂无社交消息">
-                <template #image>
-                  <div class="empty-icon">
-                    <el-icon><ChatDotRound /></el-icon>
-                  </div>
-                </template>
-              </el-empty>
-            </div>
-
-            <div 
-              v-for="chat in socialMessages" 
-              :key="chat.id" 
-              class="chat-item"
-              :class="{ unread: chat.unread > 0 }"
-              @click="openChat(chat)"
-            >
-              <div class="chat-avatar">
-                <el-avatar :src="chat.avatar" :size="52" shape="circle">
-                  <el-icon><User /></el-icon>
-                </el-avatar>
-                <div class="online-dot" v-if="chat.isOnline"></div>
-              </div>
-              
-              <div class="chat-info">
-                <div class="chat-top">
-                  <span class="chat-name">{{ chat.nick }}</span>
-                  <span class="chat-time">{{ formatTime(chat.lastMessageTime) }}</span>
-                </div>
-                <div class="chat-bottom">
-                  <span class="last-message">
-                    <span v-if="chat.lastMessageType === 'image'">[图片]</span>
-                    <span v-else-if="chat.lastMessageType === 'voice'">[语音]</span>
-                    <span v-else>{{ chat.lastMessage }}</span>
-                  </span>
-                  <div class="unread-count" v-if="chat.unread > 0">
-                    {{ chat.unread > 99 ? '99+' : chat.unread }}
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -180,52 +162,73 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
   Bell,
-  ChatDotRound,
-  Search,
   User,
   Notification
 } from '@element-plus/icons-vue'
 
-const router = useRouter()
-const activeTab = ref<'system' | 'social'>('system')
-const searchKeyword = ref('')
+const activeTab = ref<'relation' | 'interaction'>('relation')
 
-// 系统消息
-const systemLoading = ref(false)
-const systemMessages = ref<any[]>([])
-const systemUnread = ref(0)
+// 关系消息
+const relationLoading = ref(false)
+const relationMessages = ref<any[]>([])
+const relationUnread = ref(0)
 
-// 社交消息
-const socialLoading = ref(false)
-const socialMessages = ref<any[]>([])
-const socialUnread = ref(0)
+// 互动消息
+const interactionLoading = ref(false)
+const interactionMessages = ref<any[]>([])
+const interactionUnread = ref(0)
 
-const totalUnread = computed(() => systemUnread.value + socialUnread.value)
+const totalUnread = computed(() => relationUnread.value + interactionUnread.value)
 
-const switchTab = (tab: 'system' | 'social') => {
+const switchTab = (tab: 'relation' | 'interaction') => {
   activeTab.value = tab
 }
 
-const getTypeClass = (type: number) => {
-  const classes: Record<number, string> = {
-    0: 'type-notice',
-    1: 'type-interaction',
-    2: 'type-system'
+// 关系消息子类型
+const getRelationTypeClass = (subType: number) => {
+  const map: Record<number, string> = {
+    1: 'type-friend-delete',
+    2: 'type-group-dismiss',
+    3: 'type-group-kick',
+    4: 'type-user-cleanup'
   }
-  return classes[type] || 'type-notice'
+  return map[subType] || 'type-default'
 }
 
-const getTypeName = (type: number) => {
-  const names: Record<number, string> = {
-    0: '通知',
-    1: '互动',
-    2: '系统'
+const getRelationTypeName = (subType: number) => {
+  const map: Record<number, string> = {
+    1: '好友删除',
+    2: '群聊解散',
+    3: '被踢出群',
+    4: '好友清理'
   }
-  return names[type] || '通知'
+  return map[subType] || '关系变动'
+}
+
+// 互动消息子类型
+const getInteractionTypeClass = (subType: number) => {
+  const map: Record<number, string> = {
+    1: 'type-new-fan',
+    2: 'type-collect',
+    3: 'type-comment',
+    4: 'type-reply',
+    5: 'type-comment-like'
+  }
+  return map[subType] || 'type-default'
+}
+
+const getInteractionTypeName = (subType: number) => {
+  const map: Record<number, string> = {
+    1: '新增粉丝',
+    2: '收藏',
+    3: '评论',
+    4: '回复',
+    5: '评论点赞'
+  }
+  return map[subType] || '互动'
 }
 
 const formatTime = (timestamp: number | string) => {
@@ -234,198 +237,201 @@ const formatTime = (timestamp: number | string) => {
   const now = new Date()
   const diff = now.getTime() - date.getTime()
   
-  // 今天
   if (date.toDateString() === now.toDateString()) {
     return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
   }
-  
-  // 昨天
   const yesterday = new Date(now)
   yesterday.setDate(yesterday.getDate() - 1)
   if (date.toDateString() === yesterday.toDateString()) {
     return '昨天'
   }
-  
-  // 今年
   if (date.getFullYear() === now.getFullYear()) {
     return `${date.getMonth() + 1}月${date.getDate()}日`
   }
-  
-  // 更早
   return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`
 }
 
-const fetchSystemMessages = async () => {
-  systemLoading.value = true
+const fetchRelationMessages = async () => {
+  relationLoading.value = true
   try {
-    // 模拟数据
+    // 模拟数据：关系变动通知
     const mockData = [
       {
         id: 1,
-        type: 1,
+        subType: 1, // 好友删除
         isRead: false,
-        sent_at: Date.now() - 3600000,
-        content: {
-          title: '新的点赞',
-          type: 1,
-          content: '%n 点赞了你的文章《Vue 3 组合式 API 入门指南》',
-          user: {
-            id: 101,
-            nick: '小明同学',
-            avatar: 'https://picsum.photos/100/100?random=1'
-          }
+        sentAt: Date.now() - 1800000,
+        title: '好友关系变更',
+        content: '用户 "小明" 已将您从好友列表中删除。',
+        user: {
+          id: 101,
+          nick: '小明',
+          avatar: 'https://picsum.photos/100/100?random=1'
         }
       },
       {
         id: 2,
-        type: 1,
+        subType: 2,
         isRead: false,
-        sent_at: Date.now() - 7200000,
-        content: {
-          title: '新的评论',
-          type: 1,
-          content: '%n 评论了你的文章："写得很棒，学到了很多！"',
-          user: {
-            id: 102,
-            nick: '前端小白',
-            avatar: 'https://picsum.photos/100/100?random=2'
-          }
-        }
+        sentAt: Date.now() - 3600000,
+        title: '群聊解散',
+        content: '群聊 "技术交流群" 已被群主解散。',
+        user: null
       },
       {
         id: 3,
-        type: 0,
+        subType: 3,
         isRead: true,
-        sent_at: Date.now() - 86400000,
-        content: {
-          title: '系统维护通知',
-          type: 0,
-          content: '尊敬的用户，我们将于本周六凌晨2:00-4:00进行系统维护，期间可能会影响部分功能的使用，请提前做好准备。感谢您的理解与支持！'
+        sentAt: Date.now() - 7200000,
+        title: '被移出群聊',
+        content: '您已被管理员移出群聊 "项目讨论组"。',
+        user: {
+          id: 102,
+          nick: '管理员',
+          avatar: 'https://picsum.photos/100/100?random=2'
         }
       },
       {
         id: 4,
-        type: 2,
+        subType: 4,
         isRead: true,
-        sent_at: Date.now() - 172800000,
-        content: {
-          title: '账号安全提醒',
-          type: 0,
-          content: '检测到您的账号在新设备上登录，如非本人操作，请及时修改密码。'
+        sentAt: Date.now() - 86400000,
+        title: '好友自动清理',
+        content: '因用户 "张三" 注销账号，其与您的好友关系已自动解除。',
+        user: {
+          id: 103,
+          nick: '张三',
+          avatar: 'https://picsum.photos/100/100?random=3'
         }
       }
     ]
-    
-    systemMessages.value = mockData
-    systemUnread.value = mockData.filter(m => !m.isRead).length
+    relationMessages.value = mockData
+    relationUnread.value = mockData.filter(m => !m.isRead).length
   } catch (error) {
-    ElMessage.error('获取系统消息失败')
+    ElMessage.error('获取关系消息失败')
   } finally {
-    systemLoading.value = false
+    relationLoading.value = false
   }
 }
 
-const fetchSocialMessages = async () => {
-  socialLoading.value = true
+const fetchInteractionMessages = async () => {
+  interactionLoading.value = true
   try {
-    // 模拟数据
     const mockData = [
       {
         id: 1,
-        userId: 201,
-        nick: '小红',
-        avatar: 'https://picsum.photos/100/100?random=10',
-        lastMessage: '好的，那我们明天见！',
-        lastMessageType: 'text',
-        lastMessageTime: Date.now() - 1800000,
-        unread: 2,
-        isOnline: true
+        subType: 1,
+        isRead: false,
+        sentAt: Date.now() - 1200000,
+        title: '新粉丝',
+        content: '用户 "小红" 关注了您。',
+        user: {
+          id: 201,
+          nick: '小红',
+          avatar: 'https://picsum.photos/100/100?random=10'
+        }
       },
       {
         id: 2,
-        userId: 202,
-        nick: '阿杰',
-        avatar: 'https://picsum.photos/100/100?random=11',
-        lastMessage: '[图片]',
-        lastMessageType: 'image',
-        lastMessageTime: Date.now() - 7200000,
-        unread: 0,
-        isOnline: true
+        subType: 2,
+        isRead: false,
+        sentAt: Date.now() - 3000000,
+        title: '收藏了您的文章',
+        content: '用户 "阿杰" 收藏了您的文章《Vue 3 组合式 API 入门指南》。',
+        user: {
+          id: 202,
+          nick: '阿杰',
+          avatar: 'https://picsum.photos/100/100?random=11'
+        },
+        target: '《Vue 3 组合式 API 入门指南》'
       },
       {
         id: 3,
-        userId: 203,
-        nick: '技术交流群',
-        avatar: 'https://picsum.photos/100/100?random=12',
-        lastMessage: '老王：有人遇到过这个问题吗？',
-        lastMessageType: 'text',
-        lastMessageTime: Date.now() - 86400000,
-        unread: 15,
-        isOnline: false
+        subType: 3,
+        isRead: true,
+        sentAt: Date.now() - 7200000,
+        title: '评论了您的文章',
+        content: '用户 "前端小白" 评论了您的文章："写得很棒，学到了很多！"',
+        user: {
+          id: 203,
+          nick: '前端小白',
+          avatar: 'https://picsum.photos/100/100?random=12'
+        },
+        target: '《Vue 3 组合式 API 入门指南》'
       },
       {
         id: 4,
-        userId: 204,
-        nick: '李老师',
-        avatar: 'https://picsum.photos/100/100?random=13',
-        lastMessage: '作业记得按时交哦',
-        lastMessageType: 'text',
-        lastMessageTime: Date.now() - 172800000,
-        unread: 0,
-        isOnline: false
+        subType: 4,
+        isRead: true,
+        sentAt: Date.now() - 86400000,
+        title: '回复了您的评论',
+        content: '用户 "李老师" 回复了您在文章《TypeScript 进阶》下的评论。',
+        user: {
+          id: 204,
+          nick: '李老师',
+          avatar: 'https://picsum.photos/100/100?random=13'
+        },
+        target: '《TypeScript 进阶》'
       },
       {
         id: 5,
-        userId: 205,
-        nick: '大强',
-        avatar: 'https://picsum.photos/100/100?random=14',
-        lastMessage: '[语音]',
-        lastMessageType: 'voice',
-        lastMessageTime: Date.now() - 259200000,
-        unread: 0,
-        isOnline: false
+        subType: 5,
+        isRead: false,
+        sentAt: Date.now() - 172800000,
+        title: '点赞了您的评论',
+        content: '用户 "大强" 点赞了您在文章《CSS 布局技巧》中的评论。',
+        user: {
+          id: 205,
+          nick: '大强',
+          avatar: 'https://picsum.photos/100/100?random=14'
+        },
+        target: '《CSS 布局技巧》'
       }
     ]
-    
-    socialMessages.value = mockData
-    socialUnread.value = mockData.reduce((sum, chat) => sum + chat.unread, 0)
+    interactionMessages.value = mockData
+    interactionUnread.value = mockData.filter(m => !m.isRead).length
   } catch (error) {
-    ElMessage.error('获取社交消息失败')
+    ElMessage.error('获取互动消息失败')
   } finally {
-    socialLoading.value = false
+    interactionLoading.value = false
   }
 }
 
-const viewSystemMessage = (msg: any) => {
+const viewMessage = (msg: any, type: 'relation' | 'interaction') => {
   if (!msg.isRead) {
     msg.isRead = true
-    systemUnread.value--
+    if (type === 'relation') {
+      relationUnread.value--
+    } else {
+      interactionUnread.value--
+    }
   }
 }
 
-const markAllAsRead = () => {
-  systemMessages.value.forEach(msg => {
-    msg.isRead = true
-  })
-  systemUnread.value = 0
+const markAllAsRead = (type: 'relation' | 'interaction') => {
+  if (type === 'relation') {
+    relationMessages.value.forEach(msg => { msg.isRead = true })
+    relationUnread.value = 0
+  } else {
+    interactionMessages.value.forEach(msg => { msg.isRead = true })
+    interactionUnread.value = 0
+  }
   ElMessage.success('已全部标为已读')
 }
 
-const openChat = (chat: any) => {
-  router.push(`/chat/${chat.userId}`)
-}
-
 onMounted(() => {
-  fetchSystemMessages()
-  fetchSocialMessages()
+  fetchRelationMessages()
+  fetchInteractionMessages()
 })
 </script>
 
 <style scoped>
+/* 复用原有样式，微调 */
 .messages-page {
   min-height: 100vh;
   background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
   padding: 24px;
+  box-sizing: border-box;
 }
 
 .messages-container {
@@ -515,18 +521,18 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
-.system-icon {
+.relation-icon {
   background: linear-gradient(135deg, #667eea20, #764ba220);
   color: #667eea;
 }
 
-.social-icon {
+.interaction-icon {
   background: linear-gradient(135deg, #f093fb20, #f5576c20);
   color: #f5576c;
 }
 
-.nav-item.active .system-icon,
-.nav-item.active .social-icon {
+.nav-item.active .relation-icon,
+.nav-item.active .interaction-icon {
   background: rgba(255, 255, 255, 0.2);
   color: #fff;
 }
@@ -593,36 +599,24 @@ onMounted(() => {
   margin: 0;
 }
 
-.search-input {
-  width: 240px;
-}
-
-:deep(.search-input .el-input__wrapper) {
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-}
-
 /* 消息列表 */
-.message-list,
-.chat-list {
+.message-list {
   flex: 1;
   overflow-y: auto;
   padding-right: 8px;
 }
 
-.message-list::-webkit-scrollbar,
-.chat-list::-webkit-scrollbar {
+.message-list::-webkit-scrollbar {
   width: 6px;
 }
 
-.message-list::-webkit-scrollbar-thumb,
-.chat-list::-webkit-scrollbar-thumb {
+.message-list::-webkit-scrollbar-thumb {
   background: #e2e8f0;
   border-radius: 3px;
 }
 
-/* 系统消息卡片 */
-.system-message-card {
+/* 消息卡片 - 统一风格 */
+.message-card {
   background: #fafbfc;
   border-radius: 16px;
   padding: 20px;
@@ -633,13 +627,13 @@ onMounted(() => {
   position: relative;
 }
 
-.system-message-card:hover {
+.message-card:hover {
   background: #fff;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
   transform: translateY(-2px);
 }
 
-.system-message-card.unread {
+.message-card.unread {
   background: linear-gradient(135deg, #f0f4ff 0%, #f8f0ff 100%);
   border-color: #e0e7ff;
 }
@@ -658,20 +652,19 @@ onMounted(() => {
   border-radius: 8px;
 }
 
-.msg-type-badge.type-notice {
-  background: #dbeafe;
-  color: #2563eb;
-}
+/* 关系类型颜色 */
+.type-friend-delete { background: #fee2e2; color: #dc2626; }
+.type-group-dismiss { background: #fef3c7; color: #d97706; }
+.type-group-kick { background: #fce4ec; color: #e11d48; }
+.type-user-cleanup { background: #e0e7ff; color: #4f46e5; }
+.type-default { background: #f1f5f9; color: #64748b; }
 
-.msg-type-badge.type-interaction {
-  background: #fce7f3;
-  color: #db2777;
-}
-
-.msg-type-badge.type-system {
-  background: #fef3c7;
-  color: #d97706;
-}
+/* 互动类型颜色 */
+.type-new-fan { background: #dbeafe; color: #2563eb; }
+.type-collect { background: #fef3c7; color: #d97706; }
+.type-comment { background: #e0e7ff; color: #4f46e5; }
+.type-reply { background: #d1fae5; color: #059669; }
+.type-comment-like { background: #fce7f3; color: #db2777; }
 
 .msg-time {
   font-size: 12px;
@@ -681,11 +674,12 @@ onMounted(() => {
 .card-body {
   display: flex;
   gap: 16px;
+  align-items: flex-start;
 }
 
 .msg-thumbnail {
-  width: 80px;
-  height: 80px;
+  width: 60px;
+  height: 60px;
   border-radius: 12px;
   overflow: hidden;
   flex-shrink: 0;
@@ -703,7 +697,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   color: #667eea;
-  font-size: 32px;
+  font-size: 28px;
 }
 
 .msg-info {
@@ -715,41 +709,23 @@ onMounted(() => {
   font-size: 16px;
   font-weight: 600;
   color: #1e293b;
-  margin: 0 0 8px 0;
+  margin: 0 0 6px 0;
 }
 
 .msg-content {
   font-size: 14px;
-  color: #64748b;
+  color: #475569;
   line-height: 1.6;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
 }
 
-.user-mention {
-  display: inline-flex;
-  align-items: center;
-  background: #e0e7ff;
-  border-radius: 12px;
-  padding: 2px 8px 2px 3px;
-  margin: 0 2px;
-  vertical-align: middle;
-}
-
-.mention-avatar {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  margin-right: 5px;
-}
-
-.mention-name {
-  font-weight: 500;
-  color: #4f46e5;
+.msg-target {
+  margin-top: 6px;
   font-size: 13px;
+  color: #94a3b8;
+  background: #f8fafc;
+  padding: 4px 10px;
+  border-radius: 6px;
+  display: inline-block;
 }
 
 .unread-dot {
@@ -762,97 +738,6 @@ onMounted(() => {
   border-radius: 50%;
 }
 
-/* 社交消息列表 */
-.chat-item {
-  display: flex;
-  gap: 14px;
-  padding: 16px;
-  border-radius: 14px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  margin-bottom: 8px;
-}
-
-.chat-item:hover {
-  background: #f8fafc;
-}
-
-.chat-item.unread {
-  background: linear-gradient(135deg, #f0f7ff 0%, #f5f0ff 100%);
-}
-
-.chat-avatar {
-  position: relative;
-  flex-shrink: 0;
-}
-
-.online-dot {
-  position: absolute;
-  bottom: 2px;
-  right: 2px;
-  width: 12px;
-  height: 12px;
-  background: #22c55e;
-  border: 2px solid #fff;
-  border-radius: 50%;
-}
-
-.chat-info {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 6px;
-}
-
-.chat-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.chat-name {
-  font-size: 15px;
-  font-weight: 600;
-  color: #1e293b;
-}
-
-.chat-time {
-  font-size: 12px;
-  color: #94a3b8;
-  flex-shrink: 0;
-}
-
-.chat-bottom {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.last-message {
-  font-size: 13px;
-  color: #64748b;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex: 1;
-  margin-right: 12px;
-}
-
-.unread-count {
-  background: linear-gradient(135deg, #ff6b6b, #ee5a5a);
-  color: #fff;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 2px 7px;
-  border-radius: 10px;
-  min-width: 18px;
-  text-align: center;
-  flex-shrink: 0;
-}
-
-/* 空状态 */
 .empty-state {
   padding: 60px 0;
 }
@@ -869,33 +754,27 @@ onMounted(() => {
     flex-direction: column;
     height: auto;
   }
-  
   .sidebar {
     width: 100%;
     flex-direction: row;
     align-items: center;
     padding: 16px;
   }
-  
   .sidebar-header {
     margin-bottom: 0;
     margin-right: 24px;
   }
-  
   .nav-list {
     flex-direction: row;
     flex: 1;
     gap: 8px;
   }
-  
   .nav-item {
     flex: 1;
   }
-  
   .nav-icon {
     display: none;
   }
-  
   .content-area {
     min-height: 500px;
   }
@@ -905,40 +784,29 @@ onMounted(() => {
   .messages-page {
     padding: 12px;
   }
-  
   .sidebar {
     padding: 12px;
     flex-wrap: wrap;
     gap: 12px;
   }
-  
   .sidebar-header {
     width: 100%;
     margin-right: 0;
   }
-  
   .nav-desc {
     display: none;
   }
-  
   .content-area {
     padding: 16px;
   }
-  
   .content-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
   }
-  
-  .search-input {
-    width: 100%;
-  }
-  
   .card-body {
     flex-direction: column;
   }
-  
   .msg-thumbnail {
     width: 100%;
     height: 120px;

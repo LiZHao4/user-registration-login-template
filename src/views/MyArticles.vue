@@ -33,16 +33,16 @@
             <div class="article-title" @click="goDetail(article.id)">{{ article.title }}</div>
             <div class="article-summary">{{ article.content }}</div>
             <div class="article-meta">
-              <span class="meta-item"><el-icon><Clock /></el-icon>{{ formatTime(article.updateTime) }}</span>
+              <span class="meta-item"><el-icon><Clock /></el-icon>{{ formatDateShort(article.updateTime) }}</span>
               <span class="meta-item"><el-icon><View /></el-icon>{{ getVisibilityText(article.visibility) }}</span>
               <span class="meta-item"><el-icon><Star /></el-icon>{{ article.likeCount }}</span>
               <span class="meta-item"><el-icon><ChatDotRound /></el-icon>{{ article.commentCount }}</span>
             </div>
           </div>
           <div class="article-actions">
-            <el-button type="primary" link @click="goEdit(article.id)"><el-icon><Edit /></el-icon>编辑</el-button>
-            <el-button type="primary" link @click="goDetail(article.id)"><el-icon><View /></el-icon>查看</el-button>
-            <el-button type="danger" link @click="handleDelete(article.id)"><el-icon><Delete /></el-icon>删除</el-button>
+            <el-button type="primary" link @click="goEdit(article.id)" :icon="Edit">编辑</el-button>
+            <el-button type="primary" link @click="goDetail(article.id)" :icon="View">查看</el-button>
+            <el-button type="danger" link @click="handleDelete(article.id)" :icon="Delete">删除</el-button>
           </div>
         </div>
       </div>
@@ -60,13 +60,13 @@
     </div>
   </div>
 </template>
-
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Search } from '@element-plus/icons-vue'
+import { Plus, Search, Edit, View, Delete } from '@element-plus/icons-vue'
 import axios from 'axios'
+import { formatDateShort } from '@/utils/dateFormatter'
 const router = useRouter()
 const loading = ref(false)
 const searchKeyword = ref('')
@@ -77,116 +77,54 @@ const total = ref(0)
 const fetchArticles = async () => {
   loading.value = true
   try {
-    // 模拟数据，实际项目中替换为真实API
-    const mockArticles = [
-      {
-        id: 1,
-        user_id: 1,
-        user_avatar: '',
-        user_nick: '',
-        title: 'Vue 3 组合式 API 入门指南',
-        content: '本文将详细介绍 Vue 3 的组合式 API，包括 setup 函数、响应式数据、生命周期钩子等核心概念...',
-        images: ['https://picsum.photos/200/150?random=1'],
-        tags: ['Vue', '前端'],
-        visibility: 'public',
-        publishTime: Date.now() - 86400000 * 2,
-        updateTime: Date.now() - 86400000,
-        likeCount: 128,
-        commentCount: 12,
-        isLiked: false,
-        isFollowing: 'self'
-      },
-      {
-        id: 2,
-        user_id: 1,
-        user_avatar: '',
-        user_nick: '',
-        title: 'TypeScript 高级类型技巧',
-        content: '深入探索 TypeScript 的高级类型系统，包括条件类型、映射类型、模板字面量类型等...',
-        images: ['https://picsum.photos/200/150?random=2'],
-        tags: ['TypeScript'],
-        visibility: 'public',
-        publishTime: Date.now() - 86400000 * 5,
-        updateTime: Date.now() - 86400000 * 3,
-        likeCount: 256,
-        commentCount: 12,
-        isLiked: false,
-        isFollowing: 'self'
-      },
-      {
-        id: 3,
-        user_id: 1,
-        user_avatar: '',
-        user_nick: '',
-        title: '未完成的草稿文章',
-        content: '这是一篇还在写作中的草稿文章...',
-        images: [],
-        tags: [],
-        visibility: 'private',
-        publishTime: 0,
-        updateTime: Date.now() - 3600000,
-        likeCount: 0,
-        commentCount: 12,
-        isLiked: false,
-        isFollowing: 'self'
+    const response = await axios.get('/api/self/articles', {
+      params: {
+        keyword: searchKeyword.value,
+        page: currentPage.value,
+        limit: pageSize.value
       }
-    ]
-    articles.value = mockArticles
-    total.value = mockArticles.length
+    })
+    articles.value = response.data.data
+    total.value = response.data.pagination.total
   } catch (error) {
     ElMessage.error('获取文章列表失败')
   } finally {
     loading.value = false
   }
 }
-
 const handleSearch = () => {
   currentPage.value = 1
   fetchArticles()
 }
-
 const handleSizeChange = (size: number) => {
   pageSize.value = size
   currentPage.value = 1
   fetchArticles()
 }
-
 const handleCurrentChange = (page: number) => {
   currentPage.value = page
   fetchArticles()
 }
-
-const formatTime = (timestamp: number) => {
-  if (!timestamp) return '未发布'
-  const date = new Date(timestamp)
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
-}
-
 const getVisibilityText = (visibility: string) => {
-  const map: Record<string, string> = {
+  const map = {
     public: '公开',
     mutuals: '互关可见',
     private: '仅自己可见'
   }
   return map[visibility] || visibility
 }
-
 const goBack = () => {
   router.back()
 }
-
 const goWrite = () => {
   router.push('/write')
 }
-
 const goEdit = (id: number) => {
   router.push(`/write/${id}`)
 }
-
 const goDetail = (id: number) => {
   router.push(`/article/${id}`)
 }
-
 const handleDelete = async (id: number) => {
   try {
     await ElMessageBox.confirm('确定要删除这篇文章吗？删除后无法恢复。', '删除确认', {
@@ -194,21 +132,15 @@ const handleDelete = async (id: number) => {
       cancelButtonText: '取消',
       type: 'warning'
     })
-    
-    // 模拟删除，实际项目中替换为真实API
     articles.value = articles.value.filter(a => a.id !== id)
     total.value--
     ElMessage.success('删除成功')
-  } catch {
-    // 用户取消删除
-  }
+  } catch {}
 }
-
 onMounted(() => {
   fetchArticles()
 })
 </script>
-
 <style scoped>
 .my-articles-container {
   position: relative;
@@ -217,7 +149,6 @@ onMounted(() => {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   padding: 40px 0;
 }
-
 .articles-card {
   position: relative;
   z-index: 2;
@@ -231,30 +162,25 @@ onMounted(() => {
   border: 1px solid rgba(255, 255, 255, 0.5);
   padding: 24px 28px;
 }
-
 .card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 24px;
 }
-
 .header-left,
 .header-right {
   flex: 1;
 }
-
 .header-right {
   display: flex;
   justify-content: flex-end;
 }
-
 .header-title {
   font-size: 20px;
   font-weight: 600;
   color: #1e293b;
 }
-
 .back-btn {
   display: flex;
   align-items: center;
@@ -265,43 +191,35 @@ onMounted(() => {
   border-radius: 30px;
   transition: background-color 0.2s;
 }
-
 .back-btn:hover {
   background: rgba(0, 0, 0, 0.05);
   color: #667eea;
 }
-
 .header-right .el-button {
   border-radius: 30px;
   padding: 8px 20px;
   font-weight: 500;
 }
-
 .search-bar {
   display: flex;
   gap: 12px;
   margin-bottom: 24px;
 }
-
 .search-bar .el-input {
   flex: 1;
 }
-
 :deep(.el-input__wrapper) {
   border-radius: 12px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
-
 :deep(.el-select .el-input__wrapper) {
   border-radius: 12px;
 }
-
 .articles-list {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
-
 .article-item {
   display: flex;
   gap: 16px;
@@ -312,12 +230,10 @@ onMounted(() => {
   transition: all 0.3s;
   border: 1px solid #f1f5f9;
 }
-
 .article-item:hover {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);
 }
-
 .article-cover {
   width: 160px;
   height: 100px;
@@ -325,13 +241,11 @@ onMounted(() => {
   overflow: hidden;
   flex-shrink: 0;
 }
-
 .article-cover img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
-
 .article-cover.no-cover {
   background: linear-gradient(135deg, #f0f4ff 0%, #e8ecff 100%);
   display: flex;
@@ -339,11 +253,9 @@ onMounted(() => {
   justify-content: center;
   color: #94a3b8;
 }
-
 .article-cover.no-cover .el-icon {
   font-size: 36px;
 }
-
 .article-info {
   flex: 1;
   min-width: 0;
@@ -351,7 +263,6 @@ onMounted(() => {
   flex-direction: column;
   justify-content: space-between;
 }
-
 .article-title {
   font-size: 16px;
   font-weight: 600;
@@ -363,11 +274,9 @@ onMounted(() => {
   white-space: nowrap;
   transition: color 0.2s;
 }
-
 .article-title:hover {
   color: #667eea;
 }
-
 .article-summary {
   font-size: 14px;
   color: #64748b;
@@ -379,40 +288,35 @@ onMounted(() => {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-
 .article-meta {
   display: flex;
   gap: 16px;
   font-size: 13px;
   color: #94a3b8;
 }
-
 .meta-item {
   display: flex;
   align-items: center;
   gap: 4px;
 }
-
 .meta-item .el-icon {
   font-size: 14px;
 }
-
 .article-actions {
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 8px;
   flex-shrink: 0;
 }
-
 .article-actions .el-button {
   padding: 6px 12px;
   font-size: 13px;
+  margin: 0;
 }
-
 .empty-state {
   padding: 60px 0;
 }
-
 .pagination-wrapper {
   display: flex;
   justify-content: center;
@@ -420,51 +324,41 @@ onMounted(() => {
   padding-top: 16px;
   border-top: 1px solid #f1f5f9;
 }
-
 @media (max-width: 768px) {
   .my-articles-container {
     padding: 20px 0;
   }
-
   .articles-card {
     margin: 0 16px;
     padding: 20px;
     max-width: 100%;
   }
-
   .header-title {
     font-size: 16px;
   }
-
   .search-bar {
     flex-direction: column;
   }
-
   .search-bar .el-select {
     width: 100% !important;
   }
-
   .article-item {
     flex-direction: column;
   }
-
   .article-cover {
     width: 100%;
     height: 180px;
   }
-
   .article-actions {
     flex-direction: row;
     justify-content: flex-end;
   }
 }
-
 @media (max-width: 480px) {
   .articles-card {
     padding: 16px;
     border-radius: 20px;
   }
-
   .article-meta {
     flex-wrap: wrap;
     gap: 12px;

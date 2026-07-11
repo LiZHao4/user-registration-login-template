@@ -2,6 +2,7 @@ import express from 'express'
 import db from '../config.js'
 import { authMiddleware, verifyToken } from '../middlewares/auth.js'
 import { pagination } from '../middlewares/pagination.js'
+import { escapeLikeKeyword } from '../utils.js'
 const router = express.Router()
 router.get('/articles', pagination(), async (req, res) => {
   try {
@@ -44,7 +45,10 @@ router.get('/articles', pagination(), async (req, res) => {
     // Only numeric values are allowed here.
     const results = await db.query(query, [userId, userId, userId, userId, userId, userId])
     const articlePromises = results.map(async article => {
-      const imageRecords = await db.query('SELECT image_name FROM post_images WHERE post_id = ?', [article.id])
+      const imageRecords = await db.query(
+        'SELECT image_name FROM post_images WHERE post_id = ? ORDER BY position',
+        [article.id]
+      )
       const images = imageRecords.map(row => `/uploads/images/${row.image_name}.png`)
       return {
         id: article.id,
@@ -122,6 +126,80 @@ router.get('/user/:userId/articles', pagination(10), async (req, res) => {
     })
   }
 })
+router.get('/self/articles', authMiddleware, pagination(10), async (req, res) => {
+  const userId = req.userId
+  const { page, limit, offset } = req.pagination
+  const { keyword } = req.query
+  try {
+    const query = `
+      SELECT 
+        p.id,
+        p.title,
+        p.content,
+        p.visibility,
+        UNIX_TIMESTAMP(p.created_at) as publishTime,
+        UNIX_TIMESTAMP(p.updated_at) as updateTime,
+        u.user_avatar,
+        u.nick,
+        COUNT(DISTINCT pl.id) as likeCount,
+        COUNT(DISTINCT c.id) as commentCount
+      FROM posts p
+      LEFT JOIN users u ON p.user_id = u.id
+      LEFT JOIN post_likes pl ON p.id = pl.post_id
+      LEFT JOIN comments c ON p.id = c.post_id
+      WHERE p.user_id = ?
+      ${keyword ? 'AND p.title LIKE ?' : ''}
+      GROUP BY p.id, p.title, p.content, p.created_at, p.updated_at, p.visibility, u.user_avatar, u.nick
+      ORDER BY p.updated_at DESC
+      LIMIT ${limit} OFFSET ${offset}
+    `
+    const params = [userId]
+    if (keyword) {
+      params.push(`%${escapeLikeKeyword(keyword)}%`)
+    }
+    const results = await db.query(query, params)
+    const articlePromises = results.map(async article => {
+      const imageRecords = await db.query(
+        'SELECT image_name FROM post_images WHERE post_id = ? ORDER BY position',
+        [article.id]
+      )
+      const images = imageRecords.map(row => `/uploads/images/${row.image_name}.png`)
+      return {
+        id: article.id,
+        avatar: article.user_avatar,
+        nick: article.nick,
+        publishTime: article.publishTime,
+        updateTime: article.updateTime,
+        title: article.title,
+        content: article.content,
+        images,
+        visibility: article.visibility,
+        commentCount: article.commentCount,
+        likeCount: article.likeCount
+      }
+    })
+    const articles = await Promise.all(articlePromises)
+    const totalResult = await db.getOne(
+      `SELECT COUNT(*) as total FROM posts WHERE user_id = ? ${keyword ? 'AND title LIKE ?' : ''}`,
+      params
+    )
+    res.json({
+      code: 1,
+      msg: '获取我的文章列表成功。',
+      data: articles,
+      pagination: {
+        total: totalResult.total,
+        page, limit
+      }
+    })
+  } catch (error) {
+    console.error('获取我的文章列表失败:', error)
+    res.status(500).json({
+      code: -1,
+      msg: '服务器错误，请稍后重试。'
+    })
+  }
+})
 router.get('/articles/:id', async (req, res) => {
   const articleId = parseInt(req.params.id)
   if (isNaN(articleId)) {
@@ -161,7 +239,7 @@ router.get('/articles/:id', async (req, res) => {
       if (currentUserId && currentUserId === authorId) {
         allowed = true
       }
-    } else if (visibility === 'mutuals' || visibility === 'friends') {
+    } else if (visibility === 'mutuals') {
       if (currentUserId) {
         const [follow, followBack] = await Promise.all([
           db.query('SELECT 1 FROM follows WHERE follower_id = ? AND following_id = ?', [currentUserId, authorId]),
@@ -187,12 +265,7 @@ router.get('/articles/:id', async (req, res) => {
         if (result.length > 0) isFollowing = 'true'
       }
     }
-    const imageQuery = `
-      SELECT i.name
-      FROM post_images pi
-      JOIN images i ON pi.image_name = i.name
-      WHERE pi.post_id = ?
-    `
+    const imageQuery = 'SELECT image_name FROM post_images WHERE post_id = ? ORDER BY position'
     const imageRows = await db.query(imageQuery, [articleId])
     const images = imageRows.map(row => `/uploads/images/${row.name}.png`)
     const tagQuery = `
@@ -200,6 +273,7 @@ router.get('/articles/:id', async (req, res) => {
       FROM post_tag_relations ptr
       JOIN post_tags pt ON ptr.tag_id = pt.id
       WHERE ptr.post_id = ?
+      ORDER BY ptr.position
     `
     const tagRows = await db.query(tagQuery, [articleId])
     const tags = tagRows.map(row => row.tag)
@@ -234,7 +308,7 @@ router.post('/articles', authMiddleware, async (req, res) => {
   if (!content || typeof content !== 'string') {
     return res.status(400).json({ code: -1, msg: '内容不能为空。' })
   }
-  const validVisibilities = ['public', 'private', 'friends']
+  const validVisibilities = ['public', 'private', 'mutuals']
   if (!visibility || !validVisibilities.includes(visibility)) {
     return res.status(400).json({ code: -1, msg: '可见性参数无效。' })
   }
@@ -251,7 +325,8 @@ router.post('/articles', authMiddleware, async (req, res) => {
     const [postResult] = await connection.execute(postSql, [userId, title, content, visibility])
     const postId = postResult.insertId
     if (images && images.length > 0) {
-      for (const imageName of images) {
+      for (let i = 0; i < images.length; i++) {
+        const imageName = images[i]
         const [rows] = await connection.execute(
           'SELECT 1 FROM user_images WHERE image_name = ? AND user = ?',
           [imageName, userId]
@@ -259,11 +334,15 @@ router.post('/articles', authMiddleware, async (req, res) => {
         if (rows.length === 0) {
           throw new Error('INVALID_IMAGE')
         }
-        await connection.execute('INSERT INTO post_images (post_id, image_name) VALUES (?, ?)', [postId, imageName])
+        await connection.execute(
+          'INSERT INTO post_images (post_id, position, image_name) VALUES (?, ?, ?)',
+          [postId, i + 1, imageName]
+        )
       }
     }
     if (tags && tags.length > 0) {
-      for (const tagName of tags) {
+      for (let i = 0; i < tags.length; i++) {
+        const tagName = tags[i]
         const existingTag = await connection.execute('SELECT id FROM post_tags WHERE tag = ?', [tagName])
         let tagId
         if (existingTag.length > 0) {
@@ -275,7 +354,10 @@ router.post('/articles', authMiddleware, async (req, res) => {
           )
           tagId = tagResult.insertId
         }
-        await connection.execute('INSERT INTO post_tag_relations (post_id, tag_id) VALUES (?, ?)', [postId, tagId])
+        await connection.execute(
+          'INSERT INTO post_tag_relations (post_id, position, tag_id) VALUES (?, ?, ?)',
+          [postId, i + 1, tagId]
+        )
       }
     }
     await db.commit(connection)
@@ -311,7 +393,7 @@ router.put('/articles/:id', authMiddleware, async (req, res) => {
   if (!content || typeof content !== 'string') {
     return res.status(400).json({ code: -1, msg: '内容不能为空。' })
   }
-  const validVisibilities = ['public', 'private', 'friends']
+  const validVisibilities = ['public', 'private', 'mutuals']
   if (!visibility || !validVisibilities.includes(visibility)) {
     return res.status(400).json({ code: -1, msg: '可见性参数无效。' })
   }
@@ -337,7 +419,8 @@ router.put('/articles/:id', authMiddleware, async (req, res) => {
     )
     await connection.execute('DELETE FROM post_images WHERE post_id = ?', [articleId])
     if (images && images.length > 0) {
-      for (const imageName of images) {
+      for (let i = 0; i < images.length; i++) {
+        const imageName = images[i]
         const imgRows = await connection.execute(
           'SELECT image_name FROM user_images WHERE image_name = ? AND user = ?',
           [imageName, userId]
@@ -345,12 +428,16 @@ router.put('/articles/:id', authMiddleware, async (req, res) => {
         if (imgRows.length === 0) {
           throw new Error('INVALID_IMAGE')
         }
-        await connection.execute('INSERT INTO post_images (post_id, image_name) VALUES (?, ?)', [articleId, imageName])
+        await connection.execute(
+          'INSERT INTO post_images (post_id, position, image_name) VALUES (?, ?, ?)',
+          [articleId, i + 1, imageName]
+        )
       }
     }
     await connection.execute('DELETE FROM post_tag_relations WHERE post_id = ?', [articleId])
     if (tags && tags.length > 0) {
-      for (const tagName of tags) {
+      for (let i = 0; i < tags.length; i++) {
+        const tagName = tags[i]
         let tagId
         const existingTag = await connection.execute('SELECT id FROM post_tags WHERE tag = ?', [tagName])
         if (existingTag.length > 0) {
@@ -362,7 +449,10 @@ router.put('/articles/:id', authMiddleware, async (req, res) => {
           )
           tagId = tagResult.insertId
         }
-        await connection.execute('INSERT INTO post_tag_relations (post_id, tag_id) VALUES (?, ?)', [articleId, tagId])
+        await connection.execute(
+          'INSERT INTO post_tag_relations (post_id, tag_id) VALUES (?, ?, ?)',
+          [articleId, tagId]
+        )
       }
     }
     await db.commit(connection)
@@ -376,65 +466,39 @@ router.put('/articles/:id', authMiddleware, async (req, res) => {
     res.status(500).json({ code: -1, msg: '服务器错误，请稍后重试。' })
   }
 })
-router.get('/articles/:id/comments', async (req, res) => {
+router.delete('/articles/:id', authMiddleware, async (req, res) => {
   const articleId = parseInt(req.params.id)
   if (isNaN(articleId)) {
-    return res.status(400).json({ code: -1, msg: '文章 ID 无效。' })
+    return res.status(400).json({ code: -1, msg: '文章ID无效。' })
   }
-  let page = parseInt(req.query.page) || 1
-  let limit = parseInt(req.query.limit) || 30
-  if (page < 1) page = 1
-  if (limit < 1) limit = 30
-  const offset = (page - 1) * limit
+  const userId = req.userId
+  let connection
   try {
-    const userId = verifyToken(req.cookies.t)
-    const listQuery = `
-      SELECT 
-        c.id,
-        c.content,
-        c.parent_id AS parentId,
-        UNIX_TIMESTAMP(c.created_at) AS createdAt,
-        u.id AS userId,
-        u.nick,
-        u.user_avatar AS avatar,
-        (SELECT COUNT(*) FROM comments WHERE parent_id = c.id AND is_deleted = 0) AS replyCount,
-        (SELECT COUNT(*) FROM comment_likes WHERE comment_id = c.id) AS likeCount,
-        CASE WHEN ? IS NULL THEN 0 ELSE (
-          SELECT COUNT(*) FROM comment_likes WHERE comment_id = c.id AND user_id = ?
-        ) END AS is_liked,
-      FROM comments c
-      LEFT JOIN users u ON c.user_id = u.id
-      WHERE c.post_id = ? AND c.is_deleted = 0 AND parent_id IS NULL
-      ORDER BY c.created_at DESC
-      LIMIT ${limit} OFFSET ${offset}
-    `
-    const comments = await db.query(listQuery, [userId, userId, articleId])
-    const totalResult = await db.getOne(
-      'SELECT COUNT(*) AS total FROM comments WHERE post_id = ? AND is_deleted = 0 AND parent_id IS NULL',
-      [articleId]
-    )
-    const total = totalResult.total
-    const list = comments.map(row => ({
-      id: row.id,
-      user_id: row.userId,
-      user_nick: row.nick,
-      user_avatar: row.avatar,
-      content: row.content,
-      parentId: row.parentId,
-      createdAt: row.createdAt,
-      replyCount: row.replyCount,
-      likeCount: row.likeCount,
-      isLiked: row.is_liked
-    }))
+    const post = await db.getOne('SELECT user_id FROM posts WHERE id = ?', [articleId])
+    if (!post) {
+      return res.status(404).json({ code: -1, msg: '文章不存在。' })
+    }
+    if (post.user_id !== userId) {
+      return res.status(403).json({ code: -1, msg: '无权删除此文章。' })
+    }
+    connection = await db.beginTransaction()
+    await connection.execute('DELETE FROM post_images WHERE post_id = ?', [articleId])
+    await connection.execute('DELETE FROM post_tag_relations WHERE post_id = ?', [articleId])
+    await connection.execute('DELETE FROM post_likes WHERE post_id = ?', [articleId])
+    await connection.execute('DELETE FROM comments WHERE post_id = ?', [articleId])
+    await connection.execute('DELETE FROM posts WHERE id = ?', [articleId])
+    await db.commit(connection)
     res.json({
       code: 1,
-      msg: '获取评论列表成功。',
-      data: list,
-      total, page, limit
+      msg: '文章删除成功。'
     })
   } catch (error) {
-    console.error('获取评论列表失败:', error)
-    res.status(500).json({ code: -1, msg: '服务器错误，请稍后重试。' })
+    if (connection) await db.rollback(connection)
+    console.error('删除文章失败:', error)
+    res.status(500).json({
+      code: -1,
+      msg: '服务器错误，请稍后重试。'
+    })
   }
 })
 export default router

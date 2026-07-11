@@ -41,6 +41,10 @@ export default defineConfig({
           }
         }
       }
+    },
+    minify: 'terser',
+    terserOptions: {
+      ecma: 2025
     }
   },
   css: {
