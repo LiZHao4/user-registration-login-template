@@ -2,20 +2,7 @@ import express from 'express'
 import db from '../config.js'
 import { authMiddleware } from '../middlewares/auth.js'
 const router = express.Router()
-router.use(authMiddleware)
-function addUserInfoToMessages(messages, userInfoMap) {
-  for (const message of messages) {
-    if (message.sender && userInfoMap[message.sender]) {
-      const userInfo = userInfoMap[message.sender]
-      message.sender_nick = userInfo.nick
-      message.sender_avatar = userInfo.avatar
-    }
-    if (message.type === 6 && message.content && Array.isArray(message.content)) {
-      addUserInfoToMessages(message.content, userInfoMap)
-    }
-  }
-}
-router.get('/chat/:id', async (req, res) => {
+router.get('/chat/:id', authMiddleware, async (req, res) => {
   try {
     const target = req.params.id
     if (!target) {
@@ -124,8 +111,7 @@ router.get('/chat/:id', async (req, res) => {
             }
           }
           if (chat.type === 6 && chat.content && Array.isArray(chat.content)) {
-            const userIds = new Set()
-            const collectUserIds = messages => {
+            function collectUserIds(messages) {
               for (const msg of messages) {
                 if (msg.sender) {
                   userIds.add(msg.sender)
@@ -135,6 +121,19 @@ router.get('/chat/:id', async (req, res) => {
                 }
               }
             }
+            function addUserInfoToMessages(messages, userInfoMap) {
+              for (const message of messages) {
+                if (message.sender && userInfoMap[message.sender]) {
+                  const userInfo = userInfoMap[message.sender]
+                  message.sender_nick = userInfo.nick
+                  message.sender_avatar = userInfo.avatar
+                }
+                if (message.type === 6 && message.content && Array.isArray(message.content)) {
+                  addUserInfoToMessages(message.content, userInfoMap)
+                }
+              }
+            }
+            const userIds = new Set()
             collectUserIds(chat.content)
             if (userIds.size > 0) {
               const userIdArray = Array.from(userIds)
@@ -284,7 +283,7 @@ router.get('/chat/:id', async (req, res) => {
     })
   }
 })
-router.post('/chat/:id/mark-read', async (req, res) => {
+router.post('/chat/:id/mark-read', authMiddleware, async (req, res) => {
   try {
     const sessionId = parseInt(req.params.id)
     const userId = req.userId

@@ -3,8 +3,7 @@ import db from '../config.js'
 import { authMiddleware } from '../middlewares/auth.js'
 import { pagination } from '../middlewares/pagination.js'
 const router = express.Router()
-router.use(authMiddleware)
-router.post('/user/:userId/follow', async (req, res) => {
+router.post('/user/:userId/follow', authMiddleware, async (req, res) => {
   try {
     const currentUserId = req.userId
     const targetUserId = parseInt(req.params.userId)
@@ -35,7 +34,7 @@ router.post('/user/:userId/follow', async (req, res) => {
     res.status(500).json({ code: -1, msg: '服务器内部错误。' })
   }
 })
-router.delete('/user/:userId/follow', async (req, res) => {
+router.delete('/user/:userId/follow', authMiddleware, async (req, res) => {
   try {
     const currentUserId = req.userId
     const targetUserId = parseInt(req.params.userId)
@@ -58,7 +57,7 @@ router.delete('/user/:userId/follow', async (req, res) => {
     res.status(500).json({ code: -1, msg: '服务器内部错误。' })
   }
 })
-router.get('/self/followers', pagination(), async (req, res) => {
+router.get('/self/followers', authMiddleware, pagination(), async (req, res) => {
   try {
     const currentUserId = req.userId
     const { page, limit, offset } = req.pagination
@@ -98,7 +97,7 @@ router.get('/self/followers', pagination(), async (req, res) => {
     res.status(500).json({ code: -1, message: '服务器内部错误。' })
   }
 })
-router.get('/self/followings', pagination(), async (req, res) => {
+router.get('/self/followings', authMiddleware, pagination(), async (req, res) => {
   try {
     const currentUserId = req.userId
     const { page, limit, offset } = req.pagination

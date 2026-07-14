@@ -59,3 +59,34 @@ export async function getDisplayName(db, viewerId, targetId, groupId = null) {
 export function escapeLikeKeyword(raw) {
   return raw.replace(/[%_\\]/g, '\\$&')
 }
+export async function getFriendStatus(db, userId, targetId) {
+  if (!userId) {
+    return 'false'
+  } else {
+    if (userId === targetId) {
+      return 'self'
+    } else {
+      const friendRow = await db.getOne(
+        'SELECT 1 FROM friendships WHERE (source = ? AND target = ?) OR (source = ? AND target = ?) LIMIT 1',
+        [userId, targetId, targetId, userId]
+      )
+      if (friendRow) {
+        return 'true'
+      } else {
+        const requestRow = await db.getOne(
+          'SELECT source, target FROM friend_requests WHERE (source = ? AND target = ?) OR (source = ? AND target = ?) LIMIT 1',
+          [userId, targetId, targetId, userId]
+        )
+        if (requestRow) {
+          if (requestRow.source === userId && requestRow.target === targetId) {
+            return 'pending'
+          } else {
+            return 'requested'
+          }
+        } else {
+          return 'false'
+        }
+      }
+    }
+  }
+}

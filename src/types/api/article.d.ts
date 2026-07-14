@@ -1,4 +1,5 @@
 import type { Response, Pagination } from '.'
+import { FollowStatus } from './user'
 interface UserArticle {
   id: number
   updateTime: number
@@ -27,7 +28,7 @@ interface ArticleDetail {
   updateTime: number
   likeCount: number
   isLiked: boolean
-  isFollowing: 'true' | 'false' | 'self'
+  isFollowing: FollowStatus
 }
 interface HomeArticleListResponse extends Response {
   data: HomeArticle[]

@@ -3,8 +3,7 @@ import { getDisplayName } from '../utils.js'
 import db from '../config.js'
 import { authMiddleware } from '../middlewares/auth.js'
 const router = express.Router()
-router.use(authMiddleware)
-router.get('/friends', async (req, res) => {
+router.get('/friends', authMiddleware, async (req, res) => {
   try {
     const userId = req.userId
     const typeFilter = req.query.type || 'all'
@@ -101,11 +100,11 @@ router.get('/friends', async (req, res) => {
   } catch (error) {
     res.status(500).json({
       code: -1,
-      msg: '数据库错误。'
+      msg: '服务器内部错误。'
     })
   }
 })
-router.get('/requests', async (req, res) => {
+router.get('/requests', authMiddleware, async (req, res) => {
   try {
     const userId = req.userId
     const receivedRequests = await db.query('SELECT fr.id, fr.source, fr.target, UNIX_TIMESTAMP(fr.sent_at) AS time, u.nick, ur.remark FROM friend_requests fr JOIN users u ON fr.source = u.id LEFT JOIN user_remarks ur ON u.id = ur.target_user_id AND ur.user_id = ? WHERE fr.target = ?', [userId, userId])
@@ -119,8 +118,40 @@ router.get('/requests', async (req, res) => {
   } catch (error) {
     res.status(500).json({
       code: -1,
-      msg: '数据库错误。'
+      msg: '服务器内部错误。'
     })
   }
 })
+/*
+发送好友请求  POST /api/friend-requests
+  请求体 {"target": "用户ID", "message": "好友请求信息"}
+  响应体
+    请求成功 201 {"code": 1, "msg": "好友请求已发送。"}
+    请求失败类型：
+      用户不存在 404 {"code": -1, "msg": "用户不存在。"}
+      用户已是好友 409 {"code": -1, "msg": "用户已是好友。"}
+      用户自己 403 {"code": -1, "msg": "不能添加自己为好友。"}
+      请求已发送 409 {"code": -1, "msg": "好友请求已发送。"}
+
+同意好友请求  POST /api/friend-requests/{requestId}/accept
+  响应体
+    请求成功 200 {"code": 1, "msg": "好友请求已接受。"}
+    请求失败类型：
+      请求不存在 404 {"code": -1, "msg": "好友请求不存在。"}
+      无权限处理请求 403 {"code": -1, "msg": "无权限处理该好友请求。"}
+
+拒绝好友请求  POST /api/friend-requests/{requestId}/reject
+  响应体
+    请求成功 200 {"code": 1, "msg": "好友请求已拒绝。"}
+    请求失败类型：
+      请求不存在 404 {"code": -1, "msg": "好友请求不存在。"}
+      无权限处理请求 403 {"code": -1, "msg": "无权限处理该好友请求。"}
+
+撤销好友请求  DELETE /api/friend-requests/{requestId}
+  响应体
+    请求成功 200 {"code": 1, "msg": "好友请求已撤销。"}
+    请求失败类型：
+      请求不存在 404 {"code": -1, "msg": "好友请求不存在。"}
+      无权限处理请求 403 {"code": -1, "msg": "无权限处理该好友请求。"}
+*/
 export default router

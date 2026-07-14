@@ -7,7 +7,7 @@
           <h3 class="header-title">好友列表</h3>
         </div>
         <div class="header-buttons">
-          <el-button type="primary"><span>添加好友</span></el-button>
+          <el-button type="primary" @click="handleAddFriendClick"><span>添加好友</span></el-button>
           <el-button type="primary">
             <span>好友请求</span><el-badge v-if="newFriendsCount > 0" :value="newFriendsCount" :max="99" />
           </el-button>
@@ -34,7 +34,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, inject } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useSessionStore } from '@/stores/session'
@@ -42,6 +42,8 @@ import { storeToRefs } from 'pinia'
 import { getDisplayNick, getDisplayContent } from '@/utils/messageUtils'
 import type { FriendItem } from '@/types/api/friend'
 import { useFriendStore } from '@/stores/friend'
+import AddFriendContent from '@/components/friends/AddFriendContent.vue'
+import { DialogConfigFunc } from '@/types/dialog'
 const router = useRouter()
 const store = useUserStore()
 const sessionStore = useSessionStore()
@@ -50,21 +52,29 @@ const loading = ref<boolean>(false)
 const { friends } = storeToRefs(sessionStore)
 const { unreadCount: newFriendsCount } = storeToRefs(friendStore)
 const currentUserId = store.userId
+const showGlobalDialog = inject<DialogConfigFunc>('showGlobalDialog')
 const selectFriend = (friend: FriendItem) => {
   router.push(`/chat/${friend.id}`)
 }
 const goBack = () => {
   router.back()
 }
+const handleAddFriendClick = () => {
+  showGlobalDialog({
+    title: '添加好友',
+    component: AddFriendContent,
+    buttons: []
+  })
+}
 </script>
 <style scoped>
 .back-button {
   padding: 8px;
   border: none;
-  background: 0 0;
+  background: none;
   cursor: pointer;
   border-radius: 50%;
-  transition: background-color .2s;
+  transition: background-color 0.2s;
 }
 .back-button:hover {
   background-color: rgba(0, 0, 0, 0.04);

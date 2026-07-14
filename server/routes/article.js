@@ -196,7 +196,7 @@ router.get('/self/articles', authMiddleware, pagination(10), async (req, res) =>
     console.error('获取我的文章列表失败:', error)
     res.status(500).json({
       code: -1,
-      msg: '服务器错误，请稍后重试。'
+      msg: '获取我的文章列表失败。'
     })
   }
 })
@@ -296,7 +296,7 @@ router.get('/articles/:id', async (req, res) => {
     })
   } catch (error) {
     console.error('获取文章详情失败:', error)
-    res.status(500).json({ code: -1, msg: '服务器错误，请稍后重试。' })
+    res.status(500).json({ code: -1, msg: '获取文章详情失败。' })
   }
 })
 router.post('/articles', authMiddleware, async (req, res) => {
@@ -376,7 +376,7 @@ router.post('/articles', authMiddleware, async (req, res) => {
     }
     res.status(500).json({
       code: -1,
-      msg: '服务器错误，请稍后重试。'
+      msg: '文章发布失败。'
     })
   }
 })
@@ -463,7 +463,7 @@ router.put('/articles/:id', authMiddleware, async (req, res) => {
       return res.status(400).json({ code: -1, msg: '无效的图片ID。' })
     }
     console.error('修改文章失败:', error)
-    res.status(500).json({ code: -1, msg: '服务器错误，请稍后重试。' })
+    res.status(500).json({ code: -1, msg: '修改文章失败。' })
   }
 })
 router.delete('/articles/:id', authMiddleware, async (req, res) => {
@@ -494,10 +494,10 @@ router.delete('/articles/:id', authMiddleware, async (req, res) => {
     })
   } catch (error) {
     if (connection) await db.rollback(connection)
-    console.error('删除文章失败:', error)
+    console.error('文章删除失败:', error)
     res.status(500).json({
       code: -1,
-      msg: '服务器错误，请稍后重试。'
+      msg: '文章删除失败。'
     })
   }
 })

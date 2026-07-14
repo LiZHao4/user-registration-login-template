@@ -12,9 +12,8 @@ import { fileURLToPath } from 'url'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const router = express.Router()
-router.use(authMiddleware)
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10485760 } })
-router.post('/upload/images', async (req, res) => {
+router.post('/upload/images', authMiddleware, async (req, res) => {
   upload.array('image', 100)(req, res, async (err) => {
     if (err instanceof multer.MulterError) {
       if (err.code === 'LIMIT_UNEXPECTED_FILE') {

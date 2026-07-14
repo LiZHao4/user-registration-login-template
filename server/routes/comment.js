@@ -4,8 +4,7 @@ import { verifyToken } from '../middlewares/auth.js'
 import { pagination } from '../middlewares/pagination.js'
 import { checkArticleVisibility } from '../middlewares/article.js'
 const router = express.Router()
-router.use(checkArticleVisibility)
-router.get('/articles/:id/comments', pagination(), async (req, res) => {
+router.get('/articles/:id/comments', checkArticleVisibility, pagination(), async (req, res) => {
   const { page, limit, offset } = req.pagination
   try {
     const articleId = req.params.id

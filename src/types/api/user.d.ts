@@ -21,6 +21,7 @@ interface PrivateUser extends User {
   created_at: number
 }
 type FriendStatus = 'self' | 'true' | 'false' | 'pending' | 'requested'
+type FollowStatus = 'true' | 'false' | 'self'
 interface PublicUser extends User {
   remark: string | null
   friend_status: FriendStatus

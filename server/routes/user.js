@@ -1,5 +1,5 @@
 import express from 'express'
-import { bin2hex } from '../utils.js'
+import { bin2hex, getFriendStatus } from '../utils.js'
 import db from '../config.js'
 import { authMiddleware } from '../middlewares/auth.js'
 import bcrypt from 'bcrypt'
@@ -245,8 +245,8 @@ router.get('/user/:id', async (req, res) => {
       themeColor = '#' + bin2hex(userBasic.theme_color).toUpperCase()
     }
     userBasic.auto_theme = !!userBasic.auto_theme
+    const friend_status = await getFriendStatus(db, currentUserId, targetId)
     let remark = null
-    let friend_status = 'false'
     let follow_status = 0
     if (currentUserId) {
       const remarkRow = await db.getOne(
@@ -254,31 +254,6 @@ router.get('/user/:id', async (req, res) => {
         [currentUserId, targetId]
       )
       remark = remarkRow ? remarkRow.remark : null
-      if (currentUserId === targetId) {
-        friend_status = 'self'
-      } else {
-        const friendRow = await db.getOne(
-          'SELECT 1 FROM friendships WHERE (source = ? AND target = ?) OR (source = ? AND target = ?) LIMIT 1',
-          [currentUserId, targetId, targetId, currentUserId]
-        )
-        if (friendRow) {
-          friend_status = 'true'
-        } else {
-          const requestRow = await db.getOne(
-            'SELECT source, target FROM friend_requests WHERE (source = ? AND target = ?) OR (source = ? AND target = ?) LIMIT 1',
-            [currentUserId, targetId, targetId, currentUserId]
-          )
-          if (requestRow) {
-            if (requestRow.source === currentUserId && requestRow.target === targetId) {
-              friend_status = 'pending'
-            } else {
-              friend_status = 'requested'
-            }
-          } else {
-            friend_status = 'false'
-          }
-        }
-      }
       const followRow = await db.getOne(
         `SELECT
            EXISTS(SELECT 1 FROM follows WHERE follower_id = ? AND following_id = ?) AS is_following,

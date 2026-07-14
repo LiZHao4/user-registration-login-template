@@ -123,7 +123,49 @@ router.get('/search', pagination(10), async (req, res) => {
     })
   } catch (error) {
     console.error('搜索错误:', error)
-    res.status(500).json({ code: -1, msg: '服务器内部错误。' })
+    res.status(500).json({ code: -1, msg: '搜索失败。' })
+  }
+})
+router.get('/search/users', async (req, res) => {
+  const q = req.query.q
+  if (!q) {
+    return res.status(400).json({
+      code: -1,
+      msg: '缺少必要的参数。'
+    })
+  }
+  try {
+    const param = q
+    let statement = 'SELECT id, user, nick, user_avatar AS avatar, bio FROM users WHERE '
+    if (/^\d+$/.test(q)) {
+      statement += 'id = ?'
+    } else if (/^[a-zA-Z_$][a-zA-Z0-9_$]{0,31}$/.test(q)) {
+      statement += 'user = ?'
+    } else {
+      return res.status(400).json({
+        code: -1,
+        msg: '请求格式不正确。'
+      })
+    }
+    const row = await db.getOne(statement, [param])
+    if (row) {
+      res.json({
+        code: 1,
+        msg: '用户信息获取成功。',
+        data: row
+      })
+    } else {
+      res.status(404).json({
+        code: -1,
+        msg: '用户不存在。'
+      })
+    }
+  } catch (error) {
+    console.error('搜索用户错误:', error)
+    res.status(500).json({
+      code: -1,
+      msg: '搜索用户失败。'
+    })
   }
 })
 export default router

@@ -3,8 +3,7 @@ import db from '../config.js'
 import { authMiddleware } from '../middlewares/auth.js'
 import { sendToUser } from '../socket.js'
 const router = express.Router()
-router.use(authMiddleware)
-router.post('/send', async (req, res) => {
+router.post('/send', authMiddleware, async (req, res) => {
   try {
     const { target, msg } = req.body
     const trimmedMsg = msg.trim()

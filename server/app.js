@@ -57,17 +57,26 @@ app.use((req, res, next) => {
     if (fs.existsSync(indexPath)) {
       res.sendFile(indexPath)
     } else {
-      res.status(404).send('前端文件未找到，请先构建前端项目。')
+      res.status(404).json({
+        code: -1,
+        msg: '前端文件未找到，请先构建前端项目。'
+      })
     }
   } else {
     next()
   }
 })
 app.use((err, req, res, next) => {
-  res.status(500).send('服务器内部错误。')
+  res.status(500).send({
+    code: -1,
+    msg: '服务器内部错误。'
+  })
 })
 app.use((req, res) => {
-  res.status(404).send('未找到页面。')
+  res.status(404).send({
+    code: -1,
+    msg: '未找到页面。'
+  })
 })
 const server = http.createServer(app)
 const io = new Server(server, {

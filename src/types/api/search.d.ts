@@ -1,4 +1,5 @@
 import type { Pagination, Response } from '.'
+import { FriendStatus } from './user'
 interface SearchArticle {
   id: number
   title: string
@@ -24,4 +25,15 @@ interface SearchTag {
 }
 interface SearchResponse extends Response, Pagination {
   data: (SearchArticle | SearchUser | SearchTag)[]
+}
+interface SearchUserItem {
+  id: number
+  user: string
+  nick: string
+  avatar: string
+  bio: string
+  friend_status: FriendStatus
+}
+interface SearchUserResponse extends Response {
+  data: SearchUserItem
 }

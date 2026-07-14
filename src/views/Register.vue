@@ -48,7 +48,7 @@ import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import Button from '@/components/ui/Button.vue'
 import axios from 'axios'
-import type { RegisterAPIResponseData } from '@/types/api'
+import type { RegisterResponse } from '@/types/api/auth'
 import { ElMessage } from 'element-plus'
 interface RegisterForm {
   username: string
@@ -118,9 +118,9 @@ const submitForm = async () => {
   }
   loading.value = true
   try {
-    const response = await axios.post<RegisterAPIResponseData>('/api/register', {
-      username: form.username,
-      password: form.password
+    const response = await axios.post<RegisterResponse>('/api/regist', {
+      user: form.username,
+      pass: form.password
     })
     if (response.data.code !== 1) {
       ElMessage.error(response.data.msg)
@@ -129,7 +129,7 @@ const submitForm = async () => {
       router.push('/login')
     }
   } catch (error) {
-    ElMessage.error('注册失败，请稍后重试')
+    ElMessage.error(error.response?.data?.msg || '注册失败，请稍后再试')
   } finally {
     loading.value = false
   }
